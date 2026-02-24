@@ -264,19 +264,34 @@ def create_monthly_sheet(wb, sheet_name, is_first_sheet=True, housing_cfg=None):
 ws2 = create_monthly_sheet(wb, "月度现金流", is_first_sheet=True, housing_cfg=None)
 
 # ============================================================
+# Sheet 3: 月度现金流（买房）
+# ============================================================
+HOUSING_CFG = {
+    'buy_time_row': 18,
+    'price_row': 19,
+    'down_pct_row': 20,
+    'loan_years_row': 21,
+    'loan_rate_row': 22,
+    'down_amount_row': 23,
+    'loan_amount_row': 24,
+    'monthly_payment_row': 25,
+}
+ws3 = create_monthly_sheet(wb, "月度现金流（买房）", is_first_sheet=False, housing_cfg=HOUSING_CFG)
+
+# ============================================================
 # Sheet 1: 总览 (insert before monthly sheet)
 # ============================================================
 ws1 = wb.create_sheet("总览", 0)
 
 # Title
-ws1.merge_cells('A1:H1')
+ws1.merge_cells('A1:L1')
 ws1['A1'] = '家庭5年财务规划（2026-2030）'
 ws1['A1'].font = Font(bold=True, size=16, color=WHITE)
 ws1['A1'].fill = PatternFill("solid", start_color=DARK_BG)
 ws1['A1'].alignment = Alignment(horizontal='center', vertical='center')
 ws1.row_dimensions[1].height = 40
 
-ws1.merge_cells('A2:H2')
+ws1.merge_cells('A2:L2')
 ws1['A2'] = '制定日期：2026年2月  |  规划周期：2026年2月 - 2030年12月'
 ws1['A2'].font = Font(size=10, color="718096")
 ws1['A2'].alignment = Alignment(horizontal='center', vertical='center')
@@ -347,38 +362,158 @@ for i, (label, val, fmt, note) in enumerate(assumptions, 6):
         else:             # 奇数列号 = 值列
             c.number_format = fmt
 
-# Section: 五年收支总览
-ws1.merge_cells('A15:F15')
-ws1['A15'] = '📊 五年收支总览（2026—2030）'
-hdr(ws1['A15'], bg=MED_BG, sz=12)
-ws1.row_dimensions[15].height = 28
+# ============================================================
+# Section: 买房假设
+# ============================================================
+ws1.merge_cells('A16:M16')
+ws1['A16'] = '🏠 买房假设'
+hdr(ws1['A16'], bg=MED_BG, sz=12)
+ws1.row_dimensions[16].height = 28
 
-for i,h in enumerate(['项目','2026年','2027年','2028年','2029年','2030年'],1):
-    c = ws1.cell(row=16,column=i,value=h)
+# 买房假设子标题行 row 17
+for i, (h, w) in enumerate(zip(sub_hdrs, sub_col_w), 1):
+    c = ws1.cell(row=17, column=i, value=h)
+    hdr(c, bg='4A90D9', sz=9)
+ws1.row_dimensions[17].height = 30
+
+# 买房假设参数（row 18-22）
+housing_assumptions = [
+    ('计划买房时间',   202801, '0',   'YYYYMM格式，如202801=2028年1月'),
+    ('总房价',         1500000, YUAN,  ''),
+    ('首付比例',       0.3,    '0%',  ''),
+    ('贷款年限',       30,     '0',   '年'),
+    ('贷款年利率',     0.031,  '0.0%','商贷参考利率'),
+]
+
+for i, (label, val, fmt, note) in enumerate(housing_assumptions, 18):
+    ws1.row_dimensions[i].height = 22
+    c_label = ws1.cell(row=i, column=1, value=label)
+    c_label.font = Font(bold=True)
+    c_label.fill = PatternFill('solid', start_color=LIGHT_BG)
+    c_label.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+
+    c_val = ws1.cell(row=i, column=2, value=val)
+    inp(c_val)
+    c_val.number_format = fmt
+    c_val.alignment = Alignment(horizontal='right', vertical='center')
+    c_val.fill = PatternFill('solid', start_color=YELLOW_BG)
+
+    c_note = ws1.cell(row=i, column=3, value=note)
+    c_note.font = Font(color='718096', size=9)
+    c_note.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+
+    # 买房时间行(row18)不需要时间变更列，其余参数支持
+    if i > 18:
+        for col in range(4, 14):
+            c = ws1.cell(row=i, column=col, value=None)
+            c.fill = PatternFill('solid', start_color=YELLOW_BG)
+            inp(c)
+            c.alignment = Alignment(horizontal='right', vertical='center')
+            if col % 2 == 0:
+                c.number_format = '0'
+            else:
+                c.number_format = fmt
+
+# 计算行（row 23-25）
+calc_rows = [
+    (23, '首付金额', '=B19*B20', '自动计算'),
+    (24, '贷款总额', '=B19-B23', '自动计算'),
+    (25, '月供金额', '=-PMT(B22/12,B21*12,B24)', '等额本息，自动计算'),
+]
+for row_num, label, formula, note in calc_rows:
+    ws1.row_dimensions[row_num].height = 22
+    c_label = ws1.cell(row=row_num, column=1, value=label)
+    c_label.font = Font(bold=True)
+    c_label.fill = PatternFill('solid', start_color=LIGHT_BG)
+    c_label.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+    c_val = ws1.cell(row=row_num, column=2, value=formula)
+    fml(c_val)
+    c_val.number_format = YUAN
+    c_val.alignment = Alignment(horizontal='right', vertical='center')
+    c_note = ws1.cell(row=row_num, column=3, value=note)
+    c_note.font = Font(color='718096', size=9)
+    c_note.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+
+# ============================================================
+# Section: 五年收支总览（并排对比）
+# ============================================================
+SUMMARY_START = 27
+R_HDR = SUMMARY_START + 1
+R_YEAR_HDR = R_HDR + 1
+RD = R_YEAR_HDR + 1  # row 30，数据起始行
+
+ws1.merge_cells(f'A{SUMMARY_START}:L{SUMMARY_START}')
+ws1.cell(row=SUMMARY_START, column=1, value='📊 五年收支总览（2026—2030）')
+hdr(ws1.cell(row=SUMMARY_START, column=1), bg=MED_BG, sz=12)
+ws1.row_dimensions[SUMMARY_START].height = 28
+
+# 方案标注行
+ws1.merge_cells(f'B{R_HDR}:F{R_HDR}')
+c = ws1.cell(row=R_HDR, column=2, value='📋 不买房方案')
+hdr(c, bg="4A90D9", sz=10)
+ws1.column_dimensions['G'].width = 3
+ws1.merge_cells(f'H{R_HDR}:L{R_HDR}')
+c = ws1.cell(row=R_HDR, column=8, value='🏠 买房方案')
+hdr(c, bg="4A90D9", sz=10)
+c = ws1.cell(row=R_HDR, column=1, value='')
+hdr(c, bg="4A90D9", sz=10)
+ws1.row_dimensions[R_HDR].height = 24
+
+# 年份列标题行
+years_hdrs = ['项目','2026年','2027年','2028年','2029年','2030年']
+for i,h in enumerate(years_hdrs, 1):
+    c = ws1.cell(row=R_YEAR_HDR, column=i, value=h)
     hdr(c, bg="4A90D9", sz=10)
-ws1.row_dimensions[16].height = 24
+for i,h in enumerate(['2026年','2027年','2028年','2029年','2030年'], 8):
+    c = ws1.cell(row=R_YEAR_HDR, column=i, value=h)
+    hdr(c, bg="4A90D9", sz=10)
+ws1.row_dimensions[R_YEAR_HDR].height = 24
 
-# 行定义: (row, label, bold, bg, is_section_header)
+# 行号变量
+ROW_BAL_START = RD + 0
+ROW_INCOME_SEC = RD + 1
+ROW_SALARY = RD + 2
+ROW_BONUS_S = RD + 3
+ROW_INVEST_S = RD + 4
+ROW_INCOME_TOTAL = RD + 5
+ROW_EXPENSE_SEC = RD + 6
+ROW_RENT_S = RD + 7
+ROW_DAILY_S = RD + 8
+ROW_CHILD_S = RD + 9
+ROW_TRAVEL_S = RD + 10
+ROW_DOWN_PAY = RD + 11
+ROW_MORTGAGE_PAY = RD + 12
+ROW_SPECIAL_SEC = RD + 13
+ROW_WEDDING = RD + 14
+ROW_BABY = RD + 15
+ROW_NOTE_ROW = RD + 16
+ROW_EXP_TOTAL = RD + 17
+ROW_EMPTY = RD + 18
+ROW_ANNUAL_NET = RD + 19
+ROW_BAL_END = RD + 20
+
 ROW_DEFS = [
-    (17,'年初余额',True,LIGHT_BG,False),
-    (18,'【收入】',True,None,True),
-    (19,'  工资收入',False,None,False),
-    (20,'  年终奖',False,None,False),
-    (21,'  理财收益',False,None,False),
-    (22,'收入小计',True,GREEN_BG,False),
-    (23,'【支出】',True,None,True),
-    (24,'  房租',False,None,False),
-    (25,'  日常开销',False,None,False),
-    (26,'  育儿开销',False,None,False),
-    (27,'  旅游支出',False,None,False),
-    (28,'  【特殊支出】',True,'E2E8F0',False),
-    (29,'    结婚',False,None,False),
-    (30,'    产检及分娩',False,None,False),
-    (31,'',False,GRAY_BG,False),
-    (32,'支出小计',True,RED_BG,False),
-    (33,'',False,None,False),
-    (34,'年度结余（收入−支出）',True,AMBER_BG,False),
-    (35,'年末累计余额',True,GREEN_BG,False),
+    (ROW_BAL_START,'年初余额',True,LIGHT_BG,False),
+    (ROW_INCOME_SEC,'【收入】',True,None,True),
+    (ROW_SALARY,'  工资收入',False,None,False),
+    (ROW_BONUS_S,'  年终奖',False,None,False),
+    (ROW_INVEST_S,'  理财收益',False,None,False),
+    (ROW_INCOME_TOTAL,'收入小计',True,GREEN_BG,False),
+    (ROW_EXPENSE_SEC,'【支出】',True,None,True),
+    (ROW_RENT_S,'  房租',False,None,False),
+    (ROW_DAILY_S,'  日常开销',False,None,False),
+    (ROW_CHILD_S,'  育儿开销',False,None,False),
+    (ROW_TRAVEL_S,'  旅游支出',False,None,False),
+    (ROW_DOWN_PAY,'  首付支出',False,None,False),
+    (ROW_MORTGAGE_PAY,'  房贷月供',False,None,False),
+    (ROW_SPECIAL_SEC,'  【特殊支出】',True,'E2E8F0',False),
+    (ROW_WEDDING,'    结婚',False,None,False),
+    (ROW_BABY,'    产检及分娩',False,None,False),
+    (ROW_NOTE_ROW,'',False,GRAY_BG,False),
+    (ROW_EXP_TOTAL,'支出小计',True,RED_BG,False),
+    (ROW_EMPTY,'',False,None,False),
+    (ROW_ANNUAL_NET,'年度结余（收入−支出）',True,AMBER_BG,False),
+    (ROW_BAL_END,'年末累计余额',True,GREEN_BG,False),
 ]
 
 SECT_HDR_BG = "E2E8F0"
@@ -386,7 +521,7 @@ for row,label,bold,bg_c,is_sect in ROW_DEFS:
     ws1.row_dimensions[row].height = 22
     c = ws1.cell(row=row,column=1,value=label)
     if is_sect:
-        ws1.merge_cells(f'A{row}:F{row}')
+        ws1.merge_cells(f'A{row}:L{row}')
         c.font = Font(bold=True,size=10,color="2D3748")
         c.fill = PatternFill("solid",start_color=SECT_HDR_BG)
         c.alignment = Alignment(horizontal='left',vertical='center',indent=1)
@@ -395,68 +530,90 @@ for row,label,bold,bg_c,is_sect in ROW_DEFS:
         if bg_c: c.fill = PatternFill("solid",start_color=bg_c)
         c.alignment = Alignment(horizontal='left',vertical='center',indent=1)
 
-# 填充年度数据 B=2026..F=2030
+def fill_cell(ws, row, col, val, style_fn=None, fmt=YUAN, bold=False, bg_c=None):
+    c = ws.cell(row=row, column=col, value=val)
+    if style_fn: style_fn(c)
+    if bold: c.font = Font(bold=True, color=c.font.color if c.font.color else BLACK)
+    if fmt: c.number_format = fmt
+    if bg_c: c.fill = PatternFill("solid", start_color=bg_c)
+    c.alignment = Alignment(horizontal='right', vertical='center')
+    return c
+
+# 不买房方案（B-F列，引用"月度现金流"表）
+SH_NO = '月度现金流'
 for yi,year in enumerate([2026,2027,2028,2029,2030]):
     col = yi + 2
     cl = get_column_letter(col)
-    def cell(row,val,style_fn=None,fmt=YUAN,bold=False,bg_c=None):
-        c = ws1.cell(row=row,column=col,value=val)
-        if style_fn: style_fn(c)
-        if bold: c.font = Font(bold=True,color=c.font.color if c.font.color else BLACK)
-        if fmt: c.number_format = fmt
-        if bg_c: c.fill = PatternFill("solid",start_color=bg_c)
-        c.alignment = Alignment(horizontal='right',vertical='center')
-        return c
 
-    # 年初余额
     if year == 2026:
-        cell(17,'=$B$8',fml,bg_c=YELLOW_BG)
+        fill_cell(ws1, ROW_BAL_START, col, '=$B$8', fml, bg_c=YELLOW_BG)
     else:
         pcl = get_column_letter(col-1)
-        cell(17,f'={pcl}35',fml)
+        fill_cell(ws1, ROW_BAL_START, col, f'={pcl}{ROW_BAL_END}', fml)
 
-    # 工资收入
-    cell(19,f'=SUMIF(月度现金流!B:B,{year},月度现金流!D:D)',lnk)
-    # 年终奖
-    cell(20,f'=SUMIF(月度现金流!B:B,{year},月度现金流!E:E)',lnk)
-    # 理财收益 (从月度现金流汇总，与月度现金流累计储蓄保持一致)
-    cell(21,f'=SUMIF(月度现金流!B:B,{year},月度现金流!F:F)',lnk)
-    # 收入小计
-    cell(22,f'=SUM({cl}19:{cl}21)',fml,bold=True,bg_c=GREEN_BG)
+    fill_cell(ws1, ROW_SALARY, col, f'=SUMIF({SH_NO}!B:B,{year},{SH_NO}!D:D)', lnk)
+    fill_cell(ws1, ROW_BONUS_S, col, f'=SUMIF({SH_NO}!B:B,{year},{SH_NO}!E:E)', lnk)
+    fill_cell(ws1, ROW_INVEST_S, col, f'=SUMIF({SH_NO}!B:B,{year},{SH_NO}!F:F)', lnk)
+    fill_cell(ws1, ROW_INCOME_TOTAL, col, f'=SUM({cl}{ROW_SALARY}:{cl}{ROW_INVEST_S})', fml, bold=True, bg_c=GREEN_BG)
 
-    # 房租
-    cell(24,f'=SUMIF(月度现金流!B:B,{year},月度现金流!H:H)',lnk)
-    # 日常开销
-    cell(25,f'=SUMIF(月度现金流!B:B,{year},月度现金流!I:I)',lnk)
-    # 育儿开销
-    cell(26,f'=SUMIF(月度现金流!B:B,{year},月度现金流!J:J)',lnk)
-    # 旅游支出 (从月度现金流汇总)
-    cell(27,f'=SUMIFS(月度现金流!K:K,月度现金流!B:B,{year},月度现金流!L:L,"年度旅游")',lnk)
-    # 结婚 (从月度现金流汇总)
-    cell(29,f'=SUMIFS(月度现金流!K:K,月度现金流!B:B,{year},月度现金流!L:L,"结婚支出")',lnk)
-    # 产检及分娩 (从月度现金流汇总)
-    cell(30,f'=SUMIFS(月度现金流!K:K,月度现金流!B:B,{year},月度现金流!L:L,"孕产费用")',lnk)
-    # 支出小计 (row31 为备注行，不含在求和范围)
-    cell(32,f'=SUM({cl}24:{cl}27)+SUM({cl}29:{cl}30)',fml,bold=True,bg_c=RED_BG)
+    fill_cell(ws1, ROW_RENT_S, col, f'=SUMIF({SH_NO}!B:B,{year},{SH_NO}!H:H)', lnk)
+    fill_cell(ws1, ROW_DAILY_S, col, f'=SUMIF({SH_NO}!B:B,{year},{SH_NO}!I:I)', lnk)
+    fill_cell(ws1, ROW_CHILD_S, col, f'=SUMIF({SH_NO}!B:B,{year},{SH_NO}!J:J)', lnk)
+    fill_cell(ws1, ROW_TRAVEL_S, col, f'=SUMIFS({SH_NO}!K:K,{SH_NO}!B:B,{year},{SH_NO}!L:L,"年度旅游")', lnk)
+    fill_cell(ws1, ROW_WEDDING, col, f'=SUMIFS({SH_NO}!K:K,{SH_NO}!B:B,{year},{SH_NO}!L:L,"结婚支出")', lnk)
+    fill_cell(ws1, ROW_BABY, col, f'=SUMIFS({SH_NO}!K:K,{SH_NO}!B:B,{year},{SH_NO}!L:L,"孕产费用")', lnk)
+    fill_cell(ws1, ROW_EXP_TOTAL, col,
+              f'=SUM({cl}{ROW_RENT_S}:{cl}{ROW_TRAVEL_S})+SUM({cl}{ROW_WEDDING}:{cl}{ROW_BABY})',
+              fml, bold=True, bg_c=RED_BG)
 
-    # 年度结余
-    cell(34,f'={cl}22-{cl}32',fml,bold=True,bg_c=AMBER_BG)
-    # 年末累计余额
-    cell(35,f'={cl}17+{cl}34',fml,bold=True,bg_c=GREEN_BG)
+    fill_cell(ws1, ROW_ANNUAL_NET, col, f'={cl}{ROW_INCOME_TOTAL}-{cl}{ROW_EXP_TOTAL}', fml, bold=True, bg_c=AMBER_BG)
+    fill_cell(ws1, ROW_BAL_END, col, f'={cl}{ROW_BAL_START}+{cl}{ROW_ANNUAL_NET}', fml, bold=True, bg_c=GREEN_BG)
 
-# 备注行 row31：合并 A:F，写注释文字
-ws1.merge_cells('A31:F31')
-note_cell = ws1['A31']
+# 买房方案（H-L列，引用"月度现金流（买房）"表）
+SH_BUY = '月度现金流（买房）'
+for yi,year in enumerate([2026,2027,2028,2029,2030]):
+    col = yi + 8
+    cl = get_column_letter(col)
+
+    if year == 2026:
+        fill_cell(ws1, ROW_BAL_START, col, '=$B$8', fml, bg_c=YELLOW_BG)
+    else:
+        pcl = get_column_letter(col-1)
+        fill_cell(ws1, ROW_BAL_START, col, f'={pcl}{ROW_BAL_END}', fml)
+
+    fill_cell(ws1, ROW_SALARY, col, f'=SUMIF(\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!D:D)', lnk)
+    fill_cell(ws1, ROW_BONUS_S, col, f'=SUMIF(\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!E:E)', lnk)
+    fill_cell(ws1, ROW_INVEST_S, col, f'=SUMIF(\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!F:F)', lnk)
+    fill_cell(ws1, ROW_INCOME_TOTAL, col, f'=SUM({cl}{ROW_SALARY}:{cl}{ROW_INVEST_S})', fml, bold=True, bg_c=GREEN_BG)
+
+    fill_cell(ws1, ROW_RENT_S, col, f'=SUMIF(\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!H:H)', lnk)
+    fill_cell(ws1, ROW_DAILY_S, col, f'=SUMIF(\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!I:I)', lnk)
+    fill_cell(ws1, ROW_CHILD_S, col, f'=SUMIF(\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!J:J)', lnk)
+    fill_cell(ws1, ROW_TRAVEL_S, col, f'=SUMIFS(\'{SH_BUY}\'!K:K,\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!L:L,"年度旅游")', lnk)
+    fill_cell(ws1, ROW_DOWN_PAY, col, f'=SUMIF(\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!M:M)', lnk)
+    fill_cell(ws1, ROW_MORTGAGE_PAY, col, f'=SUMIF(\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!N:N)', lnk)
+    fill_cell(ws1, ROW_WEDDING, col, f'=SUMIFS(\'{SH_BUY}\'!K:K,\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!L:L,"结婚支出")', lnk)
+    fill_cell(ws1, ROW_BABY, col, f'=SUMIFS(\'{SH_BUY}\'!K:K,\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!L:L,"孕产费用")', lnk)
+    fill_cell(ws1, ROW_EXP_TOTAL, col,
+              f'=SUM({cl}{ROW_RENT_S}:{cl}{ROW_TRAVEL_S})+{cl}{ROW_DOWN_PAY}+{cl}{ROW_MORTGAGE_PAY}+SUM({cl}{ROW_WEDDING}:{cl}{ROW_BABY})',
+              fml, bold=True, bg_c=RED_BG)
+
+    fill_cell(ws1, ROW_ANNUAL_NET, col, f'={cl}{ROW_INCOME_TOTAL}-{cl}{ROW_EXP_TOTAL}', fml, bold=True, bg_c=AMBER_BG)
+    fill_cell(ws1, ROW_BAL_END, col, f'={cl}{ROW_BAL_START}+{cl}{ROW_ANNUAL_NET}', fml, bold=True, bg_c=GREEN_BG)
+
+# 备注行
+ws1.merge_cells(f'A{ROW_NOTE_ROW}:L{ROW_NOTE_ROW}')
+note_cell = ws1.cell(row=ROW_NOTE_ROW, column=1)
 note_cell.value = '* 特殊支出数据来源：月度现金流汇总；结婚（2026年5月）及孕产费用（2027年9月）均为一次性支出'
 note_cell.font = Font(size=9, color="718096", italic=True)
 note_cell.fill = PatternFill("solid", start_color=GRAY_BG)
 note_cell.alignment = Alignment(horizontal='left', vertical='center', indent=1, wrap_text=True)
-ws1.row_dimensions[31].height = 28
+ws1.row_dimensions[ROW_NOTE_ROW].height = 28
 
-# 添加边框
+# 添加边框（不买房 A-F + 买房 H-L）
 thin = Side(style='thin')
-for row in range(16,36):
-    for col in range(1,7):
+for row in range(R_YEAR_HDR, ROW_BAL_END+1):
+    for col in list(range(1,7)) + list(range(8,13)):
         ws1.cell(row=row,column=col).border = Border(left=thin,right=thin,top=thin,bottom=thin)
 
 # ============================================================
