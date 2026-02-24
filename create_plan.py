@@ -150,46 +150,68 @@ ws1['A2'].alignment = Alignment(horizontal='center', vertical='center')
 ws1.row_dimensions[2].height = 22
 
 # Section: 基本假设
-ws1.merge_cells('A4:D4')
+ws1.merge_cells('A4:M4')
 ws1['A4'] = '📋 基本财务假设'
 hdr(ws1['A4'], bg=MED_BG, sz=12)
 ws1.row_dimensions[4].height = 28
 
+# 子标题行 row 5
+sub_hdrs = [
+    '参数名', '初始值', '备注',
+    '变更1生效\n(YYYYMM)', '变更1值',
+    '变更2生效\n(YYYYMM)', '变更2值',
+    '变更3生效\n(YYYYMM)', '变更3值',
+    '变更4生效\n(YYYYMM)', '变更4值',
+    '变更5生效\n(YYYYMM)', '变更5值',
+]
+sub_col_w = [22, 16, 22, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]
+for i, (h, w) in enumerate(zip(sub_hdrs, sub_col_w), 1):
+    c = ws1.cell(row=5, column=i, value=h)
+    hdr(c, bg='4472C4', sz=9)
+    ws1.column_dimensions[get_column_letter(i)].width = w
+ws1.row_dimensions[5].height = 30
+
+# 假设数据从 row 6 开始（原 row 5）
 assumptions = [
     ('双方月可支配收入合计', 26000, YUAN, '每月税后可支配收入'),
-    ('年终奖（合计）', 46000, YUAN, ''),
-    ('当前存款', 380000, YUAN, '截至2026年2月'),
-    ('婚前月租金', 2400, YUAN, '生育前，含停车费'),
-    ('生育后月租金', 3900, YUAN, '孩子出生后搬入更大住所，含停车费'),
-    ('月日常开销', 1500, YUAN, '餐饮/交通/娱乐等'),
-    ('孩子月开销', 3000, YUAN, '奶粉/纸尿裤/早教等（出生后）'),
-    ('年度旅游支出', 15000, YUAN, ''),
-    ('存款年利率', 0.025, '0.0%', '按年初余额计算，保守型理财参考收益率'),
+    ('年终奖（合计）',       46000, YUAN, ''),
+    ('当前存款',             380000, YUAN, '截至2026年2月'),
+    ('婚前月租金',           2400,  YUAN, '生育前，含停车费'),
+    ('生育后月租金',         3900,  YUAN, '孩子出生后搬入更大住所，含停车费'),
+    ('月日常开销',           1500,  YUAN, '餐饮/交通/娱乐等'),
+    ('孩子月开销',           3000,  YUAN, '奶粉/纸尿裤/早教等（出生后）'),
+    ('年度旅游支出',         15000, YUAN, ''),
+    ('存款年利率',           0.025, '0.0%', '按年初余额计算，保守型理财参考收益率'),
 ]
 
-for i,(label,val,fmt,note) in enumerate(assumptions,5):
+for i, (label, val, fmt, note) in enumerate(assumptions, 6):
     ws1.row_dimensions[i].height = 22
-    c_label = ws1.cell(row=i,column=1,value=label)
+    c_label = ws1.cell(row=i, column=1, value=label)
     c_label.font = Font(bold=True)
-    c_label.fill = PatternFill("solid",start_color=LIGHT_BG)
-    c_label.alignment = Alignment(horizontal='left',vertical='center',indent=1)
-    c_val = ws1.cell(row=i,column=2,value=val)
+    c_label.fill = PatternFill('solid', start_color=LIGHT_BG)
+    c_label.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+
+    c_val = ws1.cell(row=i, column=2, value=val)
     inp(c_val)
     c_val.number_format = fmt
-    c_val.alignment = Alignment(horizontal='right',vertical='center')
-    c_val.fill = PatternFill("solid",start_color=YELLOW_BG)
-    c_note = ws1.cell(row=i,column=3,value=note)
-    c_note.font = Font(color="595959",italic=False,size=9)
-    c_note.alignment = Alignment(horizontal='left',vertical='center',indent=1)
+    c_val.alignment = Alignment(horizontal='right', vertical='center')
+    c_val.fill = PatternFill('solid', start_color=YELLOW_BG)
 
-ws1.column_dimensions['A'].width = 22
-ws1.column_dimensions['B'].width = 16
-ws1.column_dimensions['C'].width = 22
-ws1.column_dimensions['D'].width = 18
-ws1.column_dimensions['E'].width = 18
-ws1.column_dimensions['F'].width = 18
-ws1.column_dimensions['G'].width = 18
-ws1.column_dimensions['H'].width = 18
+    c_note = ws1.cell(row=i, column=3, value=note)
+    c_note.font = Font(color='595959', size=9)
+    c_note.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+
+    # 变更列 D-M：黄底蓝字输入格（空值）
+    for col in range(4, 14):
+        c = ws1.cell(row=i, column=col, value=None)
+        c.fill = PatternFill('solid', start_color=YELLOW_BG)
+        inp(c)
+        c.alignment = Alignment(horizontal='right', vertical='center')
+        # 偶数列 = 值列 (E=5,G=7,I=9,K=11,M=13)，奇数列 = 年月列 (D=4,F=6,H=8,J=10,L=12)
+        if col % 2 == 1:  # 奇数列 = 年月列
+            c.number_format = '0'
+        else:             # 偶数列 = 值列
+            c.number_format = fmt
 
 # Section: 五年收支总览
 ws1.merge_cells('A14:F14')
