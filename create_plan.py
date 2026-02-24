@@ -402,18 +402,6 @@ for i, (label, val, fmt, note) in enumerate(housing_assumptions, 18):
     c_note.font = Font(color='718096', size=9)
     c_note.alignment = Alignment(horizontal='left', vertical='center', indent=1)
 
-    # 买房时间行(row18)不需要时间变更列，其余参数支持
-    if i > 18:
-        for col in range(4, 14):
-            c = ws1.cell(row=i, column=col, value=None)
-            c.fill = PatternFill('solid', start_color=YELLOW_BG)
-            inp(c)
-            c.alignment = Alignment(horizontal='right', vertical='center')
-            if col % 2 == 0:
-                c.number_format = '0'
-            else:
-                c.number_format = fmt
-
 # 计算行（row 23-25）
 calc_rows = [
     (23, '首付金额', '=B19*B20', '自动计算'),
