@@ -207,10 +207,10 @@ for i, (label, val, fmt, note) in enumerate(assumptions, 6):
         c.fill = PatternFill('solid', start_color=YELLOW_BG)
         inp(c)
         c.alignment = Alignment(horizontal='right', vertical='center')
-        # 偶数列 = 值列 (E=5,G=7,I=9,K=11,M=13)，奇数列 = 年月列 (D=4,F=6,H=8,J=10,L=12)
-        if col % 2 == 1:  # 奇数列 = 年月列
+        # 偶数列号 = D,F,H,J,L = 年月列，奇数列号 = E,G,I,K,M = 值列
+        if col % 2 == 0:  # 偶数列号 = 年月列
             c.number_format = '0'
-        else:             # 偶数列 = 值列
+        else:             # 奇数列号 = 值列
             c.number_format = fmt
 
 # Section: 五年收支总览
