@@ -5,19 +5,19 @@ from openpyxl.utils import get_column_letter
 wb = Workbook()
 
 # Colors
-BLUE = "0000FF"
-BLACK = "000000"
-GREEN = "008000"
-DARK_BG = "1F4E79"
-MED_BG = "2E75B6"
-LIGHT_BG = "DEEAF1"
-WHITE = "FFFFFF"
-YELLOW_BG = "FFFF00"
-GREEN_BG = "E2EFDA"
-RED_BG = "FCE4D6"
-AMBER_BG = "FFF2CC"
-GRAY_BG = "F2F2F2"
-ORANGE_BG = "FCE4D6"
+BLUE = "2B6CB0"        # 输入值字体颜色（柔和蓝）
+BLACK = "2D3748"       # 公式字体颜色（深灰蓝）
+GREEN = "2F855A"       # 链接公式字体颜色（柔和绿）
+DARK_BG = "2D3748"     # 深色背景（标题）
+MED_BG = "4A90D9"      # 中等背景（章节标题）
+LIGHT_BG = "EDF2F7"    # 浅色背景（参数名）
+WHITE = "FFFFFF"       # 白色字体
+YELLOW_BG = "EBF4FF"   # 淡蓝背景（输入单元格）
+GREEN_BG = "E6F4EA"    # 淡绿背景（年终奖月/收入小计）
+RED_BG = "FDE8E8"      # 淡红背景（支出小计）
+AMBER_BG = "FEF3C7"    # 淡琥珀背景（重大支出月/年度结余）
+GRAY_BG = "F7FAFC"     # 极浅灰蓝背景（偶数行/备注）
+ORANGE_BG = "FDE8E8"   # 淡红背景（与 RED_BG 统一）
 
 YUAN = '¥#,##0;(¥#,##0);"-"'
 MONTH_NAMES = ['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
@@ -188,7 +188,7 @@ ws1.row_dimensions[1].height = 40
 
 ws1.merge_cells('A2:H2')
 ws1['A2'] = '制定日期：2026年2月  |  规划周期：2026年2月 - 2030年12月'
-ws1['A2'].font = Font(size=10, color="595959")
+ws1['A2'].font = Font(size=10, color="718096")
 ws1['A2'].alignment = Alignment(horizontal='center', vertical='center')
 ws1.row_dimensions[2].height = 22
 
@@ -211,7 +211,7 @@ sub_col_w = [22, 16, 22, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]
 assert len(sub_hdrs) == len(sub_col_w), "列标题与列宽数量不匹配"
 for i, (h, w) in enumerate(zip(sub_hdrs, sub_col_w), 1):
     c = ws1.cell(row=5, column=i, value=h)
-    hdr(c, bg='4472C4', sz=9)
+    hdr(c, bg='4A90D9', sz=9)
     ws1.column_dimensions[get_column_letter(i)].width = w
 ws1.row_dimensions[5].height = 30
 
@@ -242,7 +242,7 @@ for i, (label, val, fmt, note) in enumerate(assumptions, 6):
     c_val.fill = PatternFill('solid', start_color=YELLOW_BG)
 
     c_note = ws1.cell(row=i, column=3, value=note)
-    c_note.font = Font(color='595959', size=9)
+    c_note.font = Font(color='718096', size=9)
     c_note.alignment = Alignment(horizontal='left', vertical='center', indent=1)
 
     # 变更列 D-M：黄底蓝字输入格（空值）
@@ -265,7 +265,7 @@ ws1.row_dimensions[15].height = 28
 
 for i,h in enumerate(['项目','2026年','2027年','2028年','2029年','2030年'],1):
     c = ws1.cell(row=16,column=i,value=h)
-    hdr(c, bg="4472C4", sz=10)
+    hdr(c, bg="4A90D9", sz=10)
 ws1.row_dimensions[16].height = 24
 
 # 行定义: (row, label, bold, bg, is_section_header)
@@ -281,7 +281,7 @@ ROW_DEFS = [
     (25,'  日常开销',False,None,False),
     (26,'  育儿开销',False,None,False),
     (27,'  旅游支出',False,None,False),
-    (28,'  【特殊支出】',True,'D6E4F0',False),
+    (28,'  【特殊支出】',True,'E2E8F0',False),
     (29,'    结婚',False,None,False),
     (30,'    产检及分娩',False,None,False),
     (31,'',False,GRAY_BG,False),
@@ -291,13 +291,13 @@ ROW_DEFS = [
     (35,'年末累计余额',True,GREEN_BG,False),
 ]
 
-SECT_HDR_BG = "D6E4F0"
+SECT_HDR_BG = "E2E8F0"
 for row,label,bold,bg_c,is_sect in ROW_DEFS:
     ws1.row_dimensions[row].height = 22
     c = ws1.cell(row=row,column=1,value=label)
     if is_sect:
         ws1.merge_cells(f'A{row}:F{row}')
-        c.font = Font(bold=True,size=10,color="1F4E79")
+        c.font = Font(bold=True,size=10,color="2D3748")
         c.fill = PatternFill("solid",start_color=SECT_HDR_BG)
         c.alignment = Alignment(horizontal='left',vertical='center',indent=1)
     else:
@@ -358,7 +358,7 @@ for yi,year in enumerate([2026,2027,2028,2029,2030]):
 ws1.merge_cells('A31:F31')
 note_cell = ws1['A31']
 note_cell.value = '* 特殊支出数据来源：月度现金流汇总；结婚（2026年5月）及孕产费用（2027年9月）均为一次性支出'
-note_cell.font = Font(size=9, color="595959", italic=True)
+note_cell.font = Font(size=9, color="718096", italic=True)
 note_cell.fill = PatternFill("solid", start_color=GRAY_BG)
 note_cell.alignment = Alignment(horizontal='left', vertical='center', indent=1, wrap_text=True)
 ws1.row_dimensions[31].height = 28
