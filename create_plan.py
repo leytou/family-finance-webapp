@@ -266,8 +266,6 @@ for row,label,bold,bg_c,is_sect in ROW_DEFS:
 for yi,year in enumerate([2026,2027,2028,2029,2030]):
     col = yi + 2
     cl = get_column_letter(col)
-    mcnt = 11 if year == 2026 else 12
-
     def cell(row,val,style_fn=None,fmt=YUAN,bold=False,bg_c=None):
         c = ws1.cell(row=row,column=col,value=val)
         if style_fn: style_fn(c)
@@ -315,11 +313,11 @@ for yi,year in enumerate([2026,2027,2028,2029,2030]):
 
 # 备注行 row31：合并 A:F，写注释文字
 ws1.merge_cells('A31:F31')
-c38 = ws1['A31']
-c38.value = '* 特殊支出数据来源：月度现金流汇总；结婚（2026年5月）及孕产费用（2027年9月）均为一次性支出'
-c38.font = Font(size=9, color="595959", italic=True)
-c38.fill = PatternFill("solid", start_color=GRAY_BG)
-c38.alignment = Alignment(horizontal='left', vertical='center', indent=1, wrap_text=True)
+note_cell = ws1['A31']
+note_cell.value = '* 特殊支出数据来源：月度现金流汇总；结婚（2026年5月）及孕产费用（2027年9月）均为一次性支出'
+note_cell.font = Font(size=9, color="595959", italic=True)
+note_cell.fill = PatternFill("solid", start_color=GRAY_BG)
+note_cell.alignment = Alignment(horizontal='left', vertical='center', indent=1, wrap_text=True)
 ws1.row_dimensions[31].height = 28
 
 # 添加边框
