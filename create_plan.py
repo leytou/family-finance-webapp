@@ -165,13 +165,14 @@ sub_hdrs = [
     '变更5生效\n(YYYYMM)', '变更5值',
 ]
 sub_col_w = [22, 16, 22, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]
+assert len(sub_hdrs) == len(sub_col_w), "列标题与列宽数量不匹配"
 for i, (h, w) in enumerate(zip(sub_hdrs, sub_col_w), 1):
     c = ws1.cell(row=5, column=i, value=h)
     hdr(c, bg='4472C4', sz=9)
     ws1.column_dimensions[get_column_letter(i)].width = w
 ws1.row_dimensions[5].height = 30
 
-# 假设数据从 row 6 开始（原 row 5）
+# 假设数据从 row 6 开始（row 5 为子标题行）
 assumptions = [
     ('双方月可支配收入合计', 26000, YUAN, '每月税后可支配收入'),
     ('年终奖（合计）',       46000, YUAN, ''),
