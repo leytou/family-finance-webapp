@@ -83,95 +83,185 @@ def get_row_data(year, month):
     elif month == 10: notes = "年度旅游"
     return has_special, notes
 
-# ============================================================
-# Sheet 2: 月度现金流
-# ============================================================
-ws2 = wb.active
-ws2.title = "月度现金流"
+def create_monthly_sheet(wb, sheet_name, is_first_sheet=True, housing_cfg=None):
+    """
+    生成月度现金流工作表。
+    wb: Workbook 对象
+    sheet_name: 工作表名称
+    is_first_sheet: 是否为第一个工作表（使用 wb.active）
+    housing_cfg: 买房配置 dict，None 表示不买房方案
+        {'buy_time_row': 18, 'price_row': 19, 'down_pct_row': 20,
+         'loan_years_row': 21, 'loan_rate_row': 22,
+         'down_amount_row': 23, 'loan_amount_row': 24, 'monthly_payment_row': 25}
+    """
+    cl = lambda c: get_column_letter(c)
 
-hdrs = ['序号','年份','月份','月收入(元)','年终奖(元)','理财收益(元)','总收入(元)',
-        '房租(元)','日常开销(元)','孩子开销(元)',
-        '特殊支出(元)','特殊说明','总支出(元)','当月净储蓄(元)','累计储蓄(元)']
-col_w = [5,7,6,13,13,13,13,10,13,13,13,14,13,15,15]
-
-for i,(h,w) in enumerate(zip(hdrs,col_w),1):
-    c = ws2.cell(row=1,column=i,value=h)
-    hdr(c)
-    ws2.column_dimensions[get_column_letter(i)].width = w
-ws2.row_dimensions[1].height = 42
-ws2.freeze_panes = 'A2'
-
-for idx,(year,month) in enumerate(months_data,1):
-    r = idx + 1
-    has_special, notes = get_row_data(year, month)
-
-    bg = None
-    if has_special: bg = AMBER_BG
-    elif month == 12: bg = GREEN_BG
-    elif idx % 2 == 0: bg = GRAY_BG
-
-    def sc(col,val,style_fn=None,fmt=None):
-        c = ws2.cell(row=r,column=col,value=val)
-        if style_fn: style_fn(c)
-        if fmt: c.number_format = fmt
-        if bg: c.fill = PatternFill("solid",start_color=bg)
-        c.alignment = Alignment(horizontal='center' if col<=3 else 'right',vertical='center')
-        return c
-
-    # 月份判断辅助：从月份名提取数字，如"9月"→9
-    mo_num = f'VALUE(LEFT(C{r},LEN(C{r})-1))'
-    after_child_cond = f'OR(B{r}>2027,AND(B{r}=2027,{mo_num}>=9))'
-
-    sc(1,idx); sc(2,year); sc(3,MONTH_NAMES[month])
-    # 月收入：时间查找（总览 row 6）
-    sc(4, time_lookup(6, f'B{r}', mo_num), fml, YUAN)
-
-    # 年终奖：12月才有，金额时间查找（总览 row 7）
-    bonus_lookup = time_lookup_expr(7, f'B{r}', mo_num)
-    sc(5, f'=IF(C{r}="12月",{bonus_lookup},0)', fml, YUAN)
-
-    # 理财收益：上月累计储蓄 × 年利率（总览 row 14）/ 12
-    if idx == 1:
-        sc(6, f'=ROUND(总览!$B$8*总览!$B$14/12,0)', fml, YUAN)
+    # 列号映射
+    if housing_cfg:
+        # 买房表：18列
+        COL_IDX, COL_YEAR, COL_MONTH = 1, 2, 3
+        COL_INCOME, COL_BONUS, COL_INVEST, COL_TOTAL_IN = 4, 5, 6, 7
+        COL_RENT, COL_DAILY, COL_CHILD = 8, 9, 10
+        COL_SPECIAL, COL_NOTE = 11, 12
+        COL_DOWN, COL_MORTGAGE = 13, 14
+        COL_TOTAL_OUT, COL_NET, COL_CUM = 15, 16, 17
+        COL_LOAN_BAL = 18
+        all_hdrs = ['序号','年份','月份','月收入(元)','年终奖(元)','理财收益(元)','总收入(元)',
+                    '房租(元)','日常开销(元)','孩子开销(元)',
+                    '特殊支出(元)','特殊说明',
+                    '首付支出(元)','房贷月供(元)',
+                    '总支出(元)','当月净储蓄(元)','累计储蓄(元)','房贷剩余(元)']
+        all_col_w = [5,7,6,13,13,13,13,10,13,13,13,14,13,13,13,15,15,15]
     else:
-        sc(6, f'=ROUND(O{r-1}*总览!$B$14/12,0)', fml, YUAN)
+        # 不买房表：15列
+        COL_IDX, COL_YEAR, COL_MONTH = 1, 2, 3
+        COL_INCOME, COL_BONUS, COL_INVEST, COL_TOTAL_IN = 4, 5, 6, 7
+        COL_RENT, COL_DAILY, COL_CHILD = 8, 9, 10
+        COL_SPECIAL, COL_NOTE = 11, 12
+        COL_DOWN, COL_MORTGAGE = None, None
+        COL_TOTAL_OUT, COL_NET, COL_CUM = 13, 14, 15
+        COL_LOAN_BAL = None
+        all_hdrs = ['序号','年份','月份','月收入(元)','年终奖(元)','理财收益(元)','总收入(元)',
+                    '房租(元)','日常开销(元)','孩子开销(元)',
+                    '特殊支出(元)','特殊说明','总支出(元)','当月净储蓄(元)','累计储蓄(元)']
+        all_col_w = [5,7,6,13,13,13,13,10,13,13,13,14,13,15,15]
 
-    sc(7, f'=D{r}+E{r}+F{r}', fml, YUAN)
-
-    # 房租：生育前用婚前租金(row9)，生育后用生育后租金(row10)，均支持时间查找
-    rent_before = time_lookup_expr(9,  f'B{r}', mo_num)
-    rent_after  = time_lookup_expr(10, f'B{r}', mo_num)
-    sc(8, f'=IF({after_child_cond},{rent_after},{rent_before})', fml, YUAN)
-
-    # 日常开销：时间查找（总览 row 11）
-    sc(9, time_lookup(11, f'B{r}', mo_num), fml, YUAN)
-
-    # 孩子月开销：生育后才有，时间查找（总览 row 12）
-    child_val = time_lookup_expr(12, f'B{r}', mo_num)
-    sc(10, f'=IF({after_child_cond},{child_val},0)', fml, YUAN)
-
-    # 特殊支出：年度旅游引用总览 row 13（时间查找）
-    travel_val = time_lookup_expr(13, f'B{r}', mo_num)
-    sc(11, f'=IF(AND(B{r}=2026,C{r}="5月"),120000,'
-           f'IF(AND(B{r}=2027,C{r}="9月"),30000,'
-           f'IF(C{r}="10月",{travel_val},0)))', fml, YUAN)
-    nc = ws2.cell(row=r,column=12,value=notes)
-    nc.alignment = Alignment(horizontal='center',vertical='center')
-    if bg: nc.fill = PatternFill("solid",start_color=bg)
-    sc(13,f'=SUM(H{r}:K{r})',fml,YUAN)
-    sc(14,f'=G{r}-M{r}',fml,YUAN)
-    if idx==1:
-        sc(15,f'=总览!$B$8+N{r}',fml,YUAN)
+    if is_first_sheet:
+        ws = wb.active
+        ws.title = sheet_name
     else:
-        sc(15,f'=O{r-1}+N{r}',fml,YUAN)
+        ws = wb.create_sheet(sheet_name)
 
-# Add legend row
-lr = len(months_data)+3
-ws2.cell(row=lr,column=1,value='图例说明：').font = Font(bold=True)
-for col,txt,bg_c in [(2,'蓝色=输入值',LIGHT_BG),(4,'黄底=重大支出月',AMBER_BG),(6,'绿底=年终奖月',GREEN_BG)]:
-    c = ws2.cell(row=lr,column=col,value=txt)
-    c.fill = PatternFill("solid",start_color=bg_c)
-    c.font = Font(color=BLUE if bg_c==LIGHT_BG else BLACK)
+    for i,(h,w) in enumerate(zip(all_hdrs,all_col_w),1):
+        c = ws.cell(row=1,column=i,value=h)
+        hdr(c)
+        ws.column_dimensions[cl(i)].width = w
+    ws.row_dimensions[1].height = 42
+    ws.freeze_panes = 'A2'
+
+    for idx,(year,month) in enumerate(months_data,1):
+        r = idx + 1
+        has_special, notes = get_row_data(year, month)
+
+        bg = None
+        if has_special: bg = AMBER_BG
+        elif month == 12: bg = GREEN_BG
+        elif idx % 2 == 0: bg = GRAY_BG
+
+        def sc(col,val,style_fn=None,fmt=None,_bg=bg):
+            c = ws.cell(row=r,column=col,value=val)
+            if style_fn: style_fn(c)
+            if fmt: c.number_format = fmt
+            if _bg: c.fill = PatternFill("solid",start_color=_bg)
+            c.alignment = Alignment(horizontal='center' if col<=3 else 'right',vertical='center')
+            return c
+
+        # 月份判断辅助：从月份名提取数字，如"9月"→9
+        mo_num = f'VALUE(LEFT({cl(COL_MONTH)}{r},LEN({cl(COL_MONTH)}{r})-1))'
+        after_child_cond = f'OR({cl(COL_YEAR)}{r}>2027,AND({cl(COL_YEAR)}{r}=2027,{mo_num}>=9))'
+
+        sc(COL_IDX,idx); sc(COL_YEAR,year); sc(COL_MONTH,MONTH_NAMES[month])
+
+        # 月收入：时间查找（总览 row 6）
+        sc(COL_INCOME, time_lookup(6, f'{cl(COL_YEAR)}{r}', mo_num), fml, YUAN)
+
+        # 年终奖：12月才有，金额时间查找（总览 row 7）
+        bonus_lookup = time_lookup_expr(7, f'{cl(COL_YEAR)}{r}', mo_num)
+        sc(COL_BONUS, f'=IF({cl(COL_MONTH)}{r}="12月",{bonus_lookup},0)', fml, YUAN)
+
+        # 理财收益：上月累计储蓄 × 年利率（总览 row 14）/ 12
+        if idx == 1:
+            sc(COL_INVEST, f'=ROUND(总览!$B$8*总览!$B$14/12,0)', fml, YUAN)
+        else:
+            sc(COL_INVEST, f'=ROUND({cl(COL_CUM)}{r-1}*总览!$B$14/12,0)', fml, YUAN)
+
+        # 总收入
+        sc(COL_TOTAL_IN, f'={cl(COL_INCOME)}{r}+{cl(COL_BONUS)}{r}+{cl(COL_INVEST)}{r}', fml, YUAN)
+
+        # 房租：生育前用婚前租金(row9)，生育后用生育后租金(row10)
+        rent_before = time_lookup_expr(9,  f'{cl(COL_YEAR)}{r}', mo_num)
+        rent_after  = time_lookup_expr(10, f'{cl(COL_YEAR)}{r}', mo_num)
+        sc(COL_RENT, f'=IF({after_child_cond},{rent_after},{rent_before})', fml, YUAN)
+
+        # 日常开销：时间查找（总览 row 11）
+        sc(COL_DAILY, time_lookup(11, f'{cl(COL_YEAR)}{r}', mo_num), fml, YUAN)
+
+        # 孩子月开销：生育后才有，时间查找（总览 row 12）
+        child_val = time_lookup_expr(12, f'{cl(COL_YEAR)}{r}', mo_num)
+        sc(COL_CHILD, f'=IF({after_child_cond},{child_val},0)', fml, YUAN)
+
+        # 特殊支出：年度旅游引用总览 row 13（时间查找）
+        travel_val = time_lookup_expr(13, f'{cl(COL_YEAR)}{r}', mo_num)
+        sc(COL_SPECIAL, f'=IF(AND({cl(COL_YEAR)}{r}=2026,{cl(COL_MONTH)}{r}="5月"),120000,'
+               f'IF(AND({cl(COL_YEAR)}{r}=2027,{cl(COL_MONTH)}{r}="9月"),30000,'
+               f'IF({cl(COL_MONTH)}{r}="10月",{travel_val},0)))', fml, YUAN)
+
+        # 特殊说明
+        nc = ws.cell(row=r,column=COL_NOTE,value=notes)
+        nc.alignment = Alignment(horizontal='center',vertical='center')
+        if bg: nc.fill = PatternFill("solid",start_color=bg)
+
+        # 买房专属列
+        if housing_cfg:
+            hc = housing_cfg
+            yyyymm = f'{cl(COL_YEAR)}{r}*100+{mo_num}'
+            buy_time = f'总览!$B${hc["buy_time_row"]}'
+            down_amt = f'总览!$B${hc["down_amount_row"]}'
+            loan_amt = f'总览!$B${hc["loan_amount_row"]}'
+            monthly_pmt = f'总览!$B${hc["monthly_payment_row"]}'
+            loan_rate = f'总览!$B${hc["loan_rate_row"]}'
+
+            # 首付支出：仅买房当月
+            sc(COL_DOWN, f'=IF({yyyymm}={buy_time},{down_amt},0)', fml, YUAN)
+
+            # 房贷月供：买房次月起
+            sc(COL_MORTGAGE, f'=IF({yyyymm}>{buy_time},{monthly_pmt},0)', fml, YUAN)
+
+            # 房贷剩余
+            if idx == 1:
+                sc(COL_LOAN_BAL,
+                   f'=IF({yyyymm}<{buy_time},0,'
+                   f'IF({yyyymm}={buy_time},{loan_amt},{loan_amt}))',
+                   fml, YUAN)
+            else:
+                prev_bal = f'{cl(COL_LOAN_BAL)}{r-1}'
+                sc(COL_LOAN_BAL,
+                   f'=IF({yyyymm}<{buy_time},0,'
+                   f'IF({yyyymm}={buy_time},{loan_amt},'
+                   f'{prev_bal}-({monthly_pmt}-{prev_bal}*{loan_rate}/12)))',
+                   fml, YUAN)
+
+            # 总支出（含首付和月供）
+            sc(COL_TOTAL_OUT,
+               f'=SUM({cl(COL_RENT)}{r}:{cl(COL_CHILD)}{r})+{cl(COL_SPECIAL)}{r}+{cl(COL_DOWN)}{r}+{cl(COL_MORTGAGE)}{r}',
+               fml, YUAN)
+        else:
+            # 不买房：总支出 = SUM(房租:特殊支出)
+            sc(COL_TOTAL_OUT, f'=SUM({cl(COL_RENT)}{r}:{cl(COL_SPECIAL)}{r})', fml, YUAN)
+
+        # 当月净储蓄
+        sc(COL_NET, f'={cl(COL_TOTAL_IN)}{r}-{cl(COL_TOTAL_OUT)}{r}', fml, YUAN)
+
+        # 累计储蓄
+        if idx==1:
+            sc(COL_CUM, f'=总览!$B$8+{cl(COL_NET)}{r}', fml, YUAN)
+        else:
+            sc(COL_CUM, f'={cl(COL_CUM)}{r-1}+{cl(COL_NET)}{r}', fml, YUAN)
+
+    # 图例行
+    lr = len(months_data)+3
+    ws.cell(row=lr,column=1,value='图例说明：').font = Font(bold=True)
+    for col,txt,bg_c in [(2,'蓝色=输入值',LIGHT_BG),(4,'黄底=重大支出月',AMBER_BG),(6,'绿底=年终奖月',GREEN_BG)]:
+        c = ws.cell(row=lr,column=col,value=txt)
+        c.fill = PatternFill("solid",start_color=bg_c)
+        c.font = Font(color=BLUE if bg_c==LIGHT_BG else BLACK)
+
+    return ws
+
+# ============================================================
+# Sheet 2: 月度现金流（不买房）
+# ============================================================
+ws2 = create_monthly_sheet(wb, "月度现金流", is_first_sheet=True, housing_cfg=None)
 
 # ============================================================
 # Sheet 1: 总览 (insert before monthly sheet)
