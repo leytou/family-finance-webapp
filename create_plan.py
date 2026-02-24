@@ -215,37 +215,37 @@ for i, (label, val, fmt, note) in enumerate(assumptions, 6):
             c.number_format = fmt
 
 # Section: 五年收支总览
-ws1.merge_cells('A14:F14')
-ws1['A14'] = '📊 五年收支总览（2026—2030）'
-hdr(ws1['A14'], bg=MED_BG, sz=12)
-ws1.row_dimensions[14].height = 28
+ws1.merge_cells('A15:F15')
+ws1['A15'] = '📊 五年收支总览（2026—2030）'
+hdr(ws1['A15'], bg=MED_BG, sz=12)
+ws1.row_dimensions[15].height = 28
 
 for i,h in enumerate(['项目','2026年','2027年','2028年','2029年','2030年'],1):
-    c = ws1.cell(row=15,column=i,value=h)
+    c = ws1.cell(row=16,column=i,value=h)
     hdr(c, bg="4472C4", sz=10)
-ws1.row_dimensions[15].height = 24
+ws1.row_dimensions[16].height = 24
 
 # 行定义: (row, label, bold, bg, is_section_header)
 ROW_DEFS = [
-    (16,'年初余额',True,LIGHT_BG,False),
-    (17,'【收入】',True,None,True),
-    (18,'  工资收入',False,None,False),
-    (19,'  年终奖',False,None,False),
-    (20,'  理财收益',False,None,False),
-    (21,'收入小计',True,GREEN_BG,False),
-    (22,'【支出】',True,None,True),
-    (23,'  房租',False,None,False),
-    (24,'  日常开销',False,None,False),
-    (25,'  育儿开销',False,None,False),
-    (26,'  旅游支出',False,None,False),
-    (27,'  【特殊支出】',True,'D6E4F0',False),
-    (28,'    结婚',False,None,False),
-    (29,'    产检及分娩',False,None,False),
-    (30,'',False,GRAY_BG,False),
-    (31,'支出小计',True,RED_BG,False),
-    (32,'',False,None,False),
-    (33,'年度结余（收入−支出）',True,AMBER_BG,False),
-    (34,'年末累计余额',True,GREEN_BG,False),
+    (17,'年初余额',True,LIGHT_BG,False),
+    (18,'【收入】',True,None,True),
+    (19,'  工资收入',False,None,False),
+    (20,'  年终奖',False,None,False),
+    (21,'  理财收益',False,None,False),
+    (22,'收入小计',True,GREEN_BG,False),
+    (23,'【支出】',True,None,True),
+    (24,'  房租',False,None,False),
+    (25,'  日常开销',False,None,False),
+    (26,'  育儿开销',False,None,False),
+    (27,'  旅游支出',False,None,False),
+    (28,'  【特殊支出】',True,'D6E4F0',False),
+    (29,'    结婚',False,None,False),
+    (30,'    产检及分娩',False,None,False),
+    (31,'',False,GRAY_BG,False),
+    (32,'支出小计',True,RED_BG,False),
+    (33,'',False,None,False),
+    (34,'年度结余（收入−支出）',True,AMBER_BG,False),
+    (35,'年末累计余额',True,GREEN_BG,False),
 ]
 
 SECT_HDR_BG = "D6E4F0"
@@ -279,52 +279,52 @@ for yi,year in enumerate([2026,2027,2028,2029,2030]):
 
     # 年初余额
     if year == 2026:
-        cell(16,'=$B$7',fml,bg_c=YELLOW_BG)
+        cell(17,'=$B$8',fml,bg_c=YELLOW_BG)
     else:
         pcl = get_column_letter(col-1)
-        cell(16,f'={pcl}34',fml)
+        cell(17,f'={pcl}35',fml)
 
     # 工资收入
-    cell(18,f'=SUMIF(月度现金流!B:B,{year},月度现金流!D:D)',lnk)
+    cell(19,f'=SUMIF(月度现金流!B:B,{year},月度现金流!D:D)',lnk)
     # 年终奖
-    cell(19,f'=SUMIF(月度现金流!B:B,{year},月度现金流!E:E)',lnk)
+    cell(20,f'=SUMIF(月度现金流!B:B,{year},月度现金流!E:E)',lnk)
     # 理财收益 (从月度现金流汇总，与月度现金流累计储蓄保持一致)
-    cell(20,f'=SUMIF(月度现金流!B:B,{year},月度现金流!F:F)',lnk)
+    cell(21,f'=SUMIF(月度现金流!B:B,{year},月度现金流!F:F)',lnk)
     # 收入小计
-    cell(21,f'=SUM({cl}18:{cl}20)',fml,bold=True,bg_c=GREEN_BG)
+    cell(22,f'=SUM({cl}19:{cl}21)',fml,bold=True,bg_c=GREEN_BG)
 
     # 房租
-    cell(23,f'=SUMIF(月度现金流!B:B,{year},月度现金流!H:H)',lnk)
+    cell(24,f'=SUMIF(月度现金流!B:B,{year},月度现金流!H:H)',lnk)
     # 日常开销
-    cell(24,f'=SUMIF(月度现金流!B:B,{year},月度现金流!I:I)',lnk)
+    cell(25,f'=SUMIF(月度现金流!B:B,{year},月度现金流!I:I)',lnk)
     # 育儿开销
-    cell(25,f'=SUMIF(月度现金流!B:B,{year},月度现金流!J:J)',lnk)
-    # 旅游支出 (引用基本假设 B12)
-    cell(26,'=$B$12',fml)
+    cell(26,f'=SUMIF(月度现金流!B:B,{year},月度现金流!J:J)',lnk)
+    # 旅游支出 (从月度现金流汇总)
+    cell(27,f'=SUMIFS(月度现金流!K:K,月度现金流!B:B,{year},月度现金流!L:L,"年度旅游")',lnk)
     # 结婚 (从月度现金流汇总)
-    cell(28,f'=SUMIFS(月度现金流!K:K,月度现金流!B:B,{year},月度现金流!L:L,"结婚支出")',lnk)
+    cell(29,f'=SUMIFS(月度现金流!K:K,月度现金流!B:B,{year},月度现金流!L:L,"结婚支出")',lnk)
     # 产检及分娩 (从月度现金流汇总)
-    cell(29,f'=SUMIFS(月度现金流!K:K,月度现金流!B:B,{year},月度现金流!L:L,"孕产费用")',lnk)
-    # 支出小计 (row30 为备注行，不含在求和范围)
-    cell(31,f'=SUM({cl}23:{cl}26)+SUM({cl}28:{cl}29)',fml,bold=True,bg_c=RED_BG)
+    cell(30,f'=SUMIFS(月度现金流!K:K,月度现金流!B:B,{year},月度现金流!L:L,"孕产费用")',lnk)
+    # 支出小计 (row31 为备注行，不含在求和范围)
+    cell(32,f'=SUM({cl}24:{cl}27)+SUM({cl}29:{cl}30)',fml,bold=True,bg_c=RED_BG)
 
     # 年度结余
-    cell(33,f'={cl}21-{cl}31',fml,bold=True,bg_c=AMBER_BG)
+    cell(34,f'={cl}22-{cl}32',fml,bold=True,bg_c=AMBER_BG)
     # 年末累计余额
-    cell(34,f'={cl}16+{cl}33',fml,bold=True,bg_c=GREEN_BG)
+    cell(35,f'={cl}17+{cl}34',fml,bold=True,bg_c=GREEN_BG)
 
-# 备注行 row30：合并 A:F，写注释文字
-ws1.merge_cells('A30:F30')
-c38 = ws1['A30']
+# 备注行 row31：合并 A:F，写注释文字
+ws1.merge_cells('A31:F31')
+c38 = ws1['A31']
 c38.value = '* 特殊支出数据来源：月度现金流汇总；结婚（2026年5月）及孕产费用（2027年9月）均为一次性支出'
 c38.font = Font(size=9, color="595959", italic=True)
 c38.fill = PatternFill("solid", start_color=GRAY_BG)
 c38.alignment = Alignment(horizontal='left', vertical='center', indent=1, wrap_text=True)
-ws1.row_dimensions[30].height = 28
+ws1.row_dimensions[31].height = 28
 
 # 添加边框
 thin = Side(style='thin')
-for row in range(15,35):
+for row in range(16,36):
     for col in range(1,7):
         ws1.cell(row=row,column=col).border = Border(left=thin,right=thin,top=thin,bottom=thin)
 
