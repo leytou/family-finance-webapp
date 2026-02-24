@@ -52,6 +52,31 @@ for y in range(2026, 2031):
         months_data.append((y, m))
 months_data.append((2031, 1))
 
+def time_lookup(assumption_row, year_cell, mo_num_expr):
+    """
+    生成嵌套IF时间查找公式，从总览表假设行读取当月适用值。
+    assumption_row: 总览表假设数据行号（6-14）
+    year_cell: 当前行年份单元格引用，如 'B3'
+    mo_num_expr: 当前行月份数字表达式，如 'VALUE(LEFT(C3,LEN(C3)-1))'
+    变更列对：D/E=变更1, F/G=变更2, H/I=变更3, J/K=变更4, L/M=变更5
+    """
+    r = assumption_row
+    yyyymm = f'{year_cell}*100+{mo_num_expr}'
+    change_cols = [
+        ('D', 'E'),
+        ('F', 'G'),
+        ('H', 'I'),
+        ('J', 'K'),
+        ('L', 'M'),
+    ]
+    # 从最后一次变更向前嵌套，初始值为 B 列
+    formula = f'总览!$B${r}'
+    for date_col, val_col in change_cols:
+        date_ref = f'总览!${date_col}${r}'
+        val_ref  = f'总览!${val_col}${r}'
+        formula = f'IF(AND({date_ref}<>"",{yyyymm}>={date_ref}),{val_ref},{formula})'
+    return '=' + formula
+
 def get_row_data(year, month):
     has_special = (year == 2026 and month == 5) or (year == 2027 and month == 9) or (month == 10)
     notes = ""
@@ -100,25 +125,45 @@ for idx,(year,month) in enumerate(months_data,1):
     after_child_cond = f'OR(B{r}>2027,AND(B{r}=2027,{mo_num}>=9))'
 
     sc(1,idx); sc(2,year); sc(3,MONTH_NAMES[month])
-    sc(4,'=总览!$B$5',fml,YUAN)
-    sc(5,f'=IF(C{r}="12月",总览!$B$6,0)',fml,YUAN)
-    # 理财收益：上月累计储蓄 × 年利率 / 12
-    if idx==1:
-        sc(6,f'=ROUND(总览!$B$7*总览!$B$13/12,0)',fml,YUAN)
+    # 月收入：时间查找（总览 row 6）
+    sc(4, time_lookup(6, f'B{r}', mo_num), fml, YUAN)
+
+    # 年终奖：12月才有，金额时间查找（总览 row 7）
+    bonus_lookup = time_lookup(7, f'B{r}', mo_num)[1:]  # 去掉前导 '='
+    sc(5, f'=IF(C{r}="12月",{bonus_lookup},0)', fml, YUAN)
+
+    # 理财收益：引用存款年利率（总览 row 14，原 row 13）
+    if idx == 1:
+        sc(6, f'=ROUND(总览!$B$8*总览!$B$14/12,0)', fml, YUAN)
     else:
-        sc(6,f'=ROUND(O{r-1}*总览!$B$13/12,0)',fml,YUAN)
-    sc(7,f'=D{r}+E{r}+F{r}',fml,YUAN)
-    sc(8,f'=IF({after_child_cond},总览!$B$9,总览!$B$8)',fml,YUAN)
-    sc(9,'=总览!$B$10',fml,YUAN)
-    sc(10,f'=IF({after_child_cond},总览!$B$11,0)',fml,YUAN)
-    sc(11,f'=IF(AND(B{r}=2026,C{r}="5月"),120000,IF(AND(B{r}=2027,C{r}="9月"),30000,IF(C{r}="10月",总览!$B$12,0)))',fml,YUAN)
+        sc(6, f'=ROUND(O{r-1}*总览!$B$14/12,0)', fml, YUAN)
+
+    sc(7, f'=D{r}+E{r}+F{r}', fml, YUAN)
+
+    # 房租：生育前用婚前租金(row9)，生育后用生育后租金(row10)，均支持时间查找
+    rent_before = time_lookup(9,  f'B{r}', mo_num)[1:]
+    rent_after  = time_lookup(10, f'B{r}', mo_num)[1:]
+    sc(8, f'=IF({after_child_cond},{rent_after},{rent_before})', fml, YUAN)
+
+    # 日常开销：时间查找（总览 row 11）
+    sc(9, time_lookup(11, f'B{r}', mo_num), fml, YUAN)
+
+    # 孩子月开销：生育后才有，时间查找（总览 row 12）
+    child_val = time_lookup(12, f'B{r}', mo_num)[1:]
+    sc(10, f'=IF({after_child_cond},{child_val},0)', fml, YUAN)
+
+    # 特殊支出：年度旅游引用总览 row 13（时间查找）
+    travel_val = time_lookup(13, f'B{r}', mo_num)[1:]
+    sc(11, f'=IF(AND(B{r}=2026,C{r}="5月"),120000,'
+           f'IF(AND(B{r}=2027,C{r}="9月"),30000,'
+           f'IF(C{r}="10月",{travel_val},0)))', fml, YUAN)
     nc = ws2.cell(row=r,column=12,value=notes)
     nc.alignment = Alignment(horizontal='center',vertical='center')
     if bg: nc.fill = PatternFill("solid",start_color=bg)
     sc(13,f'=SUM(H{r}:K{r})',fml,YUAN)
     sc(14,f'=G{r}-M{r}',fml,YUAN)
     if idx==1:
-        sc(15,f'=总览!$B$7+N{r}',fml,YUAN)
+        sc(15,f'=总览!$B$8+N{r}',fml,YUAN)
     else:
         sc(15,f'=O{r-1}+N{r}',fml,YUAN)
 
