@@ -32,7 +32,7 @@ CONFIG = {
     'monthly_income':    {'value': 26000,  'changes': [(202604,27500),(202704,29000),(202804,31000)]},  # 双方月可支配收入合计
     'annual_bonus':      {'value': 46000,  'changes': [(202604,47500),(202704,49000),(202804,51000)]},  # 年终奖（合计）
     'current_savings':   {'value': 380000, 'changes': []},  # 当前存款（截至2026年2月）
-    'rent_before_child': {'value': 2500,   'changes': []},  # 婚前月租金（含停车费）
+    'rent_before_child': {'value': 2500,   'changes': []},  # 生育前月租金（含停车费）
     'rent_after_child':  {'value': 4000,   'changes': []},  # 生育后月租金（含停车费）
     'monthly_expenses':  {'value': 1500,   'changes': []},  # 月日常开销
     'child_monthly':     {'value': 3000,   'changes': []},  # 孩子月开销（出生后）
