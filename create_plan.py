@@ -22,6 +22,35 @@ ORANGE_BG = "FDE8E8"   # 淡红背景（与 RED_BG 统一）
 YUAN = '¥#,##0;(¥#,##0);"-"'
 MONTH_NAMES = ['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
 
+# ============================================================
+# 📋 所有可调参数集中在这里修改
+# ============================================================
+# changes 列表格式：[(生效时间YYYYMM, 新值), ...]，最多5条
+# 例如收入2027年7月涨到28000：changes: [(202707, 28000)]
+CONFIG = {
+    # ----- 基本财务假设 -----
+    'monthly_income':    {'value': 26000,  'changes': [(202604,27500),(202704,29000),(202804,31000)]},  # 双方月可支配收入合计
+    'annual_bonus':      {'value': 46000,  'changes': [(202604,47500),(202704,49000),(202804,51000)]},  # 年终奖（合计）
+    'current_savings':   {'value': 380000, 'changes': []},  # 当前存款（截至2026年2月）
+    'rent_before_child': {'value': 2500,   'changes': []},  # 婚前月租金（含停车费）
+    'rent_after_child':  {'value': 4000,   'changes': []},  # 生育后月租金（含停车费）
+    'monthly_expenses':  {'value': 1500,   'changes': []},  # 月日常开销
+    'child_monthly':     {'value': 3000,   'changes': []},  # 孩子月开销（出生后）
+    'annual_travel':     {'value': 15000,  'changes': []},  # 年度旅游支出
+    'savings_rate':      {'value': 0.025,  'changes': []},  # 存款年利率
+
+    # ----- 买房假设 -----
+    'buy_time':          {'value': 202801},   # 计划买房时间（YYYYMM格式）
+    'total_price':       {'value': 1500000},  # 总房价
+    'down_payment_pct':  {'value': 0.5},      # 首付比例
+    'loan_years':        {'value': 5},       # 贷款年限（年）
+    'loan_rate':         {'value': 0.021},    # 贷款年利率
+
+    # ----- 特殊一次性支出 -----
+    'wedding_cost':      {'value': 120000},   # 结婚支出（2026年5月）
+    'baby_cost':         {'value': 30000},    # 孕产费用（2027年9月）
+}
+
 def hdr(cell, bg=DARK_BG, fg=WHITE, bold=True, sz=11):
     cell.font = Font(bold=bold, color=fg, size=sz)
     cell.fill = PatternFill("solid", start_color=bg)
@@ -190,10 +219,12 @@ def create_monthly_sheet(wb, sheet_name, is_first_sheet=True, housing_cfg=None):
         child_val = time_lookup_expr(12, f'{cl(COL_YEAR)}{r}', mo_num)
         sc(COL_CHILD, f'=IF({after_child_cond},{child_val},0)', fml, YUAN)
 
-        # 特殊支出：年度旅游引用总览 row 13（时间查找）
+        # 特殊支出：结婚/孕产引用 CONFIG，年度旅游引用总览 row 13（时间查找）
         travel_val = time_lookup_expr(13, f'{cl(COL_YEAR)}{r}', mo_num)
-        sc(COL_SPECIAL, f'=IF(AND({cl(COL_YEAR)}{r}=2026,{cl(COL_MONTH)}{r}="5月"),120000,'
-               f'IF(AND({cl(COL_YEAR)}{r}=2027,{cl(COL_MONTH)}{r}="9月"),30000,'
+        wedding = CONFIG['wedding_cost']['value']
+        baby = CONFIG['baby_cost']['value']
+        sc(COL_SPECIAL, f'=IF(AND({cl(COL_YEAR)}{r}=2026,{cl(COL_MONTH)}{r}="5月"),{wedding},'
+               f'IF(AND({cl(COL_YEAR)}{r}=2027,{cl(COL_MONTH)}{r}="9月"),{baby},'
                f'IF({cl(COL_MONTH)}{r}="10月",{travel_val},0)))', fml, YUAN)
 
         # 特殊说明
@@ -321,26 +352,29 @@ for i, (h, w) in enumerate(zip(sub_hdrs, sub_col_w), 1):
 ws1.row_dimensions[5].height = 30
 
 # 假设数据从 row 6 开始（row 5 为子标题行）
+# 基本假设参数定义：(显示名, CONFIG键名, 数字格式, 备注)
 assumptions = [
-    ('双方月可支配收入合计', 26000, YUAN, '每月税后可支配收入'),
-    ('年终奖（合计）',       46000, YUAN, ''),
-    ('当前存款',             380000, YUAN, '截至2026年2月'),
-    ('婚前月租金',           2400,  YUAN, '生育前，含停车费'),
-    ('生育后月租金',         3900,  YUAN, '孩子出生后搬入更大住所，含停车费'),
-    ('月日常开销',           1500,  YUAN, '餐饮/交通/娱乐等'),
-    ('孩子月开销',           3000,  YUAN, '奶粉/纸尿裤/早教等（出生后）'),
-    ('年度旅游支出',         15000, YUAN, ''),
-    ('存款年利率',           0.025, '0.0%', '按年初余额计算，保守型理财参考收益率'),
+    ('双方月可支配收入合计', 'monthly_income',    YUAN,  '每月税后可支配收入'),
+    ('年终奖（合计）',       'annual_bonus',      YUAN,  ''),
+    ('当前存款',             'current_savings',   YUAN,  '截至2026年2月'),
+    ('婚前月租金',           'rent_before_child', YUAN,  '生育前，含停车费'),
+    ('生育后月租金',         'rent_after_child',  YUAN,  '孩子出生后搬入更大住所，含停车费'),
+    ('月日常开销',           'monthly_expenses',  YUAN,  '餐饮/交通/娱乐等'),
+    ('孩子月开销',           'child_monthly',     YUAN,  '奶粉/纸尿裤/早教等（出生后）'),
+    ('年度旅游支出',         'annual_travel',     YUAN,  ''),
+    ('存款年利率',           'savings_rate',      '0.0%','按年初余额计算，保守型理财参考收益率'),
 ]
 
-for i, (label, val, fmt, note) in enumerate(assumptions, 6):
+for i, (label, cfg_key, fmt, note) in enumerate(assumptions, 6):
+    cfg = CONFIG[cfg_key]
     ws1.row_dimensions[i].height = 22
     c_label = ws1.cell(row=i, column=1, value=label)
     c_label.font = Font(bold=True)
     c_label.fill = PatternFill('solid', start_color=LIGHT_BG)
     c_label.alignment = Alignment(horizontal='left', vertical='center', indent=1)
 
-    c_val = ws1.cell(row=i, column=2, value=val)
+    # 初始值：从 CONFIG 读取
+    c_val = ws1.cell(row=i, column=2, value=cfg['value'])
     inp(c_val)
     c_val.number_format = fmt
     c_val.alignment = Alignment(horizontal='right', vertical='center')
@@ -350,17 +384,21 @@ for i, (label, val, fmt, note) in enumerate(assumptions, 6):
     c_note.font = Font(color='718096', size=9)
     c_note.alignment = Alignment(horizontal='left', vertical='center', indent=1)
 
-    # 变更列 D-M：黄底蓝字输入格（空值）
+    # 变更列 D-M：从 CONFIG changes 填入，其余留空
+    changes = cfg.get('changes', [])
     for col in range(4, 14):
-        c = ws1.cell(row=i, column=col, value=None)
+        change_idx = (col - 4) // 2       # 第几组变更（0-4）
+        is_date_col = (col % 2 == 0)      # 偶数列号 = 年月列，奇数列号 = 值列
+        # 有对应变更数据则填入，否则留空
+        if change_idx < len(changes):
+            cell_val = changes[change_idx][0] if is_date_col else changes[change_idx][1]
+        else:
+            cell_val = None
+        c = ws1.cell(row=i, column=col, value=cell_val)
         c.fill = PatternFill('solid', start_color=YELLOW_BG)
         inp(c)
         c.alignment = Alignment(horizontal='right', vertical='center')
-        # 偶数列号 = D,F,H,J,L = 年月列，奇数列号 = E,G,I,K,M = 值列
-        if col % 2 == 0:  # 偶数列号 = 年月列
-            c.number_format = '0'
-        else:             # 奇数列号 = 值列
-            c.number_format = fmt
+        c.number_format = '0' if is_date_col else fmt
 
 # ============================================================
 # Section: 买房假设
@@ -377,22 +415,24 @@ for i, (h, w) in enumerate(zip(sub_hdrs, sub_col_w), 1):
 ws1.row_dimensions[17].height = 30
 
 # 买房假设参数（row 18-22）
+# 买房假设参数定义：(显示名, CONFIG键名, 数字格式, 备注)
 housing_assumptions = [
-    ('计划买房时间',   202801, '0',   'YYYYMM格式，如202801=2028年1月'),
-    ('总房价',         1500000, YUAN,  ''),
-    ('首付比例',       0.3,    '0%',  ''),
-    ('贷款年限',       30,     '0',   '年'),
-    ('贷款年利率',     0.031,  '0.0%','商贷参考利率'),
+    ('计划买房时间',   'buy_time',         '0',   'YYYYMM格式，如202801=2028年1月'),
+    ('总房价',         'total_price',      YUAN,  ''),
+    ('首付比例',       'down_payment_pct', '0%',  ''),
+    ('贷款年限',       'loan_years',       '0',   '年'),
+    ('贷款年利率',     'loan_rate',        '0.0%','商贷参考利率'),
 ]
 
-for i, (label, val, fmt, note) in enumerate(housing_assumptions, 18):
+for i, (label, cfg_key, fmt, note) in enumerate(housing_assumptions, 18):
     ws1.row_dimensions[i].height = 22
     c_label = ws1.cell(row=i, column=1, value=label)
     c_label.font = Font(bold=True)
     c_label.fill = PatternFill('solid', start_color=LIGHT_BG)
     c_label.alignment = Alignment(horizontal='left', vertical='center', indent=1)
 
-    c_val = ws1.cell(row=i, column=2, value=val)
+    # 初始值：从 CONFIG 读取
+    c_val = ws1.cell(row=i, column=2, value=CONFIG[cfg_key]['value'])
     inp(c_val)
     c_val.number_format = fmt
     c_val.alignment = Alignment(horizontal='right', vertical='center')
