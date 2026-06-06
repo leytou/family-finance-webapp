@@ -19,7 +19,7 @@ AMBER_BG = "FEF3C7"    # 淡琥珀背景（重大支出月/年度结余）
 GRAY_BG = "F7FAFC"     # 极浅灰蓝背景（偶数行/备注）
 ORANGE_BG = "FDE8E8"   # 淡红背景（与 RED_BG 统一）
 
-YUAN = '¥#,##0;(¥#,##0);"-"'
+YUAN = '¥#,##0;[Red]-¥#,##0;"-"'
 MONTH_NAMES = ['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
 
 # ============================================================
@@ -511,17 +511,18 @@ ROW_CHILD_S = RD + 9
 ROW_TRAVEL_S = RD + 10
 ROW_DOWN_PAY = RD + 11
 ROW_MORTGAGE_PAY = RD + 12
-ROW_SPECIAL_SEC = RD + 13
-ROW_WEDDING = RD + 14
-ROW_BABY = RD + 15
-ROW_NOTE_ROW = RD + 16
-ROW_EXP_TOTAL = RD + 17
-ROW_EMPTY = RD + 18
-ROW_ANNUAL_NET = RD + 19
-ROW_BAL_END = RD + 20
+ROW_WEDDING = RD + 13
+ROW_BABY = RD + 14
+ROW_NOTE_ROW = RD + 15
+ROW_EXP_TOTAL = RD + 16
+ROW_EMPTY = RD + 17
+ROW_ANNUAL_NET = RD + 18
+ROW_BAL_END = RD + 19
+ROW_DEBT_END = RD + 20
+ROW_NET_SAVINGS = RD + 21
 
 ROW_DEFS = [
-    (ROW_BAL_START,'年初余额',True,LIGHT_BG,False),
+    (ROW_BAL_START,'年初存款',True,LIGHT_BG,False),
     (ROW_INCOME_SEC,'【收入】',True,None,True),
     (ROW_SALARY,'  工资收入',False,None,False),
     (ROW_BONUS_S,'  年终奖',False,None,False),
@@ -534,14 +535,15 @@ ROW_DEFS = [
     (ROW_TRAVEL_S,'  旅游支出',False,None,False),
     (ROW_DOWN_PAY,'  首付支出',False,None,False),
     (ROW_MORTGAGE_PAY,'  房贷月供',False,None,False),
-    (ROW_SPECIAL_SEC,'  【特殊支出】',True,'E2E8F0',False),
-    (ROW_WEDDING,'    结婚',False,None,False),
-    (ROW_BABY,'    产检及分娩',False,None,False),
+    (ROW_WEDDING,'  结婚',False,None,False),
+    (ROW_BABY,'  产检及分娩',False,None,False),
     (ROW_NOTE_ROW,'',False,GRAY_BG,False),
     (ROW_EXP_TOTAL,'支出小计',True,RED_BG,False),
     (ROW_EMPTY,'',False,None,False),
     (ROW_ANNUAL_NET,'年度结余（收入−支出）',True,AMBER_BG,False),
-    (ROW_BAL_END,'年末累计余额',True,GREEN_BG,False),
+    (ROW_BAL_END,'年末存款',True,GREEN_BG,False),
+    (ROW_DEBT_END,'年末剩余负债',True,LIGHT_BG,False),
+    (ROW_NET_SAVINGS,'净存款',True,AMBER_BG,False),
 ]
 
 SECT_HDR_BG = "E2E8F0"
@@ -558,10 +560,11 @@ for row,label,bold,bg_c,is_sect in ROW_DEFS:
         if bg_c: c.fill = PatternFill("solid",start_color=bg_c)
         c.alignment = Alignment(horizontal='left',vertical='center',indent=1)
 
-def fill_cell(ws, row, col, val, style_fn=None, fmt=YUAN, bold=False, bg_c=None):
+def fill_cell(ws, row, col, val, style_fn=None, fmt=YUAN, bold=False, bg_c=None, fg=None):
     c = ws.cell(row=row, column=col, value=val)
     if style_fn: style_fn(c)
-    if bold: c.font = Font(bold=True, color=c.font.color if c.font.color else BLACK)
+    if bold: c.font = Font(bold=True, color=fg or (c.font.color if c.font.color else BLACK))
+    elif fg: c.font = Font(color=fg, bold=c.font.bold)
     if fmt: c.number_format = fmt
     if bg_c: c.fill = PatternFill("solid", start_color=bg_c)
     c.alignment = Alignment(horizontal='right', vertical='center')
@@ -596,6 +599,8 @@ for yi,year in enumerate([2026,2027,2028,2029,2030]):
 
     fill_cell(ws1, ROW_ANNUAL_NET, col, f'={cl}{ROW_INCOME_TOTAL}-{cl}{ROW_EXP_TOTAL}', fml, bold=True, bg_c=AMBER_BG)
     fill_cell(ws1, ROW_BAL_END, col, f'={cl}{ROW_BAL_START}+{cl}{ROW_ANNUAL_NET}', fml, bold=True, bg_c=GREEN_BG)
+    fill_cell(ws1, ROW_DEBT_END, col, 0, fml, fg='C53030')
+    fill_cell(ws1, ROW_NET_SAVINGS, col, f'={cl}{ROW_BAL_END}-{cl}{ROW_DEBT_END}', fml, bold=True, bg_c=AMBER_BG)
 
 # 买房方案（H-L列，引用"月度现金流（买房）"表）
 SH_BUY = '月度现金流（买房）'
@@ -628,6 +633,9 @@ for yi,year in enumerate([2026,2027,2028,2029,2030]):
 
     fill_cell(ws1, ROW_ANNUAL_NET, col, f'={cl}{ROW_INCOME_TOTAL}-{cl}{ROW_EXP_TOTAL}', fml, bold=True, bg_c=AMBER_BG)
     fill_cell(ws1, ROW_BAL_END, col, f'={cl}{ROW_BAL_START}+{cl}{ROW_ANNUAL_NET}', fml, bold=True, bg_c=GREEN_BG)
+    # 年末剩余负债：取该年12月的房贷剩余
+    fill_cell(ws1, ROW_DEBT_END, col, f'=SUMIFS(\'{SH_BUY}\'!R:R,\'{SH_BUY}\'!B:B,{year},\'{SH_BUY}\'!C:C,"12月")', lnk, fg='C53030')
+    fill_cell(ws1, ROW_NET_SAVINGS, col, f'={cl}{ROW_BAL_END}-{cl}{ROW_DEBT_END}', fml, bold=True, bg_c=AMBER_BG)
 
 # 备注行
 ws1.merge_cells(f'A{ROW_NOTE_ROW}:L{ROW_NOTE_ROW}')
@@ -640,7 +648,7 @@ ws1.row_dimensions[ROW_NOTE_ROW].height = 28
 
 # 添加边框（不买房 A-F + 买房 H-L）
 thin = Side(style='thin')
-for row in range(R_YEAR_HDR, ROW_BAL_END+1):
+for row in range(R_YEAR_HDR, ROW_NET_SAVINGS+1):
     for col in list(range(1,7)) + list(range(8,13)):
         ws1.cell(row=row,column=col).border = Border(left=thin,right=thin,top=thin,bottom=thin)
 
