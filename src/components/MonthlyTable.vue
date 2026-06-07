@@ -5,8 +5,9 @@ import type { MonthResult } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 import { useStore } from '../composables/useStore'
+import { useClickOutside } from '../composables/useClickOutside'
 
-type FormulaField = 'investReturn' | 'netSavings' | 'cumSavings'
+type FormulaField = 'investReturn' | 'monthlyBalance' | 'cumSavings'
 
 const props = defineProps<{
   results: MonthResult[]
@@ -25,8 +26,8 @@ const popover = ref<{
 
 const formulaLabels: Record<FormulaField, string> = {
   investReturn: '理财收益',
-  netSavings: '净储蓄',
-  cumSavings: '累计储蓄',
+  monthlyBalance: '本月结余',
+  cumSavings: '余额',
 }
 
 // 现金流列单元格编辑状态
@@ -100,7 +101,7 @@ function handleAddColumn() {
 // 现金流列单元格编辑
 function startEditCell(columnId: string, month: number, currentValue: number) {
   editingCell.value = { columnId, month }
-  editCellValue.value = String(currentValue)
+  editCellValue.value = String(Math.round(currentValue))
   nextTick(() => {
     editCellInput.value?.select()
   })
@@ -117,7 +118,7 @@ function confirmEditCell() {
   } else {
     const num = Number(trimmed)
     if (Number.isFinite(num)) {
-      store.updateColumnEntry(columnId, month, num)
+      store.updateColumnEntry(columnId, month, Math.round(num))
     }
   }
   editingCell.value = null
@@ -132,7 +133,7 @@ function cancelEditCell() {
 // 累计列编辑（锚点）
 function startEditCum(result: MonthResult) {
   editingCumMonth.value = result.month
-  editCumValue.value = String(result.cumSavings)
+  editCumValue.value = String(Math.round(result.cumSavings))
   nextTick(() => {
     editCumInput.value?.select()
   })
@@ -147,7 +148,7 @@ function confirmEditCum() {
   } else {
     const num = Number(trimmed)
     if (Number.isFinite(num)) {
-      store.addAnchor(editingCumMonth.value, num)
+      store.addAnchor(editingCumMonth.value, Math.round(num))
     }
   }
   editingCumMonth.value = null
@@ -159,10 +160,14 @@ function cancelEditCum() {
   editCumValue.value = ''
 }
 
-// 样式辅助函数
-function getValueColorClass(value: number): string {
-  if (value > 0) return 'text-green-700'
-  if (value < 0) return 'text-red-700'
+// 点击外部退出编辑（mousedown 捕获阶段，先于 blur 触发）
+useClickOutside(editCellInput, confirmEditCell)
+useClickOutside(editCumInput, confirmEditCum)
+useClickOutside(renameInput, confirmRename)
+
+// 样式辅助函数：负数使用斜体
+function getValueClass(value: number): string {
+  if (value < 0) return 'italic'
   return ''
 }
 </script>
@@ -227,8 +232,10 @@ function getValueColorClass(value: number): string {
 
           <!-- 固定列 -->
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">理财</th>
-          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">净储蓄</th>
-          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">累计</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">收入</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">支出</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">结余</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">余额</th>
         </tr>
       </thead>
 
@@ -237,7 +244,6 @@ function getValueColorClass(value: number): string {
           v-for="result in results"
           :key="result.month"
           class="border-b hover:bg-gray-50"
-          :class="{ 'bg-blue-50': result.isAnchor }"
         >
           <td class="px-1 py-0 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
 
@@ -247,7 +253,7 @@ function getValueColorClass(value: number): string {
             :key="`${result.month}-${column.id}`"
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="[
-              getValueColorClass(getColumnValue(result, column.id).amount),
+              getValueClass(getColumnValue(result, column.id).amount),
               { 'bg-blue-100': getColumnValue(result, column.id).isEdited }
             ]"
           >
@@ -255,6 +261,7 @@ function getValueColorClass(value: number): string {
               v-if="editingCell?.columnId === column.id && editingCell?.month === result.month"
               ref="editCellInput"
               type="number"
+              step="1"
               class="w-full h-full border rounded px-1 text-right text-[11px]"
               :value="editCellValue"
               @input="editCellValue = ($event.target as HTMLInputElement).value"
@@ -278,7 +285,7 @@ function getValueColorClass(value: number): string {
           <!-- 理财列 -->
           <td
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="getValueColorClass(result.investReturn)"
+            :class="getValueClass(result.investReturn)"
           >
             <button
               type="button"
@@ -292,32 +299,69 @@ function getValueColorClass(value: number): string {
             </button>
           </td>
 
-          <!-- 净储蓄列 -->
+          <!-- 本月收入列 -->
           <td
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="getValueColorClass(result.netSavings)"
           >
             <button
               type="button"
               class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
-              :aria-label="getFormulaAriaLabel(result, 'netSavings')"
+              :aria-label="getFormulaAriaLabel(result, 'monthlyBalance')"
               style="font: inherit"
-              @click="showFormula(result, 'netSavings', $event)"
+              @click="showFormula(result, 'monthlyBalance', $event)"
               @mouseleave="popover = null"
             >
-              {{ formatCurrency(result.netSavings) }}
+              {{ formatCurrency(result.monthlyIncome) }}
+            </button>
+          </td>
+
+          <!-- 本月支出列 -->
+          <td
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="getValueClass(result.monthlyExpense)"
+          >
+            <button
+              type="button"
+              class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
+              :aria-label="getFormulaAriaLabel(result, 'monthlyBalance')"
+              style="font: inherit"
+              @click="showFormula(result, 'monthlyBalance', $event)"
+              @mouseleave="popover = null"
+            >
+              {{ formatCurrency(result.monthlyExpense) }}
+            </button>
+          </td>
+
+          <!-- 本月结余列 -->
+          <td
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="getValueClass(result.monthlyBalance)"
+          >
+            <button
+              type="button"
+              class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
+              :aria-label="getFormulaAriaLabel(result, 'monthlyBalance')"
+              style="font: inherit"
+              @click="showFormula(result, 'monthlyBalance', $event)"
+              @mouseleave="popover = null"
+            >
+              {{ formatCurrency(result.monthlyBalance) }}
             </button>
           </td>
 
           <!-- 累计列 -->
           <td
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap font-bold"
-            :class="getValueColorClass(result.cumSavings)"
+            :class="[
+              getValueClass(result.cumSavings),
+              { 'bg-blue-100': result.isAnchor }
+            ]"
           >
             <input
               v-if="editingCumMonth === result.month"
               ref="editCumInput"
               type="number"
+              step="1"
               class="w-full h-full border rounded px-1 text-right text-[11px]"
               :value="editCumValue"
               @input="editCumValue = ($event.target as HTMLInputElement).value"
@@ -328,7 +372,7 @@ function getValueColorClass(value: number): string {
             <span
               v-else
               class="block w-full cursor-pointer text-right"
-              :aria-label="`编辑 ${formatMonth(result.month)} 累计储蓄`"
+              :aria-label="`编辑 ${formatMonth(result.month)} 月末余额`"
               @click="startEditCum(result)"
               @mouseenter="showFormula(result, 'cumSavings', $event)"
               @mouseleave="popover = null"

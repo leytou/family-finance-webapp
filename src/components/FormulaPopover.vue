@@ -3,7 +3,7 @@ import type { MonthResult } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 
-type FormulaField = 'investReturn' | 'netSavings' | 'cumSavings'
+type FormulaField = 'investReturn' | 'monthlyBalance' | 'cumSavings'
 
 const props = defineProps<{
   result: MonthResult
@@ -18,8 +18,8 @@ const emit = defineEmits<{
 
 const formulaLabels: Record<FormulaField, string> = {
   investReturn: '理财收益',
-  netSavings: '净储蓄',
-  cumSavings: '累计储蓄',
+  monthlyBalance: '本月结余',
+  cumSavings: '余额',
 }
 
 function getFormula(): string {
@@ -28,14 +28,14 @@ function getFormula(): string {
   switch (props.field) {
     case 'investReturn':
       return '理财收益 = 上月累计储蓄 × 年利率 / 12'
-    case 'netSavings':
-      return `净储蓄 = 现金流合计(${formatCurrency(r.totalFlow)}) + 理财(${formatCurrency(r.investReturn)}) = ${formatCurrency(r.netSavings)}`
+    case 'monthlyBalance':
+      return `本月结余 = 收入(${formatCurrency(r.monthlyIncome)}) - 支出(${formatCurrency(r.monthlyExpense)}) + 理财(${formatCurrency(r.investReturn)}) = ${formatCurrency(r.monthlyBalance)}`
     case 'cumSavings':
       if (r.isAnchor) {
-        return `锚点月份，实际储蓄 = ${formatCurrency(r.cumSavings)}`
+        return `锚点月份，余额 = ${formatCurrency(r.cumSavings)}`
       }
 
-      return `累计储蓄 = 上月累计 + 当月净储蓄(${formatCurrency(r.netSavings)})`
+      return `余额 = 上月余额 + 当月结余(${formatCurrency(r.monthlyBalance)})`
   }
 }
 </script>

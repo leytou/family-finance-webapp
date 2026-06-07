@@ -28,7 +28,7 @@ function handleReset() {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col">
+  <div class="h-screen flex flex-col px-8">
     <header class="h-12 flex items-center justify-between px-4 border-b">
       <h1 class="text-lg font-bold">家庭财务规划</h1>
       <div class="flex items-center gap-4">

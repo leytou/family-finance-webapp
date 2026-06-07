@@ -26,7 +26,9 @@ export interface MonthResult {
   columnValues: { id: string; name: string; amount: number; isEdited: boolean }[]
   totalFlow: number
   investReturn: number
-  netSavings: number
+  monthlyIncome: number
+  monthlyExpense: number
+  monthlyBalance: number
   cumSavings: number
   isAnchor: boolean
 }

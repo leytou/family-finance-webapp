@@ -10,7 +10,9 @@ function createResult(overrides: Partial<MonthResult> = {}): MonthResult {
     columnValues: [],
     totalFlow: 0,
     investReturn: 0,
-    netSavings: 0,
+    monthlyIncome: 0,
+    monthlyExpense: 0,
+    monthlyBalance: 0,
     cumSavings: 0,
     isAnchor: false,
     ...overrides,
@@ -30,7 +32,7 @@ function rowText(wrapper: ReturnType<typeof mount>, label: string): string[] {
 }
 
 describe('AnnualTable', () => {
-  it('首个展示月份是锚点时使用锚点累计值作为首年年初储蓄', () => {
+  it('首个展示月份是锚点时使用锚点累计值作为首年年初余额', () => {
     const wrapper = mount(AnnualTable, {
       props: {
         results: [
@@ -39,7 +41,9 @@ describe('AnnualTable', () => {
             columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: true }],
             totalFlow: 10000,
             investReturn: 100,
-            netSavings: 10100,
+            monthlyIncome: 10100,
+            monthlyExpense: 0,
+            monthlyBalance: 10100,
             cumSavings: 150000,
             isAnchor: true,
           }),
@@ -47,7 +51,7 @@ describe('AnnualTable', () => {
       },
     })
 
-    expect(rowText(wrapper, '年初储蓄')).toEqual(['年初储蓄', '150,000'])
+    expect(rowText(wrapper, '年初余额')).toEqual(['年初余额', '150,000'])
   })
 
   it('按年份汇总现金流并展示后续年份才出现的列', () => {
@@ -59,7 +63,9 @@ describe('AnnualTable', () => {
             columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: true }],
             totalFlow: 10000,
             investReturn: 100,
-            netSavings: 10100,
+            monthlyIncome: 10100,
+            monthlyExpense: 0,
+            monthlyBalance: 10100,
             cumSavings: 10100,
           }),
           createResult({
@@ -67,7 +73,9 @@ describe('AnnualTable', () => {
             columnValues: [{ id: 'col1', name: '工资', amount: 12000, isEdited: true }],
             totalFlow: 12000,
             investReturn: 120,
-            netSavings: 12120,
+            monthlyIncome: 12120,
+            monthlyExpense: 0,
+            monthlyBalance: 12120,
             cumSavings: 22220,
           }),
           createResult({
@@ -79,7 +87,9 @@ describe('AnnualTable', () => {
             ],
             totalFlow: 8000,
             investReturn: 80,
-            netSavings: 8080,
+            monthlyIncome: 8080,
+            monthlyExpense: 0,
+            monthlyBalance: 8080,
             cumSavings: 30300,
           }),
           createResult({
@@ -91,7 +101,9 @@ describe('AnnualTable', () => {
             ],
             totalFlow: 8000,
             investReturn: 90,
-            netSavings: 8090,
+            monthlyIncome: 8090,
+            monthlyExpense: 0,
+            monthlyBalance: 8090,
             cumSavings: 38390,
           }),
         ],
@@ -101,15 +113,15 @@ describe('AnnualTable', () => {
     const headers = wrapper.findAll('th').map((cell) => cell.text())
     expect(headers).toEqual(['项目', '2026', '2027'])
 
-    expect(rowText(wrapper, '年初储蓄')).toEqual(['年初储蓄', '0', '22,220'])
+    expect(rowText(wrapper, '年初余额')).toEqual(['年初余额', '0', '22,220'])
     expect(rowText(wrapper, '工资')).toEqual(['工资', '22,000', '20,000'])
     expect(rowText(wrapper, '奖金')).toEqual(['奖金', '0', '10,000'])
     expect(rowText(wrapper, '育儿')).toEqual(['育儿', '0', '-14,000'])
     expect(rowText(wrapper, '理财收益')).toEqual(['理财收益', '220', '170'])
     expect(rowText(wrapper, '年度结余')).toEqual(['年度结余', '22,220', '16,170'])
-    expect(rowText(wrapper, '年末储蓄')).toEqual(['年末储蓄', '22,220', '38,390'])
+    expect(rowText(wrapper, '年末余额')).toEqual(['年末余额', '22,220', '38,390'])
 
-    const endSavingsRow = wrapper.findAll('tbody tr').find((row) => row.find('td').text() === '年末储蓄')
+    const endSavingsRow = wrapper.findAll('tbody tr').find((row) => row.find('td').text() === '年末余额')
     expect(endSavingsRow?.classes()).toContain('bg-gray-50')
     expect(endSavingsRow?.classes()).toContain('font-bold')
   })
@@ -126,7 +138,9 @@ describe('AnnualTable', () => {
             ],
             totalFlow: 5000,
             investReturn: 100,
-            netSavings: 5100,
+            monthlyIncome: 5100,
+            monthlyExpense: 0,
+            monthlyBalance: 5100,
             cumSavings: 5100,
           }),
           createResult({
@@ -137,7 +151,9 @@ describe('AnnualTable', () => {
             ],
             totalFlow: 5000,
             investReturn: 120,
-            netSavings: 5120,
+            monthlyIncome: 5120,
+            monthlyExpense: 0,
+            monthlyBalance: 5120,
             cumSavings: 10220,
           }),
           createResult({
@@ -148,7 +164,9 @@ describe('AnnualTable', () => {
             ],
             totalFlow: 5000,
             investReturn: 130,
-            netSavings: 5130,
+            monthlyIncome: 5130,
+            monthlyExpense: 0,
+            monthlyBalance: 5130,
             cumSavings: 15350,
           }),
         ],
@@ -159,7 +177,7 @@ describe('AnnualTable', () => {
     expect(rowText(wrapper, '房租')).toEqual(['房租', '-15,000'])
     expect(rowText(wrapper, '理财收益')).toEqual(['理财收益', '350'])
     expect(rowText(wrapper, '年度结余')).toEqual(['年度结余', '15,350'])
-    expect(rowText(wrapper, '年末储蓄')).toEqual(['年末储蓄', '15,350'])
+    expect(rowText(wrapper, '年末余额')).toEqual(['年末余额', '15,350'])
   })
 
   it('使用紧凑表格样式并保持金额列等宽右对齐', () => {
@@ -171,7 +189,9 @@ describe('AnnualTable', () => {
             columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: true }],
             totalFlow: 10000,
             investReturn: 100,
-            netSavings: 10100,
+            monthlyIncome: 10100,
+            monthlyExpense: 0,
+            monthlyBalance: 10100,
             cumSavings: 10100,
           }),
         ],
@@ -200,19 +220,21 @@ describe('AnnualTable', () => {
             ],
             totalFlow: 5000,
             investReturn: 100,
-            netSavings: 5100,
+            monthlyIncome: 5100,
+            monthlyExpense: 0,
+            monthlyBalance: 5100,
             cumSavings: 5100,
           }),
         ],
       },
     })
 
-    // 房租行（负值）应该有红色
+    // 房租行（负值）应该有斜体
     const rentRow = wrapper.findAll('tbody tr').find((row) => row.find('td').text() === '房租')
-    expect(rentRow?.findAll('td')[1].classes()).toContain('text-red-600')
+    expect(rentRow?.findAll('td')[1].classes()).toContain('italic')
   })
 
-  it('年初储蓄为负时显示红色', () => {
+  it('年初余额为负时显示红色', () => {
     const wrapper = mount(AnnualTable, {
       props: {
         results: [
@@ -225,6 +247,6 @@ describe('AnnualTable', () => {
     })
 
     const startSavingsCell = wrapper.findAll('tbody tr')[0].findAll('td')[1]
-    expect(startSavingsCell.classes()).toContain('text-red-600')
+    expect(startSavingsCell.classes()).toContain('italic')
   })
 })

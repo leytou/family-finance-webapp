@@ -10,7 +10,9 @@ function createResult(overrides: Partial<MonthResult> = {}): MonthResult {
     columnValues: [],
     totalFlow: 0,
     investReturn: 0,
-    netSavings: 0,
+    monthlyIncome: 0,
+    monthlyExpense: 0,
+    monthlyBalance: 0,
     cumSavings: 0,
     isAnchor: false,
     ...overrides,
@@ -18,7 +20,7 @@ function createResult(overrides: Partial<MonthResult> = {}): MonthResult {
 }
 
 describe('FormulaPopover', () => {
-  it('展示净储蓄公式（新格式：现金流合计）并定位弹窗', () => {
+  it('展示本月结余公式并定位弹窗', () => {
     const wrapper = mount(FormulaPopover, {
       props: {
         result: createResult({
@@ -29,16 +31,18 @@ describe('FormulaPopover', () => {
           ],
           totalFlow: 8500,
           investReturn: 125.4,
-          netSavings: 8625.4,
+          monthlyIncome: 12000,
+          monthlyExpense: 3500,
+          monthlyBalance: 8625.4,
         }),
-        field: 'netSavings',
+        field: 'monthlyBalance',
         x: 20,
         y: 30,
       },
     })
 
-    expect(wrapper.text()).toContain('2026-02 - 净储蓄')
-    expect(wrapper.text()).toContain('净储蓄 = 现金流合计(8,500) + 理财(125) = 8,625')
+    expect(wrapper.text()).toContain('2026-02 - 本月结余')
+    expect(wrapper.text()).toContain('本月结余 = 收入(12,000) - 支出(3,500) + 理财(125) = 8,625')
     expect(wrapper.attributes('style')).toContain('left: 20px')
     expect(wrapper.attributes('style')).toContain('top: 30px')
   })
@@ -57,7 +61,7 @@ describe('FormulaPopover', () => {
     expect(wrapper.text()).toContain('理财收益 = 上月累计储蓄 × 年利率 / 12')
   })
 
-  it('展示锚点累计储蓄公式并在鼠标移出时关闭', async () => {
+  it('展示锚点月末余额公式并在鼠标移出时关闭', async () => {
     const wrapper = mount(FormulaPopover, {
       props: {
         result: createResult({
@@ -71,19 +75,19 @@ describe('FormulaPopover', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('锚点月份，实际储蓄 = 108,125')
+    expect(wrapper.text()).toContain('锚点月份，余额 = 108,125')
 
     await wrapper.trigger('mouseleave')
 
     expect(wrapper.emitted('close')).toHaveLength(1)
   })
 
-  it('展示累计储蓄公式（非锚点）', () => {
+  it('展示月末余额公式（非锚点）', () => {
     const wrapper = mount(FormulaPopover, {
       props: {
         result: createResult({
           month: 202603,
-          netSavings: 8625.4,
+          monthlyBalance: 8625.4,
           cumSavings: 108125.4,
           isAnchor: false,
         }),
@@ -93,10 +97,10 @@ describe('FormulaPopover', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('累计储蓄 = 上月累计 + 当月净储蓄(8,625)')
+    expect(wrapper.text()).toContain('余额 = 上月余额 + 当月结余(8,625)')
   })
 
-  it('展示现金流合计公式细节（多列）', () => {
+  it('展示本月结余公式细节（多列）', () => {
     const wrapper = mount(FormulaPopover, {
       props: {
         result: createResult({
@@ -108,14 +112,16 @@ describe('FormulaPopover', () => {
           ],
           totalFlow: 12000,
           investReturn: 100,
-          netSavings: 12100,
+          monthlyIncome: 15000,
+          monthlyExpense: 3000,
+          monthlyBalance: 12100,
         }),
-        field: 'netSavings',
+        field: 'monthlyBalance',
         x: 20,
         y: 30,
       },
     })
 
-    expect(wrapper.text()).toContain('净储蓄 = 现金流合计(12,000) + 理财(100) = 12,100')
+    expect(wrapper.text()).toContain('本月结余 = 收入(15,000) - 支出(3,000) + 理财(100) = 12,100')
   })
 })

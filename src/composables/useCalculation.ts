@@ -76,21 +76,27 @@ export function calculate(plan: PlanData): MonthResult[] {
     // 计算投资收益
     const investReturn = (prevCum * plan.systemParams.annualRate) / 12
 
-    // 计算净储蓄
-    const netSavings = totalFlow + investReturn
+    // 计算本月收入（正数现金流合计）和本月支出（负数现金流绝对值合计）
+    const monthlyIncome = columnValues.reduce((sum, col) => col.amount > 0 ? sum + col.amount : sum, 0)
+    const monthlyExpense = columnValues.reduce((sum, col) => col.amount < 0 ? sum + Math.abs(col.amount) : sum, 0)
+
+    // 计算本月结余
+    const monthlyBalance = totalFlow + investReturn
 
     // 查找锚点
     const anchor = plan.anchors.find(item => item.month === month)
 
-    // 计算累计储蓄
-    const cumSavings = anchor ? anchor.actualSavings : prevCum + netSavings
+    // 计算月末余额
+    const cumSavings = anchor ? anchor.actualSavings : prevCum + monthlyBalance
 
     results.push({
       month,
       columnValues,
       totalFlow,
       investReturn,
-      netSavings,
+      monthlyIncome,
+      monthlyExpense,
+      monthlyBalance,
       cumSavings,
       isAnchor: Boolean(anchor),
     })

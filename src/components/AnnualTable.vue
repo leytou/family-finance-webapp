@@ -100,7 +100,7 @@ function getStartSavings(firstResult: MonthResult, previousResult?: MonthResult)
     return firstResult.cumSavings
   }
 
-  return firstResult.cumSavings - firstResult.netSavings
+  return firstResult.cumSavings - firstResult.monthlyBalance
 }
 
 function getColumnTotal(summary: YearSummary, name: string): number {
@@ -125,12 +125,12 @@ function getColumnTotal(summary: YearSummary, name: string): number {
       </thead>
       <tbody>
         <tr class="border-b hover:bg-gray-50">
-          <td class="px-1 py-0 whitespace-nowrap">年初储蓄</td>
+          <td class="px-1 py-0 whitespace-nowrap">年初余额</td>
           <td
             v-for="summary in yearSummaries"
             :key="`start-${summary.year}`"
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="{ 'text-red-600': summary.startSavings < 0 }"
+            :class="{ 'italic': summary.startSavings < 0 }"
           >
             {{ formatCurrency(summary.startSavings) }}
           </td>
@@ -143,8 +143,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             :key="`col-${summary.year}-${name}`"
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="{
-              'text-green-600': getColumnTotal(summary, name) > 0,
-              'text-red-600': getColumnTotal(summary, name) < 0
+              'italic': getColumnTotal(summary, name) < 0
             }"
           >
             {{ formatCurrency(getColumnTotal(summary, name)) }}
@@ -152,12 +151,12 @@ function getColumnTotal(summary: YearSummary, name: string): number {
         </tr>
 
         <tr class="border-b hover:bg-gray-50">
-          <td class="px-1 py-0 text-green-700 whitespace-nowrap">理财收益</td>
+          <td class="px-1 py-0 whitespace-nowrap">理财收益</td>
           <td
             v-for="summary in yearSummaries"
             :key="`invest-${summary.year}`"
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="{ 'text-red-600': summary.investReturn < 0 }"
+            :class="{ 'italic': summary.investReturn < 0 }"
           >
             {{ formatCurrency(summary.investReturn) }}
           </td>
@@ -169,19 +168,19 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             v-for="summary in yearSummaries"
             :key="`balance-${summary.year}`"
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="{ 'text-red-600': summary.yearBalance < 0 }"
+            :class="{ 'italic': summary.yearBalance < 0 }"
           >
             {{ formatCurrency(summary.yearBalance) }}
           </td>
         </tr>
 
         <tr class="border-b bg-gray-50 font-bold">
-          <td class="px-1 py-0 whitespace-nowrap">年末储蓄</td>
+          <td class="px-1 py-0 whitespace-nowrap">年末余额</td>
           <td
             v-for="summary in yearSummaries"
             :key="`end-${summary.year}`"
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="{ 'text-red-600': summary.endSavings < 0 }"
+            :class="{ 'italic': summary.endSavings < 0 }"
           >
             {{ formatCurrency(summary.endSavings) }}
           </td>

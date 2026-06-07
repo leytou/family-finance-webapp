@@ -172,7 +172,7 @@ describe('calculate', () => {
       columnValues: [],
       totalFlow: 0,
       investReturn: 0,
-      netSavings: 0,
+      monthlyBalance: 0,
       cumSavings: 0,
       isAnchor: false,
     })
@@ -180,7 +180,7 @@ describe('calculate', () => {
       month: 203012,
       totalFlow: 0,
       investReturn: 0,
-      netSavings: 0,
+      monthlyBalance: 0,
       cumSavings: 0,
     })
   })
@@ -202,7 +202,7 @@ describe('calculate', () => {
       month: 202601,
       columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: true }],
       totalFlow: 10000,
-      netSavings: 10000,
+      monthlyBalance: 10000,
       cumSavings: 10000,
     })
 
@@ -210,7 +210,7 @@ describe('calculate', () => {
       month: 202602,
       columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: false }],
       totalFlow: 10000,
-      netSavings: 10000,
+      monthlyBalance: 10000,
       cumSavings: 20000,
     })
 
@@ -218,7 +218,7 @@ describe('calculate', () => {
       month: 202606,
       columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: false }],
       totalFlow: 10000,
-      netSavings: 10000,
+      monthlyBalance: 10000,
       cumSavings: 60000,
     })
   })
@@ -330,7 +330,7 @@ describe('calculate', () => {
         { id: 'col2', name: '房租', amount: -3000, isEdited: true },
       ],
       totalFlow: 7000,
-      netSavings: 7000,
+      monthlyBalance: 7000,
       cumSavings: 7000,
     })
 
@@ -340,7 +340,7 @@ describe('calculate', () => {
         { id: 'col2', name: '房租', amount: -3000, isEdited: false },
       ],
       totalFlow: 7000,
-      netSavings: 7000,
+      monthlyBalance: 7000,
       cumSavings: 14000,
     })
   })
@@ -476,19 +476,19 @@ describe('calculate', () => {
 
     expect(results[0]).toMatchObject({
       totalFlow: 5000,
-      netSavings: 5000,
+      monthlyBalance: 5000,
       cumSavings: 5000,
     })
 
     expect(results[1]).toMatchObject({
       totalFlow: 3000,
-      netSavings: 3000,
+      monthlyBalance: 3000,
       cumSavings: 8000,
     })
 
     expect(results[2]).toMatchObject({
       totalFlow: 3000,
-      netSavings: 3000,
+      monthlyBalance: 3000,
       cumSavings: 11000,
     })
   })
