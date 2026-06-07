@@ -114,14 +114,14 @@ function getItemTotal(summary: YearSummary, name: string, type: 'income' | 'expe
 
 <template>
   <div class="h-full overflow-auto border rounded bg-white">
-    <table class="min-w-full border-collapse text-sm">
+    <table class="min-w-full border-collapse text-[11px] leading-tight">
       <thead class="sticky top-0 z-1 bg-gray-50">
         <tr class="border-b">
-          <th class="px-3 py-2 text-left font-semibold whitespace-nowrap">项目</th>
+          <th class="px-1 py-0 text-left font-semibold whitespace-nowrap">项目</th>
           <th
             v-for="summary in yearSummaries"
             :key="summary.year"
-            class="px-3 py-2 text-right font-semibold whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap"
           >
             {{ summary.year }}
           </th>
@@ -129,77 +129,83 @@ function getItemTotal(summary: YearSummary, name: string, type: 'income' | 'expe
       </thead>
       <tbody>
         <tr class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2 whitespace-nowrap">年初储蓄</td>
+          <td class="px-1 py-0 whitespace-nowrap">年初储蓄</td>
           <td
             v-for="summary in yearSummaries"
             :key="`start-${summary.year}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': summary.startSavings < 0 }"
           >
             {{ formatCurrency(summary.startSavings) }}
           </td>
         </tr>
 
         <tr v-for="name in allIncomeNames" :key="`income-${name}`" class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2 text-green-700 whitespace-nowrap">{{ name }}</td>
+          <td class="px-1 py-0 text-green-700 whitespace-nowrap">{{ name }}</td>
           <td
             v-for="summary in yearSummaries"
             :key="`income-${summary.year}-${name}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': getItemTotal(summary, name, 'income') < 0 }"
           >
             {{ formatCurrency(getItemTotal(summary, name, 'income')) }}
           </td>
         </tr>
 
         <tr class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2 text-green-700 whitespace-nowrap">理财收益</td>
+          <td class="px-1 py-0 text-green-700 whitespace-nowrap">理财收益</td>
           <td
             v-for="summary in yearSummaries"
             :key="`invest-${summary.year}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': summary.investReturn < 0 }"
           >
             {{ formatCurrency(summary.investReturn) }}
           </td>
         </tr>
 
         <tr class="border-b font-semibold hover:bg-gray-50">
-          <td class="px-3 py-2 whitespace-nowrap">收入合计</td>
+          <td class="px-1 py-0 whitespace-nowrap">收入合计</td>
           <td
             v-for="summary in yearSummaries"
             :key="`income-total-${summary.year}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': summary.totalIncome < 0 }"
           >
             {{ formatCurrency(summary.totalIncome) }}
           </td>
         </tr>
 
         <tr v-for="name in allExpenseNames" :key="`expense-${name}`" class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2 text-red-700 whitespace-nowrap">{{ name }}</td>
+          <td class="px-1 py-0 text-red-700 whitespace-nowrap">{{ name }}</td>
           <td
             v-for="summary in yearSummaries"
             :key="`expense-${summary.year}-${name}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': getItemTotal(summary, name, 'expense') < 0 }"
           >
             {{ formatCurrency(getItemTotal(summary, name, 'expense')) }}
           </td>
         </tr>
 
         <tr class="border-b font-semibold hover:bg-gray-50">
-          <td class="px-3 py-2 whitespace-nowrap">支出合计</td>
+          <td class="px-1 py-0 whitespace-nowrap">支出合计</td>
           <td
             v-for="summary in yearSummaries"
             :key="`expense-total-${summary.year}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': summary.totalExpense < 0 }"
           >
             {{ formatCurrency(summary.totalExpense) }}
           </td>
         </tr>
 
         <tr class="border-b font-semibold hover:bg-gray-50">
-          <td class="px-3 py-2 whitespace-nowrap">年度结余</td>
+          <td class="px-1 py-0 whitespace-nowrap">年度结余</td>
           <td
             v-for="summary in yearSummaries"
             :key="`balance-${summary.year}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="{ 'text-red-600': summary.yearBalance < 0 }"
           >
             {{ formatCurrency(summary.yearBalance) }}
@@ -207,11 +213,12 @@ function getItemTotal(summary: YearSummary, name: string, type: 'income' | 'expe
         </tr>
 
         <tr class="border-b bg-gray-50 font-bold">
-          <td class="px-3 py-2 whitespace-nowrap">年末储蓄</td>
+          <td class="px-1 py-0 whitespace-nowrap">年末储蓄</td>
           <td
             v-for="summary in yearSummaries"
             :key="`end-${summary.year}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': summary.endSavings < 0 }"
           >
             {{ formatCurrency(summary.endSavings) }}
           </td>

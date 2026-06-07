@@ -139,4 +139,28 @@ describe('App', () => {
     expect(store.data.value.systemParams.currentSavings).toBe(999999)
     expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.currentSavings).toBe(999999)
   })
+
+  it('使用高数据密度的响应式分割布局', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          AnnualTable: true,
+          MonthlyTable: true,
+          ParamPanel: true,
+        },
+      },
+    })
+
+    expect(wrapper.get('main').classes()).toEqual(expect.arrayContaining(['flex-1', 'flex', 'overflow-hidden']))
+    expect(wrapper.get('aside').classes()).toEqual(
+      expect.arrayContaining(['w-72', 'min-w-72', 'border-r', 'overflow-y-auto', 'p-3', 'text-xs'])
+    )
+
+    const tablePanes = wrapper.find('main section').findAll(':scope > div')
+    expect(tablePanes[0].classes()).toEqual(
+      expect.arrayContaining(['flex-none', 'max-h-[35%]', 'overflow-auto', 'border-b'])
+    )
+    expect(tablePanes[1].classes()).toEqual(expect.arrayContaining(['flex-1', 'overflow-auto']))
+  })
 })

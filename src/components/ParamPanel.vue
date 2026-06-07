@@ -46,16 +46,16 @@ function doAddAnchor() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-3">
     <section>
-      <h2 class="text-sm font-bold mb-2">系统参数</h2>
-      <div class="space-y-2">
+      <h2 class="mb-1 text-xs font-bold uppercase tracking-wider text-gray-500">系统参数</h2>
+      <div class="space-y-1">
         <label class="block text-xs">
           当前储蓄
           <input
             v-model.number="data.systemParams.currentSavings"
             type="number"
-            class="block w-full mt-1 px-2 py-1 border rounded text-sm"
+            class="block w-full mt-1 h-7 px-2 border rounded text-xs"
             @change="save()"
           />
         </label>
@@ -64,7 +64,7 @@ function doAddAnchor() {
           <input
             v-model.number="data.systemParams.startMonth"
             type="number"
-            class="block w-full mt-1 px-2 py-1 border rounded text-sm"
+            class="block w-full mt-1 h-7 px-2 border rounded text-xs"
             @change="save()"
           />
         </label>
@@ -74,7 +74,7 @@ function doAddAnchor() {
             v-model.number="data.systemParams.annualRate"
             type="number"
             step="0.001"
-            class="block w-full mt-1 px-2 py-1 border rounded text-sm"
+            class="block w-full mt-1 h-7 px-2 border rounded text-xs"
             @change="save()"
           />
         </label>
@@ -82,8 +82,8 @@ function doAddAnchor() {
     </section>
 
     <section>
-      <h2 class="text-sm font-bold mb-2">现金流项目</h2>
-      <div class="space-y-2">
+      <h2 class="mb-1 text-xs font-bold uppercase tracking-wider text-gray-500">现金流项目</h2>
+      <div class="space-y-1">
         <CashFlowItemEditor
           v-for="item in data.items"
           :key="item.id"
@@ -96,7 +96,7 @@ function doAddAnchor() {
       <div class="flex gap-2 mt-2">
         <button
           type="button"
-          class="flex-1 px-2 py-1 border rounded text-sm"
+          class="flex-1 h-7 px-2 border rounded text-xs"
           aria-label="添加收入项目"
           @click="addItem('新收入', 'income')"
         >
@@ -104,7 +104,7 @@ function doAddAnchor() {
         </button>
         <button
           type="button"
-          class="flex-1 px-2 py-1 border rounded text-sm"
+          class="flex-1 h-7 px-2 border rounded text-xs"
           aria-label="添加支出项目"
           @click="addItem('新支出', 'expense')"
         >
@@ -114,8 +114,8 @@ function doAddAnchor() {
     </section>
 
     <section>
-      <h2 class="text-sm font-bold mb-2">月度锚点</h2>
-      <div class="space-y-2">
+      <h2 class="mb-1 text-xs font-bold uppercase tracking-wider text-gray-500">月度锚点</h2>
+      <div class="space-y-1">
         <div
           v-for="anchor in data.anchors"
           :key="anchor.month"
@@ -125,7 +125,7 @@ function doAddAnchor() {
           <span class="font-mono">{{ formatCurrency(anchor.actualSavings) }}</span>
           <button
             type="button"
-            class="px-2 py-1 border rounded text-sm"
+            class="h-7 px-2 border rounded text-xs"
             :aria-label="`删除 ${formatMonth(anchor.month)} 锚点`"
             @click="removeAnchor(anchor.month)"
           >
@@ -139,7 +139,7 @@ function doAddAnchor() {
           <input
             v-model.number="newAnchorMonth"
             type="number"
-            class="block w-full mt-1 px-2 py-1 border rounded text-sm"
+            class="block w-full mt-1 h-7 px-2 border rounded text-xs"
             aria-label="锚点月份"
           />
         </label>
@@ -148,14 +148,14 @@ function doAddAnchor() {
           <input
             v-model.number="newAnchorValue"
             type="number"
-            class="block w-full mt-1 px-2 py-1 border rounded text-sm"
+            class="block w-full mt-1 h-7 px-2 border rounded text-xs"
             aria-label="锚点金额"
           />
         </label>
       </div>
       <button
         type="button"
-        class="w-full mt-2 px-2 py-1 border rounded text-sm"
+        class="w-full mt-2 h-7 px-2 border rounded text-xs"
         aria-label="添加月度锚点"
         @click="doAddAnchor"
       >

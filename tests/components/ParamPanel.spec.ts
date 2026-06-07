@@ -72,6 +72,17 @@ describe('ParamPanel', () => {
     expect(wrapper.getComponent({ name: 'CashFlowItemEditor' }).props('startMonth')).toBe(202704)
   })
 
+  it('使用紧凑侧栏表单样式', async () => {
+    const ParamPanel = await loadParamPanel()
+    const wrapper = mount(ParamPanel)
+
+    expect(wrapper.get('section h2').classes()).toEqual(
+      expect.arrayContaining(['text-xs', 'font-bold', 'uppercase', 'tracking-wider', 'text-gray-500'])
+    )
+    expect(wrapper.get('section div').classes()).toContain('space-y-1')
+    expect(wrapper.get('input').classes()).toEqual(expect.arrayContaining(['h-7', 'text-xs']))
+  })
+
   it('展示、删除并新增月度锚点', async () => {
     const useStore = await loadUseStore()
     const { data, save } = useStore()

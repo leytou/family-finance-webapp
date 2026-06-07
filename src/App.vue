@@ -42,12 +42,16 @@ function handleReset() {
       </div>
     </header>
     <main class="flex-1 flex overflow-hidden">
-      <aside class="w-80 border-r overflow-y-auto p-4">
+      <aside class="w-72 min-w-72 border-r overflow-y-auto p-3 text-xs">
         <ParamPanel />
       </aside>
-      <section class="flex-1 flex flex-col overflow-hidden p-4">
-        <AnnualTable :results="results" class="max-h-[40%]" />
-        <MonthlyTable :results="results" class="flex-1" />
+      <section class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-none max-h-[35%] overflow-auto border-b">
+          <AnnualTable :results="results" />
+        </div>
+        <div class="flex-1 overflow-auto">
+          <MonthlyTable :results="results" />
+        </div>
       </section>
     </main>
   </div>

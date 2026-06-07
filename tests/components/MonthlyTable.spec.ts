@@ -112,6 +112,33 @@ describe('MonthlyTable', () => {
     expect(wrapper.text()).toContain('累计储蓄 = 上月累计 + 当月净储蓄(9,125)')
   })
 
+  it('使用紧凑表格样式并保持金额列等宽右对齐', () => {
+    const wrapper = mount(MonthlyTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            incomeItems: [{ name: '工资', amount: 12000 }],
+            expenseItems: [{ name: '房租', amount: 3000 }],
+            investReturn: 125,
+            netSavings: -900,
+            cumSavings: 99100,
+          }),
+        ],
+      },
+    })
+
+    expect(wrapper.get('table').classes()).toEqual(
+      expect.arrayContaining(['text-[11px]', 'leading-tight'])
+    )
+    expect(wrapper.get('thead').classes()).toEqual(expect.arrayContaining(['sticky', 'top-0', 'bg-gray-50']))
+    expect(wrapper.get('th').classes()).toEqual(expect.arrayContaining(['px-1', 'py-0']))
+
+    const cells = wrapper.findAll('tbody td')
+    expect(cells[1].classes()).toEqual(expect.arrayContaining(['px-1', 'py-0', 'text-right', 'tabular-nums']))
+    expect(cells[4].classes()).toEqual(expect.arrayContaining(['text-red-600', 'text-right', 'tabular-nums']))
+  })
+
   it('鼠标离开公式按钮时关闭弹窗', async () => {
     const wrapper = mount(MonthlyTable, {
       props: {

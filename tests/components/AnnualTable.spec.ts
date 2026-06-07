@@ -105,4 +105,30 @@ describe('AnnualTable', () => {
     expect(endSavingsRow?.classes()).toContain('bg-gray-50')
     expect(endSavingsRow?.classes()).toContain('font-bold')
   })
+
+  it('使用紧凑表格样式并保持金额列等宽右对齐', () => {
+    const wrapper = mount(AnnualTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            incomeItems: [{ name: '工资', amount: 10000 }],
+            expenseItems: [{ name: '房租', amount: 3000 }],
+            investReturn: 100,
+            netSavings: 7100,
+            cumSavings: 107100,
+          }),
+        ],
+      },
+    })
+
+    expect(wrapper.get('table').classes()).toEqual(
+      expect.arrayContaining(['text-[11px]', 'leading-tight'])
+    )
+    expect(wrapper.get('thead').classes()).toEqual(expect.arrayContaining(['sticky', 'top-0', 'bg-gray-50']))
+    expect(wrapper.get('th').classes()).toEqual(expect.arrayContaining(['px-1', 'py-0']))
+
+    const yearValueCell = wrapper.findAll('tbody tr')[0].findAll('td')[1]
+    expect(yearValueCell.classes()).toEqual(expect.arrayContaining(['px-1', 'py-0', 'text-right', 'tabular-nums']))
+  })
 })

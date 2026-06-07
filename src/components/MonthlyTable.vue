@@ -59,27 +59,27 @@ function getFormulaAriaLabel(result: MonthResult, field: FormulaField): string {
 
 <template>
   <div class="h-full overflow-auto border rounded bg-white">
-    <table class="min-w-full border-collapse text-sm">
+    <table class="min-w-full border-collapse text-[11px] leading-tight">
       <thead class="sticky top-0 z-1 bg-gray-50">
         <tr class="border-b">
-          <th class="px-3 py-2 text-left font-semibold whitespace-nowrap">月份</th>
+          <th class="px-1 py-0 text-left font-semibold whitespace-nowrap">月份</th>
           <th
             v-for="name in allIncomeNames"
             :key="`income-${name}`"
-            class="px-3 py-2 text-right font-semibold text-green-700 whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums font-semibold text-green-700 whitespace-nowrap"
           >
             {{ name }}
           </th>
           <th
             v-for="name in allExpenseNames"
             :key="`expense-${name}`"
-            class="px-3 py-2 text-right font-semibold text-red-700 whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums font-semibold text-red-700 whitespace-nowrap"
           >
             {{ name }}
           </th>
-          <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">理财</th>
-          <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">净储蓄</th>
-          <th class="px-3 py-2 text-right font-semibold whitespace-nowrap">累计</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">理财</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">净储蓄</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">累计</th>
         </tr>
       </thead>
       <tbody>
@@ -89,22 +89,27 @@ function getFormulaAriaLabel(result: MonthResult, field: FormulaField): string {
           class="border-b hover:bg-gray-50"
           :class="{ 'bg-blue-50': result.isAnchor }"
         >
-          <td class="px-3 py-2 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
+          <td class="px-1 py-0 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
           <td
             v-for="name in allIncomeNames"
             :key="`income-${result.month}-${name}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': getItemAmount(result, name, 'income') < 0 }"
           >
             {{ formatCurrency(getItemAmount(result, name, 'income')) }}
           </td>
           <td
             v-for="name in allExpenseNames"
             :key="`expense-${result.month}-${name}`"
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': getItemAmount(result, name, 'expense') < 0 }"
           >
             {{ formatCurrency(getItemAmount(result, name, 'expense')) }}
           </td>
-          <td class="px-3 py-2 text-right whitespace-nowrap">
+          <td
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'text-red-600': result.investReturn < 0 }"
+          >
             <button
               type="button"
               class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
@@ -117,7 +122,7 @@ function getFormulaAriaLabel(result: MonthResult, field: FormulaField): string {
             </button>
           </td>
           <td
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="{ 'text-red-600': result.netSavings < 0 }"
           >
             <button
@@ -131,7 +136,10 @@ function getFormulaAriaLabel(result: MonthResult, field: FormulaField): string {
               {{ formatCurrency(result.netSavings) }}
             </button>
           </td>
-          <td class="px-3 py-2 text-right font-bold whitespace-nowrap">
+          <td
+            class="px-1 py-0 text-right tabular-nums font-bold whitespace-nowrap"
+            :class="{ 'text-red-600': result.cumSavings < 0 }"
+          >
             <button
               type="button"
               class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
