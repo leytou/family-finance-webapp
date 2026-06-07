@@ -92,11 +92,10 @@ describe('MonthlyTable', () => {
     })
 
     const buttons = wrapper.findAll('tbody button')
-    expect(buttons).toHaveLength(3)
+    expect(buttons).toHaveLength(2)
     expect(buttons.map((button) => button.attributes('aria-label'))).toEqual([
       '查看 2026-01 理财收益公式',
       '查看 2026-01 净储蓄公式',
-      '查看 2026-01 累计储蓄公式',
     ])
 
     await buttons[0].trigger('click', { clientX: 100, clientY: 120 })
@@ -106,10 +105,6 @@ describe('MonthlyTable', () => {
     await buttons[1].trigger('click', { clientX: 200, clientY: 220 })
     expect(wrapper.text()).toContain('2026-01 - 净储蓄')
     expect(wrapper.text()).toContain('净储蓄 = 总收入(12,000) - 总支出(3,000) + 理财(125) = 9,125')
-
-    await buttons[2].trigger('click', { clientX: 300, clientY: 320 })
-    expect(wrapper.text()).toContain('2026-01 - 累计储蓄')
-    expect(wrapper.text()).toContain('累计储蓄 = 上月累计 + 当月净储蓄(9,125)')
   })
 
   it('使用紧凑表格样式并保持金额列等宽右对齐', () => {
@@ -139,7 +134,78 @@ describe('MonthlyTable', () => {
     expect(cells[4].classes()).toEqual(expect.arrayContaining(['text-red-600', 'text-right', 'tabular-nums']))
   })
 
-  it('鼠标离开公式按钮时关闭弹窗', async () => {
+  it('点击累计值进入编辑态并 emit 确认值', async () => {
+    const wrapper = mount(MonthlyTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            cumSavings: 100000,
+          }),
+        ],
+      },
+    })
+
+    const cumCell = wrapper.findAll('tbody td').at(-1)!
+    await cumCell.find('span').trigger('click')
+
+    const input = cumCell.find('input')
+    expect(input.exists()).toBe(true)
+    expect((input.element as HTMLInputElement).value).toBe('100000')
+
+    await input.setValue('120000')
+    await input.trigger('keyup.enter')
+
+    expect(wrapper.emitted('update-anchor')).toEqual([[202601, 120000]])
+  })
+
+  it('编辑累计值后清空表示移除锚点', async () => {
+    const wrapper = mount(MonthlyTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            cumSavings: 100000,
+            isAnchor: true,
+          }),
+        ],
+      },
+    })
+
+    const cumCell = wrapper.findAll('tbody td').at(-1)!
+    await cumCell.find('span').trigger('click')
+
+    const input = cumCell.find('input')
+    await input.setValue('')
+    await input.trigger('keyup.enter')
+
+    expect(wrapper.emitted('remove-anchor')).toEqual([[202601]])
+  })
+
+  it('编辑累计值按 Escape 取消编辑', async () => {
+    const wrapper = mount(MonthlyTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            cumSavings: 100000,
+          }),
+        ],
+      },
+    })
+
+    const cumCell = wrapper.findAll('tbody td').at(-1)!
+    await cumCell.find('span').trigger('click')
+
+    const input = cumCell.find('input')
+    await input.setValue('999999')
+    await input.trigger('keyup.escape')
+
+    expect(cumCell.find('input').exists()).toBe(false)
+    expect(wrapper.emitted('update-anchor')).toBeUndefined()
+  })
+
+  it('hover 累计值显示公式弹窗', async () => {
     const wrapper = mount(MonthlyTable, {
       props: {
         results: [
@@ -155,13 +221,13 @@ describe('MonthlyTable', () => {
       },
     })
 
-    const button = wrapper.find('tbody button')
+    const cumCell = wrapper.findAll('tbody td').at(-1)!
+    await cumCell.find('span').trigger('mouseenter', { clientX: 100, clientY: 120 })
 
-    await button.trigger('click', { clientX: 100, clientY: 120 })
-    expect(wrapper.text()).toContain('2026-01 - 理财收益')
+    expect(wrapper.text()).toContain('累计储蓄')
+    expect(wrapper.text()).toContain('累计储蓄 = 上月累计 + 当月净储蓄(9,125)')
 
-    await button.trigger('mouseleave')
-
-    expect(wrapper.text()).not.toContain('2026-01 - 理财收益')
+    await cumCell.find('span').trigger('mouseleave')
+    expect(wrapper.text()).not.toContain('累计储蓄 = 上月累计')
   })
 })

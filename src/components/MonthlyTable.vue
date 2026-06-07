@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
 import FormulaPopover from './FormulaPopover.vue'
 import type { MonthResult } from '../types'
@@ -10,6 +10,11 @@ type FormulaField = 'investReturn' | 'netSavings' | 'cumSavings'
 
 const props = defineProps<{
   results: MonthResult[]
+}>()
+
+const emit = defineEmits<{
+  'update-anchor': [month: number, value: number]
+  'remove-anchor': [month: number]
 }>()
 
 const popover = ref<{
@@ -54,6 +59,39 @@ function showFormula(result: MonthResult, field: FormulaField, event: MouseEvent
 
 function getFormulaAriaLabel(result: MonthResult, field: FormulaField): string {
   return `查看 ${formatMonth(result.month)} ${formulaLabels[field]}公式`
+}
+
+const editingMonth = ref<number | null>(null)
+const editValue = ref<string>('')
+const editInput = ref<HTMLInputElement | null>(null)
+
+function startEdit(result: MonthResult) {
+  editingMonth.value = result.month
+  editValue.value = String(result.cumSavings)
+  nextTick(() => {
+    if (editInput.value && typeof editInput.value.select === 'function') {
+      editInput.value.select()
+    }
+  })
+}
+
+function confirmEdit(month: number) {
+  if (editingMonth.value === null) return
+  const trimmed = editValue.value.trim()
+  if (trimmed === '') {
+    emit('remove-anchor', month)
+  } else {
+    const num = Number(trimmed)
+    if (Number.isFinite(num)) {
+      emit('update-anchor', month, num)
+    }
+  }
+  editingMonth.value = null
+}
+
+function cancelEdit() {
+  editingMonth.value = null
+  editValue.value = ''
 }
 </script>
 
@@ -140,16 +178,27 @@ function getFormulaAriaLabel(result: MonthResult, field: FormulaField): string {
             class="px-1 py-0 text-right tabular-nums font-bold whitespace-nowrap"
             :class="{ 'text-red-600': result.cumSavings < 0 }"
           >
-            <button
-              type="button"
-              class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
-              :aria-label="getFormulaAriaLabel(result, 'cumSavings')"
-              style="font: inherit"
-              @click="showFormula(result, 'cumSavings', $event)"
+            <input
+              v-if="editingMonth === result.month"
+              ref="editInput"
+              type="number"
+              class="w-full h-full border rounded px-1 text-right text-[11px]"
+              :value="editValue"
+              @input="editValue = ($event.target as HTMLInputElement).value"
+              @keyup.enter="confirmEdit(result.month)"
+              @keyup.escape="cancelEdit"
+              @blur="confirmEdit(result.month)"
+            />
+            <span
+              v-else
+              class="block w-full cursor-pointer text-right"
+              :aria-label="`编辑 ${formatMonth(result.month)} 累计储蓄`"
+              @click="startEdit(result)"
+              @mouseenter="showFormula(result, 'cumSavings', $event)"
               @mouseleave="popover = null"
             >
               {{ formatCurrency(result.cumSavings) }}
-            </button>
+            </span>
           </td>
         </tr>
       </tbody>

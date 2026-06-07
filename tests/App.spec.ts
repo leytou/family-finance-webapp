@@ -234,7 +234,7 @@ describe('App', () => {
     expect(findRow(wrapper, 0, '工资')[1]).toBe('240,000')
     expect(findRow(wrapper, 0, '工资')[2]).toBe('300,000')
 
-    await wrapper.get('[aria-label="查看 2027-01 累计储蓄公式"]').trigger('click', {
+    await wrapper.get('[aria-label="编辑 2027-01 累计储蓄"]').trigger('mouseenter', {
       clientX: 100,
       clientY: 120,
     })
