@@ -59,4 +59,16 @@ describe('ParamPanel', () => {
       segments: [{ amount: 10000, startMonth: 202601, endMonth: 202612 }],
     })
   })
+
+  it('向现金流编辑器传递系统起始月份', async () => {
+    const useStore = await loadUseStore()
+    const { addItem, data } = useStore()
+    data.value.systemParams.startMonth = 202704
+    addItem('工资', 'income')
+
+    const ParamPanel = await loadParamPanel()
+    const wrapper = mount(ParamPanel)
+
+    expect(wrapper.getComponent({ name: 'CashFlowItemEditor' }).props('startMonth')).toBe(202704)
+  })
 })

@@ -19,7 +19,7 @@ describe('CashFlowItemEditor', () => {
   it('编辑名称、切换类型和删除时发出对应事件', async () => {
     const item = createItem()
     const wrapper = mount(CashFlowItemEditor, {
-      props: { item },
+      props: { item, startMonth: 202601 },
     })
 
     await wrapper.get('[aria-label="项目名称"]').setValue('奖金')
@@ -38,7 +38,7 @@ describe('CashFlowItemEditor', () => {
       segments: [{ amount: 5000, startMonth: 202601, endMonth: 202612 }],
     })
     const wrapper = mount(CashFlowItemEditor, {
-      props: { item },
+      props: { item, startMonth: 202601 },
     })
 
     await wrapper.get('[aria-label="展开金额段"]').trigger('click')
@@ -64,5 +64,19 @@ describe('CashFlowItemEditor', () => {
       ],
       [{ ...item, segments: [] }],
     ])
+  })
+
+  it('使用传入的起始月份渲染时间网格', async () => {
+    const item = createItem({
+      segments: [{ amount: 5000, startMonth: 202704, endMonth: 202712 }],
+    })
+    const wrapper = mount(CashFlowItemEditor, {
+      props: { item, startMonth: 202704 },
+    })
+
+    await wrapper.get('[aria-label="展开金额段"]').trigger('click')
+
+    expect(wrapper.findComponent(TimeGrid).props('startMonth')).toBe(202704)
+    expect(wrapper.findAll('[data-testid="grid-cell"]')[0].text()).toBe('2027-04')
   })
 })

@@ -60,6 +60,7 @@ function updateItem(updated: CashFlowItem) {
           v-for="item in data.items"
           :key="item.id"
           :item="item"
+          :start-month="data.systemParams.startMonth"
           @update="updateItem"
           @remove="removeItem"
         />

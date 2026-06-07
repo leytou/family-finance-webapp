@@ -6,6 +6,7 @@ import type { AmountSegment, CashFlowItem } from '../types'
 
 const props = defineProps<{
   item: CashFlowItem
+  startMonth: number
 }>()
 
 const emit = defineEmits<{
@@ -125,7 +126,7 @@ function removeSegment(index: number) {
         </button>
         <TimeGrid
           class="col-span-2"
-          :start-month="202601"
+          :start-month="props.startMonth"
           :selected-start="segment.startMonth"
           :selected-end="segment.endMonth"
           @select="({ startMonth: s, endMonth: e }) => {
