@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ParamPanel from './components/ParamPanel.vue'
 </script>
 
 <template>
@@ -8,7 +9,7 @@
     </header>
     <main class="flex-1 flex overflow-hidden">
       <aside class="w-80 border-r overflow-y-auto p-4">
-        参数面板
+        <ParamPanel />
       </aside>
       <section class="flex-1 flex flex-col overflow-hidden p-4">
         表格区域
