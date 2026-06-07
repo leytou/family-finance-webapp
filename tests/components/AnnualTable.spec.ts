@@ -32,6 +32,26 @@ function rowText(wrapper: ReturnType<typeof mount>, label: string): string[] {
 }
 
 describe('AnnualTable', () => {
+  it('首个展示月份是锚点时使用锚点累计值作为首年年初储蓄', () => {
+    const wrapper = mount(AnnualTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            incomeItems: [{ name: '工资', amount: 10000 }],
+            expenseItems: [{ name: '房租', amount: 3000 }],
+            investReturn: 100,
+            netSavings: 7100,
+            cumSavings: 150000,
+            isAnchor: true,
+          }),
+        ],
+      },
+    })
+
+    expect(rowText(wrapper, '年初储蓄')).toEqual(['年初储蓄', '150,000'])
+  })
+
   it('按年份汇总收支并展示后续年份才出现的项目', () => {
     const wrapper = mount(AnnualTable, {
       props: {

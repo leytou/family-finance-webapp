@@ -59,7 +59,7 @@ const yearSummaries = computed<YearSummary[]>(() => {
 
       return {
         year,
-        startSavings: previousResult?.cumSavings ?? firstResult.cumSavings - firstResult.netSavings,
+        startSavings: getStartSavings(firstResult, previousResult),
         incomeItems,
         totalIncome,
         expenseItems,
@@ -91,6 +91,18 @@ function sumItems(items: { name: string; amount: number }[]): AnnualItemSummary[
 
 function uniqueNames(items: { name: string }[]): string[] {
   return Array.from(new Set(items.map((item) => item.name)))
+}
+
+function getStartSavings(firstResult: MonthResult, previousResult?: MonthResult): number {
+  if (previousResult) {
+    return previousResult.cumSavings
+  }
+
+  if (firstResult.isAnchor) {
+    return firstResult.cumSavings
+  }
+
+  return firstResult.cumSavings - firstResult.netSavings
 }
 
 function getItemTotal(summary: YearSummary, name: string, type: 'income' | 'expense'): number {
