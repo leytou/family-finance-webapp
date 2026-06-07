@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import type { MonthResult } from '../types'
 import { formatCurrency } from '../utils/format'
 
-interface AnnualItemSummary {
+interface ColumnSummary {
   name: string
   total: number
 }
@@ -12,10 +12,8 @@ interface AnnualItemSummary {
 interface YearSummary {
   year: number
   startSavings: number
-  incomeItems: AnnualItemSummary[]
-  totalIncome: number
-  expenseItems: AnnualItemSummary[]
-  totalExpense: number
+  columnSummaries: ColumnSummary[]
+  totalFlow: number
   investReturn: number
   yearBalance: number
   endSavings: number
@@ -50,36 +48,36 @@ const yearSummaries = computed<YearSummary[]>(() => {
       const sortedMonths = [...months].sort((left, right) => left.month - right.month)
       const firstResult = sortedMonths[0]
       const lastResult = sortedMonths[sortedMonths.length - 1]
-      const incomeItems = sumItems(sortedMonths.flatMap((result) => result.incomeItems))
-      const expenseItems = sumItems(sortedMonths.flatMap((result) => result.expenseItems))
+
+      // 聚合所有列的年度总额
+      const columnSummaries = sumColumnValues(sortedMonths.flatMap((result) => result.columnValues))
+
+      // 计算总现金流（所有列金额之和）
+      const totalFlow = columnSummaries.reduce((sum, col) => sum + col.total, 0)
+
+      // 计算理财收益总和
       const investReturn = sortedMonths.reduce((sum, result) => sum + result.investReturn, 0)
-      const incomeTotal = incomeItems.reduce((sum, item) => sum + item.total, 0)
-      const totalExpense = expenseItems.reduce((sum, item) => sum + item.total, 0)
-      const totalIncome = incomeTotal + investReturn
 
       return {
         year,
         startSavings: getStartSavings(firstResult, previousResult),
-        incomeItems,
-        totalIncome,
-        expenseItems,
-        totalExpense,
+        columnSummaries,
+        totalFlow,
         investReturn,
-        yearBalance: totalIncome - totalExpense,
+        yearBalance: totalFlow + investReturn,
         endSavings: lastResult.cumSavings,
       }
     })
 })
 
-const allIncomeNames = computed(() => {
-  return uniqueNames(yearSummaries.value.flatMap((summary) => summary.incomeItems))
+// 获取所有出现的列名
+const allColumnNames = computed(() => {
+  return uniqueNames(yearSummaries.value.flatMap((summary) => summary.columnSummaries))
 })
 
-const allExpenseNames = computed(() => {
-  return uniqueNames(yearSummaries.value.flatMap((summary) => summary.expenseItems))
-})
-
-function sumItems(items: { name: string; amount: number }[]): AnnualItemSummary[] {
+function sumColumnValues(
+  items: { name: string; amount: number }[]
+): ColumnSummary[] {
   const totals = new Map<string, number>()
 
   for (const item of items) {
@@ -105,10 +103,8 @@ function getStartSavings(firstResult: MonthResult, previousResult?: MonthResult)
   return firstResult.cumSavings - firstResult.netSavings
 }
 
-function getItemTotal(summary: YearSummary, name: string, type: 'income' | 'expense'): number {
-  const items = type === 'income' ? summary.incomeItems : summary.expenseItems
-
-  return items.find((item) => item.name === name)?.total ?? 0
+function getColumnTotal(summary: YearSummary, name: string): number {
+  return summary.columnSummaries.find((col) => col.name === name)?.total ?? 0
 }
 </script>
 
@@ -140,15 +136,18 @@ function getItemTotal(summary: YearSummary, name: string, type: 'income' | 'expe
           </td>
         </tr>
 
-        <tr v-for="name in allIncomeNames" :key="`income-${name}`" class="border-b hover:bg-gray-50">
-          <td class="px-1 py-0 text-green-700 whitespace-nowrap">{{ name }}</td>
+        <tr v-for="name in allColumnNames" :key="`col-${name}`" class="border-b hover:bg-gray-50">
+          <td class="px-1 py-0 whitespace-nowrap">{{ name }}</td>
           <td
             v-for="summary in yearSummaries"
-            :key="`income-${summary.year}-${name}`"
+            :key="`col-${summary.year}-${name}`"
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="{ 'text-red-600': getItemTotal(summary, name, 'income') < 0 }"
+            :class="{
+              'text-green-600': getColumnTotal(summary, name) > 0,
+              'text-red-600': getColumnTotal(summary, name) < 0
+            }"
           >
-            {{ formatCurrency(getItemTotal(summary, name, 'income')) }}
+            {{ formatCurrency(getColumnTotal(summary, name)) }}
           </td>
         </tr>
 
@@ -161,42 +160,6 @@ function getItemTotal(summary: YearSummary, name: string, type: 'income' | 'expe
             :class="{ 'text-red-600': summary.investReturn < 0 }"
           >
             {{ formatCurrency(summary.investReturn) }}
-          </td>
-        </tr>
-
-        <tr class="border-b font-semibold hover:bg-gray-50">
-          <td class="px-1 py-0 whitespace-nowrap">收入合计</td>
-          <td
-            v-for="summary in yearSummaries"
-            :key="`income-total-${summary.year}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="{ 'text-red-600': summary.totalIncome < 0 }"
-          >
-            {{ formatCurrency(summary.totalIncome) }}
-          </td>
-        </tr>
-
-        <tr v-for="name in allExpenseNames" :key="`expense-${name}`" class="border-b hover:bg-gray-50">
-          <td class="px-1 py-0 text-red-700 whitespace-nowrap">{{ name }}</td>
-          <td
-            v-for="summary in yearSummaries"
-            :key="`expense-${summary.year}-${name}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="{ 'text-red-600': getItemTotal(summary, name, 'expense') < 0 }"
-          >
-            {{ formatCurrency(getItemTotal(summary, name, 'expense')) }}
-          </td>
-        </tr>
-
-        <tr class="border-b font-semibold hover:bg-gray-50">
-          <td class="px-1 py-0 whitespace-nowrap">支出合计</td>
-          <td
-            v-for="summary in yearSummaries"
-            :key="`expense-total-${summary.year}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="{ 'text-red-600': summary.totalExpense < 0 }"
-          >
-            {{ formatCurrency(summary.totalExpense) }}
           </td>
         </tr>
 
