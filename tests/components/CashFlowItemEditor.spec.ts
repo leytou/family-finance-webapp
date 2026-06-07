@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import CashFlowItemEditor from '../../src/components/CashFlowItemEditor.vue'
+import TimeGrid from '../../src/components/TimeGrid.vue'
 import type { CashFlowItem } from '../../src/types'
 
 function createItem(overrides: Partial<CashFlowItem> = {}): CashFlowItem {
@@ -42,8 +43,10 @@ describe('CashFlowItemEditor', () => {
 
     await wrapper.get('[aria-label="展开金额段"]').trigger('click')
     await wrapper.get('[aria-label="金额"]').setValue(6000)
-    await wrapper.get('[aria-label="开始月份"]').setValue(202602)
-    await wrapper.get('[aria-label="结束月份"]').setValue(202712)
+    wrapper.findComponent(TimeGrid).vm.$emit('select', {
+      startMonth: 202602,
+      endMonth: 202712,
+    })
     await wrapper.get('[aria-label="添加金额段"]').trigger('click')
     await wrapper.get('[aria-label="删除金额段"]').trigger('click')
 

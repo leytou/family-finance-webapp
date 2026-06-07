@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import TimeGrid from './TimeGrid.vue'
 import type { AmountSegment, CashFlowItem } from '../types'
 
 const props = defineProps<{
@@ -93,7 +94,7 @@ function removeSegment(index: number) {
       <div
         v-for="(segment, index) in item.segments"
         :key="index"
-        class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end"
+        class="grid grid-cols-[1fr_auto] gap-2 items-end"
       >
         <label class="block text-xs">
           金额
@@ -105,26 +106,6 @@ function removeSegment(index: number) {
             @input="updateSegment(index, 'amount', Number(($event.target as HTMLInputElement).value))"
           />
         </label>
-        <label class="block text-xs">
-          开始
-          <input
-            :value="segment.startMonth"
-            type="number"
-            aria-label="开始月份"
-            class="block w-full mt-1 px-2 py-1 border rounded text-sm"
-            @input="updateSegment(index, 'startMonth', Number(($event.target as HTMLInputElement).value))"
-          />
-        </label>
-        <label class="block text-xs">
-          结束
-          <input
-            :value="segment.endMonth"
-            type="number"
-            aria-label="结束月份"
-            class="block w-full mt-1 px-2 py-1 border rounded text-sm"
-            @input="updateSegment(index, 'endMonth', Number(($event.target as HTMLInputElement).value))"
-          />
-        </label>
         <button
           type="button"
           class="px-2 py-1 border rounded text-xs text-red-600"
@@ -133,6 +114,16 @@ function removeSegment(index: number) {
         >
           删除
         </button>
+        <TimeGrid
+          class="col-span-2"
+          :start-month="202601"
+          :selected-start="segment.startMonth"
+          :selected-end="segment.endMonth"
+          @select="({ startMonth: s, endMonth: e }) => {
+            updateSegment(index, 'startMonth', s)
+            updateSegment(index, 'endMonth', e)
+          }"
+        />
       </div>
 
       <button
