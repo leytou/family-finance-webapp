@@ -3,9 +3,11 @@ import type { MonthResult } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 
+type FormulaField = 'investReturn' | 'netSavings' | 'cumSavings'
+
 const props = defineProps<{
   result: MonthResult
-  field: string
+  field: FormulaField
   x: number
   y: number
 }>()
@@ -13,6 +15,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
 }>()
+
+const formulaLabels: Record<FormulaField, string> = {
+  investReturn: '理财收益',
+  netSavings: '净储蓄',
+  cumSavings: '累计储蓄',
+}
 
 function getFormula(): string {
   const r = props.result
@@ -28,8 +36,6 @@ function getFormula(): string {
       }
 
       return `累计储蓄 = 上月累计 + 当月净储蓄(${formatCurrency(r.netSavings)})`
-    default:
-      return ''
   }
 }
 </script>
@@ -40,7 +46,7 @@ function getFormula(): string {
     :style="{ left: `${x}px`, top: `${y}px` }"
     @mouseleave="emit('close')"
   >
-    <div class="mb-2 font-semibold">{{ formatMonth(result.month) }} - {{ field }}</div>
+    <div class="mb-2 font-semibold">{{ formatMonth(result.month) }} - {{ formulaLabels[field] }}</div>
     <div class="text-gray-700">{{ getFormula() }}</div>
   </div>
 </template>

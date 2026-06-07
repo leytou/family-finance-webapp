@@ -36,10 +36,24 @@ describe('FormulaPopover', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('2026-02 - netSavings')
+    expect(wrapper.text()).toContain('2026-02 - 净储蓄')
     expect(wrapper.text()).toContain('净储蓄 = 总收入(12,000) - 总支出(3,500) + 理财(125) = 8,625')
     expect(wrapper.attributes('style')).toContain('left: 20px')
     expect(wrapper.attributes('style')).toContain('top: 30px')
+  })
+
+  it('展示理财收益中文标题和公式', () => {
+    const wrapper = mount(FormulaPopover, {
+      props: {
+        result: createResult({ month: 202604 }),
+        field: 'investReturn',
+        x: 80,
+        y: 90,
+      },
+    })
+
+    expect(wrapper.text()).toContain('2026-04 - 理财收益')
+    expect(wrapper.text()).toContain('理财收益 = 上月累计储蓄 × 年利率 / 12')
   })
 
   it('展示锚点累计储蓄公式并在鼠标移出时关闭', async () => {

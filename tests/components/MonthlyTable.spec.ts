@@ -75,7 +75,7 @@ describe('MonthlyTable', () => {
     expect(rows[1].findAll('td')[7].classes()).toContain('font-bold')
   })
 
-  it('点击理财、净储蓄和累计单元格时展示公式弹窗', async () => {
+  it('通过公式按钮展示弹窗并提供可访问标签', async () => {
     const wrapper = mount(MonthlyTable, {
       props: {
         results: [
@@ -91,18 +91,50 @@ describe('MonthlyTable', () => {
       },
     })
 
-    const cells = wrapper.findAll('tbody td')
+    const buttons = wrapper.findAll('tbody button')
+    expect(buttons).toHaveLength(3)
+    expect(buttons.map((button) => button.attributes('aria-label'))).toEqual([
+      '查看 2026-01 理财收益公式',
+      '查看 2026-01 净储蓄公式',
+      '查看 2026-01 累计储蓄公式',
+    ])
 
-    await cells[1].trigger('click', { clientX: 100, clientY: 120 })
-    expect(wrapper.text()).toContain('2026-01 - investReturn')
+    await buttons[0].trigger('click', { clientX: 100, clientY: 120 })
+    expect(wrapper.text()).toContain('2026-01 - 理财收益')
     expect(wrapper.text()).toContain('理财收益 = 上月累计储蓄 × 年利率 / 12')
 
-    await cells[2].trigger('click', { clientX: 200, clientY: 220 })
-    expect(wrapper.text()).toContain('2026-01 - netSavings')
+    await buttons[1].trigger('click', { clientX: 200, clientY: 220 })
+    expect(wrapper.text()).toContain('2026-01 - 净储蓄')
     expect(wrapper.text()).toContain('净储蓄 = 总收入(12,000) - 总支出(3,000) + 理财(125) = 9,125')
 
-    await cells[3].trigger('click', { clientX: 300, clientY: 320 })
-    expect(wrapper.text()).toContain('2026-01 - cumSavings')
+    await buttons[2].trigger('click', { clientX: 300, clientY: 320 })
+    expect(wrapper.text()).toContain('2026-01 - 累计储蓄')
     expect(wrapper.text()).toContain('累计储蓄 = 上月累计 + 当月净储蓄(9,125)')
+  })
+
+  it('鼠标离开公式按钮时关闭弹窗', async () => {
+    const wrapper = mount(MonthlyTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            totalIncome: 12000,
+            totalExpense: 3000,
+            investReturn: 125,
+            netSavings: 9125,
+            cumSavings: 109125,
+          }),
+        ],
+      },
+    })
+
+    const button = wrapper.find('tbody button')
+
+    await button.trigger('click', { clientX: 100, clientY: 120 })
+    expect(wrapper.text()).toContain('2026-01 - 理财收益')
+
+    await button.trigger('mouseleave')
+
+    expect(wrapper.text()).not.toContain('2026-01 - 理财收益')
   })
 })
