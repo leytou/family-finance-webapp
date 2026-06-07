@@ -1,23 +1,20 @@
 import { ref, watch, type Ref } from 'vue'
-
-import type { CashFlowItem, PlanData } from '../types'
+import type { PlanData, FlowColumn } from '../types'
 import { getCurrentMonth } from '../utils/month'
 
 const STORAGE_KEY = 'family-finance-plan'
-
 let sharedData: Ref<PlanData> | null = null
 let saveTimeout: ReturnType<typeof setTimeout> | null = null
 let resetSnapshot: string | null = null
 
 function createDefault(): PlanData {
   return {
-    version: 1,
+    version: 2,
     systemParams: {
-      currentSavings: 0,
       startMonth: getCurrentMonth(),
       annualRate: 0.025,
     },
-    items: [],
+    columns: [],
     anchors: [],
   }
 }
@@ -30,44 +27,33 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
-function isValidSegment(value: unknown): boolean {
+function isValidColumn(value: unknown): boolean {
   if (!isObject(value)) return false
-
-  return (
-    isFiniteNumber(value.amount) &&
-    isFiniteNumber(value.startMonth) &&
-    isFiniteNumber(value.endMonth)
-  )
-}
-
-function isValidItem(value: unknown): boolean {
-  if (!isObject(value)) return false
-
-  return (
-    typeof value.id === 'string' &&
-    typeof value.name === 'string' &&
-    (value.type === 'income' || value.type === 'expense') &&
-    Array.isArray(value.segments) &&
-    value.segments.every(isValidSegment)
-  )
+  if (typeof value.id !== 'string' || typeof value.name !== 'string') return false
+  if (!isObject(value.entries)) return false
+  for (const key in value.entries) {
+    const month = Number(key)
+    const amount = value.entries[key]
+    if (!Number.isInteger(month) || !isFiniteNumber(amount)) return false
+  }
+  return true
 }
 
 function isValidAnchor(value: unknown): boolean {
   if (!isObject(value)) return false
-
   return isFiniteNumber(value.month) && isFiniteNumber(value.actualSavings)
 }
 
 function isValidPlanData(value: unknown): value is PlanData {
   if (!isObject(value) || !isObject(value.systemParams)) return false
-
+  // 只接受 v2 格式，旧格式(v1)视为无效数据
+  if (value.version !== 2) return false
   return (
     isFiniteNumber(value.version) &&
-    isFiniteNumber(value.systemParams.currentSavings) &&
     isFiniteNumber(value.systemParams.startMonth) &&
     isFiniteNumber(value.systemParams.annualRate) &&
-    Array.isArray(value.items) &&
-    value.items.every(isValidItem) &&
+    Array.isArray(value.columns) &&
+    value.columns.every(isValidColumn) &&
     Array.isArray(value.anchors) &&
     value.anchors.every(isValidAnchor)
   )
@@ -75,23 +61,14 @@ function isValidPlanData(value: unknown): value is PlanData {
 
 function loadData(): PlanData {
   const raw = localStorage.getItem(STORAGE_KEY)
-
-  if (!raw) {
-    return createDefault()
-  }
-
+  if (!raw) return createDefault()
   try {
     const parsed: unknown = JSON.parse(raw)
-
-    if (isValidPlanData(parsed)) {
-      return parsed
-    }
+    if (isValidPlanData(parsed)) return parsed
   } catch {
-    // Fall through to the same recovery path as structurally invalid data.
+    // Fall through to recovery
   }
-
   localStorage.removeItem(STORAGE_KEY)
-
   return createDefault()
 }
 
@@ -102,13 +79,11 @@ export function useStore() {
       sharedData,
       () => {
         const currentSnapshot = JSON.stringify(sharedData?.value)
-
         if (resetSnapshot === currentSnapshot) {
           resetSnapshot = null
           return
         }
         resetSnapshot = null
-
         if (saveTimeout) clearTimeout(saveTimeout)
         saveTimeout = setTimeout(() => {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedData?.value))
@@ -126,28 +101,46 @@ export function useStore() {
       clearTimeout(saveTimeout)
       saveTimeout = null
     }
-
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data.value))
   }
 
-  function addItem(name: string, type: 'income' | 'expense') {
-    const item: CashFlowItem = {
+  // 列操作函数
+  function addColumn(name?: string): FlowColumn {
+    const column: FlowColumn = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      name,
-      type,
-      segments: [],
+      name: name || '新列',
+      entries: {},
     }
-
-    data.value.items.push(item)
+    data.value.columns.push(column)
+    return column
   }
 
-  function removeItem(id: string) {
-    data.value.items = data.value.items.filter(item => item.id !== id)
+  function removeColumn(id: string): void {
+    data.value.columns = data.value.columns.filter(col => col.id !== id)
+  }
+
+  function renameColumn(id: string, name: string): void {
+    const column = data.value.columns.find(col => col.id === id)
+    if (column) {
+      column.name = name
+    }
+  }
+
+  function updateColumnEntry(colId: string, month: number, value: number | null): void {
+    const column = data.value.columns.find(col => col.id === colId)
+    if (!column) return
+
+    if (value === null) {
+      // 删除 entry
+      delete column.entries[month]
+    } else {
+      // 设置 entry
+      column.entries[month] = value
+    }
   }
 
   function addAnchor(month: number, actualSavings: number) {
     const existing = data.value.anchors.findIndex(anchor => anchor.month === month)
-
     if (existing >= 0) {
       data.value.anchors[existing].actualSavings = actualSavings
     } else {
@@ -164,7 +157,6 @@ export function useStore() {
       clearTimeout(saveTimeout)
       saveTimeout = null
     }
-
     const defaultData = createDefault()
     resetSnapshot = JSON.stringify(defaultData)
     data.value = defaultData
@@ -175,5 +167,16 @@ export function useStore() {
     return JSON.stringify(data.value, null, 2)
   }
 
-  return { data, save, addItem, removeItem, addAnchor, removeAnchor, reset, exportData }
+  return {
+    data,
+    save,
+    addColumn,
+    removeColumn,
+    renameColumn,
+    updateColumnEntry,
+    addAnchor,
+    removeAnchor,
+    reset,
+    exportData,
+  }
 }
