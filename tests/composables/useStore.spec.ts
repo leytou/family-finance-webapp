@@ -58,6 +58,49 @@ describe('useStore', () => {
     expect(store.data.value.items).toHaveLength(0)
   })
 
+  it('addAnchor 添加锚点并保存', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    store.addAnchor(202601, 100000)
+
+    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
+      { month: 202601, actualSavings: 100000 },
+    ])
+  })
+
+  it('addAnchor 同月更新已有锚点而不是重复添加', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    store.addAnchor(202601, 100000)
+    store.addAnchor(202601, 120000)
+
+    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 120000 }])
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
+      { month: 202601, actualSavings: 120000 },
+    ])
+  })
+
+  it('removeAnchor 删除锚点并保存', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    store.data.value.anchors = [
+      { month: 202601, actualSavings: 100000 },
+      { month: 202602, actualSavings: 120000 },
+    ]
+    store.save()
+
+    store.removeAnchor(202601)
+
+    expect(store.data.value.anchors).toEqual([{ month: 202602, actualSavings: 120000 }])
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
+      { month: 202602, actualSavings: 120000 },
+    ])
+  })
+
   it('reset 清空数据恢复默认', async () => {
     const useStore = await loadUseStore()
     const store = useStore()

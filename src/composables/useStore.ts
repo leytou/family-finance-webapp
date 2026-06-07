@@ -64,10 +64,27 @@ export function useStore() {
     save()
   }
 
+  function addAnchor(month: number, actualSavings: number) {
+    const existing = data.value.anchors.findIndex(anchor => anchor.month === month)
+
+    if (existing >= 0) {
+      data.value.anchors[existing].actualSavings = actualSavings
+    } else {
+      data.value.anchors.push({ month, actualSavings })
+    }
+
+    save()
+  }
+
+  function removeAnchor(month: number) {
+    data.value.anchors = data.value.anchors.filter(anchor => anchor.month !== month)
+    save()
+  }
+
   function reset() {
     data.value = createDefault()
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  return { data, save, addItem, removeItem, reset }
+  return { data, save, addItem, removeItem, addAnchor, removeAnchor, reset }
 }

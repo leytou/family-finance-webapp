@@ -71,4 +71,32 @@ describe('ParamPanel', () => {
 
     expect(wrapper.getComponent({ name: 'CashFlowItemEditor' }).props('startMonth')).toBe(202704)
   })
+
+  it('展示、删除并新增月度锚点', async () => {
+    const useStore = await loadUseStore()
+    const { data, save } = useStore()
+    data.value.anchors = [{ month: 202601, actualSavings: 100000 }]
+    save()
+
+    const ParamPanel = await loadParamPanel()
+    const wrapper = mount(ParamPanel)
+
+    expect(wrapper.text()).toContain('月度锚点')
+    expect(wrapper.text()).toContain('2026-01')
+    expect(wrapper.text()).toContain('100,000')
+
+    await wrapper.get('[aria-label="删除 2026-01 锚点"]').trigger('click')
+    expect(data.value.anchors).toEqual([])
+
+    await wrapper.get('[aria-label="锚点月份"]').setValue(202602)
+    await wrapper.get('[aria-label="锚点金额"]').setValue(120000)
+    await wrapper.get('[aria-label="添加月度锚点"]').trigger('click')
+
+    expect(data.value.anchors).toEqual([{ month: 202602, actualSavings: 120000 }])
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
+      { month: 202602, actualSavings: 120000 },
+    ])
+    expect((wrapper.get('[aria-label="锚点月份"]').element as HTMLInputElement).value).toBe('0')
+    expect((wrapper.get('[aria-label="锚点金额"]').element as HTMLInputElement).value).toBe('0')
+  })
 })
