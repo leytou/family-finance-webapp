@@ -29,5 +29,9 @@ describe('format utils', () => {
     it('formats whole percentages without decimal places', () => {
       expect(formatPercent(0.1)).toBe('10%')
     })
+
+    it('formats floating-point integer percentages without decimal places', () => {
+      expect(formatPercent(0.07)).toBe('7%')
+    })
   })
 })

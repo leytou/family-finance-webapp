@@ -4,7 +4,7 @@ export function formatCurrency(value: number): string {
 }
 
 export function formatPercent(value: number): string {
-  const pct = value * 100
-  const str = pct % 1 === 0 ? pct.toString() : pct.toFixed(1)
+  const pct = Number((value * 100).toFixed(1))
+  const str = Number.isInteger(pct) ? pct.toString() : pct.toFixed(1)
   return `${str}%`
 }
