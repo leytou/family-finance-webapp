@@ -22,7 +22,7 @@ function handleExport() {
 }
 
 function handleReset() {
-  if (confirm('确定要重置所有数据？此操作不可撤销。')) {
+  if (window.confirm('确定要重置所有数据？此操作不可撤销。')) {
     reset()
   }
 }
