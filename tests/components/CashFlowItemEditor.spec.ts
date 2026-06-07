@@ -52,8 +52,7 @@ describe('CashFlowItemEditor', () => {
 
     expect(wrapper.emitted('update')).toEqual([
       [{ ...item, segments: [{ amount: 6000, startMonth: 202601, endMonth: 202612 }] }],
-      [{ ...item, segments: [{ amount: 5000, startMonth: 202602, endMonth: 202612 }] }],
-      [{ ...item, segments: [{ amount: 5000, startMonth: 202601, endMonth: 202712 }] }],
+      [{ ...item, segments: [{ amount: 5000, startMonth: 202602, endMonth: 202712 }] }],
       [
         {
           ...item,

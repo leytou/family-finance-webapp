@@ -45,6 +45,15 @@ function updateSegment(index: number, field: keyof AmountSegment, value: number)
   })
 }
 
+function updateSegmentRange(index: number, startMonth: number, endMonth: number) {
+  emit('update', {
+    ...props.item,
+    segments: props.item.segments.map((segment, segmentIndex) =>
+      segmentIndex === index ? { ...segment, startMonth, endMonth } : segment,
+    ),
+  })
+}
+
 function removeSegment(index: number) {
   emit('update', {
     ...props.item,
@@ -120,8 +129,7 @@ function removeSegment(index: number) {
           :selected-start="segment.startMonth"
           :selected-end="segment.endMonth"
           @select="({ startMonth: s, endMonth: e }) => {
-            updateSegment(index, 'startMonth', s)
-            updateSegment(index, 'endMonth', e)
+            updateSegmentRange(index, s, e)
           }"
         />
       </div>
