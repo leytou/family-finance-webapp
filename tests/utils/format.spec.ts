@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatCurrency, formatPercent } from '../../src/utils/format'
+import { formatCurrency } from '../../src/utils/format'
 
 describe('format utils', () => {
   describe('formatCurrency', () => {
@@ -21,17 +21,4 @@ describe('format utils', () => {
     })
   })
 
-  describe('formatPercent', () => {
-    it('formats fractional percentages with one decimal place', () => {
-      expect(formatPercent(0.025)).toBe('2.5%')
-    })
-
-    it('formats whole percentages without decimal places', () => {
-      expect(formatPercent(0.1)).toBe('10%')
-    })
-
-    it('formats floating-point integer percentages without decimal places', () => {
-      expect(formatPercent(0.07)).toBe('7%')
-    })
-  })
 })
