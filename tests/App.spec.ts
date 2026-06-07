@@ -134,8 +134,7 @@ describe('App', () => {
     const revokeObjectURL = vi.fn()
     const anchors: HTMLAnchorElement[] = []
     let exportedBlob: Blob | undefined
-    const confirm = vi.fn(() => true)
-    window.confirm = confirm
+    const initialConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
@@ -260,7 +259,8 @@ describe('App', () => {
     ])
     wrapper.unmount()
     vi.resetModules()
-    window.confirm = confirm
+    initialConfirm.mockRestore()
+    const reloadedConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     const ReloadedApp = await loadApp()
     const reloaded = mount(ReloadedApp)
@@ -279,6 +279,21 @@ describe('App', () => {
     expect(exportAnchor?.download).toBe('finance-plan.json')
     expect(exportAnchor?.click).toHaveBeenCalledTimes(1)
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:finance-plan')
+
+    const resetButton = findButton(reloaded, '重置')
+    expect(resetButton).toBeTruthy()
+    if (!resetButton) {
+      throw new Error('找不到重置按钮')
+    }
+    expect(resetButton.text()).toBe('重置')
+    await resetButton.trigger('click')
+    await nextTick()
+
+    expect(reloadedConfirm).toHaveBeenCalledWith('确定要重置所有数据？此操作不可撤销。')
+    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+    expect(reloaded.findAllComponents({ name: 'CashFlowItemEditor' })).toHaveLength(0)
+    expect(getTableRows(reloaded, 1)).toHaveLength(60)
+    expect(getTableRows(reloaded, 1)[0].slice(1)).toEqual(['0', '0', '0'])
 
     vi.useRealTimers()
     const exported = JSON.parse(await readBlobAsText(exportedBlob!))
@@ -303,17 +318,6 @@ describe('App', () => {
         segments: [{ amount: 5000, startMonth: 202601, endMonth: 203012 }],
       },
     ])
-
-    const resetButton = reloaded.findAll('header button')[1]
-    expect(resetButton.text()).toBe('重置')
-    const useReloadedStore = await loadUseStore()
-    useReloadedStore().reset()
-    await nextTick()
-
-    expect(localStorage.getItem('family-finance-plan')).toBeNull()
-    expect(reloaded.findAllComponents({ name: 'CashFlowItemEditor' })).toHaveLength(0)
-    expect(getTableRows(reloaded, 1)).toHaveLength(60)
-    expect(getTableRows(reloaded, 1)[0].slice(1)).toEqual(['0', '0', '0'])
   })
 
   it('确认重置时清空数据', async () => {
