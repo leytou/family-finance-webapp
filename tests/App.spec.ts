@@ -13,14 +13,29 @@ function findButton(wrapper: ReturnType<typeof mount>, text: string) {
   return wrapper.findAll('button').find(button => button.text() === text)
 }
 
+function restoreUrlProperty(name: 'createObjectURL' | 'revokeObjectURL', descriptor: PropertyDescriptor | undefined) {
+  if (descriptor) {
+    Object.defineProperty(URL, name, descriptor)
+  } else {
+    Reflect.deleteProperty(URL, name)
+  }
+}
+
 describe('App', () => {
+  let originalCreateObjectURLDescriptor: PropertyDescriptor | undefined
+  let originalRevokeObjectURLDescriptor: PropertyDescriptor | undefined
+
   beforeEach(() => {
     localStorage.clear()
     vi.resetModules()
+    originalCreateObjectURLDescriptor = Object.getOwnPropertyDescriptor(URL, 'createObjectURL')
+    originalRevokeObjectURLDescriptor = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL')
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    restoreUrlProperty('createObjectURL', originalCreateObjectURLDescriptor)
+    restoreUrlProperty('revokeObjectURL', originalRevokeObjectURLDescriptor)
   })
 
   it('点击导出按钮创建并点击下载链接', async () => {
