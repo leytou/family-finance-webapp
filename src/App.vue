@@ -7,7 +7,7 @@ import ParamPanel from './components/ParamPanel.vue'
 import { calculate } from './composables/useCalculation'
 import { useStore } from './composables/useStore'
 
-const { data, reset, exportData } = useStore()
+const { data, addAnchor, removeAnchor, reset, exportData } = useStore()
 const results = computed(() => calculate(data.value))
 
 function handleExport() {
@@ -50,7 +50,11 @@ function handleReset() {
           <AnnualTable :results="results" />
         </div>
         <div class="flex-1 overflow-auto">
-          <MonthlyTable :results="results" />
+          <MonthlyTable
+            :results="results"
+            @update-anchor="addAnchor"
+            @remove-anchor="removeAnchor"
+          />
         </div>
       </section>
     </main>
