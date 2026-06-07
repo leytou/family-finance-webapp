@@ -29,7 +29,7 @@ function getFormula(): string {
     case 'investReturn':
       return '理财收益 = 上月累计储蓄 × 年利率 / 12'
     case 'netSavings':
-      return `净储蓄 = 总收入(${formatCurrency(r.totalIncome)}) - 总支出(${formatCurrency(r.totalExpense)}) + 理财(${formatCurrency(r.investReturn)}) = ${formatCurrency(r.netSavings)}`
+      return `净储蓄 = 现金流合计(${formatCurrency(r.totalFlow)}) + 理财(${formatCurrency(r.investReturn)}) = ${formatCurrency(r.netSavings)}`
     case 'cumSavings':
       if (r.isAnchor) {
         return `锚点月份，实际储蓄 = ${formatCurrency(r.cumSavings)}`
