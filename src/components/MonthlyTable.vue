@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
+import FormulaPopover from './FormulaPopover.vue'
 import type { MonthResult } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
@@ -8,6 +9,13 @@ import { formatMonth } from '../utils/month'
 const props = defineProps<{
   results: MonthResult[]
 }>()
+
+const popover = ref<{
+  result: MonthResult
+  field: string
+  x: number
+  y: number
+} | null>(null)
 
 const allIncomeNames = computed(() => {
   return uniqueNames(props.results.flatMap((result) => result.incomeItems))
@@ -25,6 +33,15 @@ function getItemAmount(result: MonthResult, name: string, type: 'income' | 'expe
   const items = type === 'income' ? result.incomeItems : result.expenseItems
 
   return items.find((item) => item.name === name)?.amount ?? 0
+}
+
+function showFormula(result: MonthResult, field: string, event: MouseEvent): void {
+  popover.value = {
+    result,
+    field,
+    x: event.clientX + 10,
+    y: event.clientY + 10,
+  }
 }
 </script>
 
@@ -75,20 +92,35 @@ function getItemAmount(result: MonthResult, name: string, type: 'income' | 'expe
           >
             {{ formatCurrency(getItemAmount(result, name, 'expense')) }}
           </td>
-          <td class="px-3 py-2 text-right whitespace-nowrap">
+          <td
+            class="px-3 py-2 text-right whitespace-nowrap cursor-pointer"
+            @click="showFormula(result, 'investReturn', $event)"
+          >
             {{ formatCurrency(result.investReturn) }}
           </td>
           <td
-            class="px-3 py-2 text-right whitespace-nowrap"
+            class="px-3 py-2 text-right whitespace-nowrap cursor-pointer"
             :class="{ 'text-red-600': result.netSavings < 0 }"
+            @click="showFormula(result, 'netSavings', $event)"
           >
             {{ formatCurrency(result.netSavings) }}
           </td>
-          <td class="px-3 py-2 text-right font-bold whitespace-nowrap">
+          <td
+            class="px-3 py-2 text-right font-bold whitespace-nowrap cursor-pointer"
+            @click="showFormula(result, 'cumSavings', $event)"
+          >
             {{ formatCurrency(result.cumSavings) }}
           </td>
         </tr>
       </tbody>
     </table>
   </div>
+  <FormulaPopover
+    v-if="popover"
+    :result="popover.result"
+    :field="popover.field"
+    :x="popover.x"
+    :y="popover.y"
+    @close="popover = null"
+  />
 </template>

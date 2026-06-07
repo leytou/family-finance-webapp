@@ -74,4 +74,35 @@ describe('MonthlyTable', () => {
     expect(rows[1].findAll('td')[6].classes()).toContain('text-red-600')
     expect(rows[1].findAll('td')[7].classes()).toContain('font-bold')
   })
+
+  it('点击理财、净储蓄和累计单元格时展示公式弹窗', async () => {
+    const wrapper = mount(MonthlyTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            totalIncome: 12000,
+            totalExpense: 3000,
+            investReturn: 125,
+            netSavings: 9125,
+            cumSavings: 109125,
+          }),
+        ],
+      },
+    })
+
+    const cells = wrapper.findAll('tbody td')
+
+    await cells[1].trigger('click', { clientX: 100, clientY: 120 })
+    expect(wrapper.text()).toContain('2026-01 - investReturn')
+    expect(wrapper.text()).toContain('理财收益 = 上月累计储蓄 × 年利率 / 12')
+
+    await cells[2].trigger('click', { clientX: 200, clientY: 220 })
+    expect(wrapper.text()).toContain('2026-01 - netSavings')
+    expect(wrapper.text()).toContain('净储蓄 = 总收入(12,000) - 总支出(3,000) + 理财(125) = 9,125')
+
+    await cells[3].trigger('click', { clientX: 300, clientY: 320 })
+    expect(wrapper.text()).toContain('2026-01 - cumSavings')
+    expect(wrapper.text()).toContain('累计储蓄 = 上月累计 + 当月净储蓄(9,125)')
+  })
 })
