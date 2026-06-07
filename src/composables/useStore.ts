@@ -1,9 +1,11 @@
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 import type { CashFlowItem, PlanData } from '../types'
 import { getCurrentMonth } from '../utils/month'
 
 const STORAGE_KEY = 'family-finance-plan'
+
+let sharedData: Ref<PlanData> | null = null
 
 function createDefault(): PlanData {
   return {
@@ -18,9 +20,28 @@ function createDefault(): PlanData {
   }
 }
 
-export function useStore() {
+function loadData(): PlanData {
   const raw = localStorage.getItem(STORAGE_KEY)
-  const data = ref<PlanData>(raw ? JSON.parse(raw) : createDefault())
+
+  if (!raw) {
+    return createDefault()
+  }
+
+  try {
+    return JSON.parse(raw) as PlanData
+  } catch {
+    localStorage.removeItem(STORAGE_KEY)
+
+    return createDefault()
+  }
+}
+
+export function useStore() {
+  if (!sharedData) {
+    sharedData = ref<PlanData>(loadData())
+  }
+
+  const data = sharedData
 
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data.value))
