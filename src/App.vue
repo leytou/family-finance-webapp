@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import AnnualTable from './components/AnnualTable.vue'
 import MonthlyTable from './components/MonthlyTable.vue'
 import ParamPanel from './components/ParamPanel.vue'
 import { calculate } from './composables/useCalculation'
@@ -20,7 +21,8 @@ const results = computed(() => calculate(data.value))
         <ParamPanel />
       </aside>
       <section class="flex-1 flex flex-col overflow-hidden p-4">
-        <MonthlyTable :results="results" />
+        <AnnualTable :results="results" class="max-h-[40%]" />
+        <MonthlyTable :results="results" class="flex-1" />
       </section>
     </main>
   </div>
