@@ -39,13 +39,15 @@ function getMonthlyItems(
   month: number,
   type: CashFlowItem['type'],
 ): { name: string; amount: number }[] {
-  return items
+  const activeItems = items
     .filter((item) => item.type === type)
     .map((item) => ({
       name: item.name,
       amount: getActiveAmount(item, month),
     }))
     .filter((item) => item.amount !== 0)
+
+  return aggregateByName(activeItems)
 }
 
 function getActiveAmount(item: CashFlowItem, month: number): number {
@@ -56,4 +58,17 @@ function getActiveAmount(item: CashFlowItem, month: number): number {
 
 function sumAmounts(items: { amount: number }[]): number {
   return items.reduce((sum, item) => sum + item.amount, 0)
+}
+
+function aggregateByName(items: { name: string; amount: number }[]): {
+  name: string
+  amount: number
+}[] {
+  const totals = new Map<string, number>()
+
+  for (const item of items) {
+    totals.set(item.name, (totals.get(item.name) ?? 0) + item.amount)
+  }
+
+  return Array.from(totals, ([name, amount]) => ({ name, amount }))
 }

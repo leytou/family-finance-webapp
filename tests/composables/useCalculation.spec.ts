@@ -168,4 +168,52 @@ describe('calculate', () => {
     expect(results[5].totalIncome).toBe(10000)
     expect(results[6].totalIncome).toBe(15000)
   })
+
+  it('aggregates active income items with duplicate names', () => {
+    const results = calculate(
+      makePlan({
+        items: [
+          {
+            id: 'salary-primary',
+            name: 'Salary',
+            type: 'income',
+            segments: [{ amount: 10000, startMonth: 202601, endMonth: 203012 }],
+          },
+          {
+            id: 'salary-secondary',
+            name: 'Salary',
+            type: 'income',
+            segments: [{ amount: 2000, startMonth: 202601, endMonth: 203012 }],
+          },
+        ],
+      }),
+    )
+
+    expect(results[0].incomeItems).toEqual([{ name: 'Salary', amount: 12000 }])
+    expect(results[0].totalIncome).toBe(12000)
+  })
+
+  it('aggregates active expense items with duplicate names', () => {
+    const results = calculate(
+      makePlan({
+        items: [
+          {
+            id: 'rent-base',
+            name: 'Rent',
+            type: 'expense',
+            segments: [{ amount: 3000, startMonth: 202601, endMonth: 203012 }],
+          },
+          {
+            id: 'rent-service',
+            name: 'Rent',
+            type: 'expense',
+            segments: [{ amount: 500, startMonth: 202601, endMonth: 203012 }],
+          },
+        ],
+      }),
+    )
+
+    expect(results[0].expenseItems).toEqual([{ name: 'Rent', amount: 3500 }])
+    expect(results[0].totalExpense).toBe(3500)
+  })
 })
