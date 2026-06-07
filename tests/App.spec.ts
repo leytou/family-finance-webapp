@@ -195,9 +195,10 @@ describe('App', () => {
     expect(findRow(wrapper, 0, '房租')[1]).toBe('60,000')
     expect(findRow(wrapper, 0, '年度结余')[1]).toBe('184,606')
 
-    await wrapper.get('[aria-label="锚点月份"]').setValue(202612)
-    await wrapper.get('[aria-label="锚点金额"]').setValue(250000)
-    await wrapper.get('[aria-label="添加月度锚点"]').trigger('click')
+    await wrapper.get('[aria-label="编辑 2026-12 累计储蓄"]').trigger('click')
+    const editInput = wrapper.findAll('table')[1].find('input[type="number"]')
+    await editInput.setValue(250000)
+    await editInput.trigger('keyup.enter')
     await nextTick()
 
     expect(findRow(wrapper, 1, '2026-12')[5]).toBe('250,000')
