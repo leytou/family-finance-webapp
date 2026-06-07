@@ -112,6 +112,25 @@ describe('useStore', () => {
     expect(store.data.value.systemParams.currentSavings).toBe(0)
   })
 
+  it('exportData 返回反映当前数据的格式化 JSON', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    store.data.value.systemParams.currentSavings = 123456
+    store.data.value.items = [
+      {
+        id: 'salary',
+        name: '工资',
+        type: 'income',
+        segments: [{ amount: 10000, startMonth: 202601, endMonth: 202612 }],
+      },
+    ]
+
+    expect(store.exportData()).toBe(JSON.stringify(store.data.value, null, 2))
+    expect(store.exportData()).toContain('\n  "version": 1,')
+    expect(JSON.parse(store.exportData()).systemParams.currentSavings).toBe(123456)
+  })
+
   it('localStorage 存在 malformed JSON 时不抛错并移除坏数据', async () => {
     localStorage.setItem('family-finance-plan', '{bad json')
     const useStore = await loadUseStore()

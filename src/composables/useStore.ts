@@ -86,5 +86,9 @@ export function useStore() {
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  return { data, save, addItem, removeItem, addAnchor, removeAnchor, reset }
+  function exportData(): string {
+    return JSON.stringify(data.value, null, 2)
+  }
+
+  return { data, save, addItem, removeItem, addAnchor, removeAnchor, reset, exportData }
 }
