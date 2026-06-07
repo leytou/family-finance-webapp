@@ -9,7 +9,11 @@ export function useClickOutside(
   callback: () => void
 ) {
   function handler(e: MouseEvent) {
-    if (target.value && !target.value.contains(e.target as Node)) {
+    const el = target.value
+    if (!el) return
+    // Vue 3 在 v-for 内的模板 ref 可能被收集为数组，取第一个元素
+    const node = (Array.isArray(el) ? el[0] : el) as HTMLElement
+    if (node && !node.contains(e.target as Node)) {
       callback()
     }
   }

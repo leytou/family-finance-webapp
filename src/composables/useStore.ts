@@ -108,7 +108,7 @@ export function useStore() {
   function addColumn(name?: string): FlowColumn {
     const column: FlowColumn = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      name: name || '新列',
+      name: name ?? '新列',
       entries: {},
     }
     data.value.columns.push(column)

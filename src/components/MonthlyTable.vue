@@ -45,6 +45,11 @@ const renamingColumnId = ref<string | null>(null)
 const renameValue = ref<string>('')
 const renameInput = ref<HTMLInputElement | null>(null)
 
+// v-for 内使用函数 ref，避免 Vue 3 将模板 ref 收集为数组
+function setEditCellInput(el: any) { editCellInput.value = el ?? null }
+function setEditCumInput(el: any) { editCumInput.value = el ?? null }
+function setRenameInput(el: any) { renameInput.value = el ?? null }
+
 // 获取特定月份、特定列的值
 function getColumnValue(result: MonthResult, columnId: string): { amount: number; isEdited: boolean } {
   return result.columnValues.find(cv => cv.id === columnId) ?? { amount: 0, isEdited: false }
@@ -68,9 +73,6 @@ function getFormulaAriaLabel(result: MonthResult, field: FormulaField): string {
 function startRename(columnId: string, currentName: string) {
   renamingColumnId.value = columnId
   renameValue.value = currentName
-  nextTick(() => {
-    renameInput.value?.select()
-  })
 }
 
 function confirmRename() {
@@ -95,13 +97,19 @@ function confirmRemoveColumn(columnId: string, columnName: string) {
 }
 
 function handleAddColumn() {
-  store.addColumn()
+  const newColumn = store.addColumn('')
+  renamingColumnId.value = newColumn.id
+  renameValue.value = ''
 }
 
 // 现金流列单元格编辑
+// 记录编辑前的原始值，用于判断是否真正发生变化
+const editCellOriginalValue = ref<number>(0)
+
 function startEditCell(columnId: string, month: number, currentValue: number) {
   editingCell.value = { columnId, month }
-  editCellValue.value = String(Math.round(currentValue))
+  editCellOriginalValue.value = Math.round(currentValue)
+  editCellValue.value = String(editCellOriginalValue.value)
   nextTick(() => {
     editCellInput.value?.select()
   })
@@ -116,9 +124,12 @@ function confirmEditCell() {
     // 清空输入，删除 entry
     store.updateColumnEntry(columnId, month, null)
   } else {
-    const num = Number(trimmed)
+    const num = Math.round(Number(trimmed))
     if (Number.isFinite(num)) {
-      store.updateColumnEntry(columnId, month, Math.round(num))
+      // 值未变化时不写入 entry，避免无意义的"已编辑"标记
+      if (num !== editCellOriginalValue.value) {
+        store.updateColumnEntry(columnId, month, num)
+      }
     }
   }
   editingCell.value = null
@@ -131,9 +142,12 @@ function cancelEditCell() {
 }
 
 // 累计列编辑（锚点）
+const editCumOriginalValue = ref<number>(0)
+
 function startEditCum(result: MonthResult) {
   editingCumMonth.value = result.month
-  editCumValue.value = String(Math.round(result.cumSavings))
+  editCumOriginalValue.value = Math.round(result.cumSavings)
+  editCumValue.value = String(editCumOriginalValue.value)
   nextTick(() => {
     editCumInput.value?.select()
   })
@@ -146,9 +160,12 @@ function confirmEditCum() {
   if (trimmed === '') {
     store.removeAnchor(editingCumMonth.value)
   } else {
-    const num = Number(trimmed)
+    const num = Math.round(Number(trimmed))
     if (Number.isFinite(num)) {
-      store.addAnchor(editingCumMonth.value, Math.round(num))
+      // 值未变化时不写入锚点
+      if (num !== editCumOriginalValue.value) {
+        store.addAnchor(editingCumMonth.value, num)
+      }
     }
   }
   editingCumMonth.value = null
@@ -164,6 +181,14 @@ function cancelEditCum() {
 useClickOutside(editCellInput, confirmEditCell)
 useClickOutside(editCumInput, confirmEditCum)
 useClickOutside(renameInput, confirmRename)
+
+// v-focus 指令：元素挂载时自动聚焦
+const vFocus = {
+  mounted(el: HTMLInputElement) {
+    el.focus()
+    el.select()
+  },
+}
 
 // 样式辅助函数：负数使用斜体
 function getValueClass(value: number): string {
@@ -188,9 +213,10 @@ function getValueClass(value: number): string {
             <!-- 重命名输入框 -->
             <input
               v-if="renamingColumnId === column.id"
-              ref="renameInput"
+              :ref="setRenameInput"
+              v-focus
               type="text"
-              class="w-full h-full border rounded px-1 text-right text-[11px]"
+              class="w-16 h-full border rounded px-1 text-right text-[11px]"
               :value="renameValue"
               @input="renameValue = ($event.target as HTMLInputElement).value"
               @keyup.enter="confirmRename"
@@ -251,7 +277,7 @@ function getValueClass(value: number): string {
           <td
             v-for="column in columns"
             :key="`${result.month}-${column.id}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative"
             :class="[
               getValueClass(getColumnValue(result, column.id).amount),
               { 'bg-blue-100': getColumnValue(result, column.id).isEdited }
@@ -259,10 +285,10 @@ function getValueClass(value: number): string {
           >
             <input
               v-if="editingCell?.columnId === column.id && editingCell?.month === result.month"
-              ref="editCellInput"
+              :ref="setEditCellInput"
               type="number"
               step="1"
-              class="w-full h-full border rounded px-1 text-right text-[11px]"
+              class="absolute inset-0 border rounded px-1 text-right text-[11px]"
               :value="editCellValue"
               @input="editCellValue = ($event.target as HTMLInputElement).value"
               @keyup.enter="confirmEditCell"
@@ -351,7 +377,7 @@ function getValueClass(value: number): string {
 
           <!-- 累计列 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap font-bold"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap font-bold relative"
             :class="[
               getValueClass(result.cumSavings),
               { 'bg-blue-100': result.isAnchor }
@@ -359,10 +385,10 @@ function getValueClass(value: number): string {
           >
             <input
               v-if="editingCumMonth === result.month"
-              ref="editCumInput"
+              :ref="setEditCumInput"
               type="number"
               step="1"
-              class="w-full h-full border rounded px-1 text-right text-[11px]"
+              class="absolute inset-0 border rounded px-1 text-right text-[11px]"
               :value="editCumValue"
               @input="editCumValue = ($event.target as HTMLInputElement).value"
               @keyup.enter="confirmEditCum"
