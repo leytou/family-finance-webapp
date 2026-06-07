@@ -22,6 +22,57 @@ function createDefault(): PlanData {
   }
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isValidSegment(value: unknown): boolean {
+  if (!isObject(value)) return false
+
+  return (
+    isFiniteNumber(value.amount) &&
+    isFiniteNumber(value.startMonth) &&
+    isFiniteNumber(value.endMonth)
+  )
+}
+
+function isValidItem(value: unknown): boolean {
+  if (!isObject(value)) return false
+
+  return (
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    (value.type === 'income' || value.type === 'expense') &&
+    Array.isArray(value.segments) &&
+    value.segments.every(isValidSegment)
+  )
+}
+
+function isValidAnchor(value: unknown): boolean {
+  if (!isObject(value)) return false
+
+  return isFiniteNumber(value.month) && isFiniteNumber(value.actualSavings)
+}
+
+function isValidPlanData(value: unknown): value is PlanData {
+  if (!isObject(value) || !isObject(value.systemParams)) return false
+
+  return (
+    isFiniteNumber(value.version) &&
+    isFiniteNumber(value.systemParams.currentSavings) &&
+    isFiniteNumber(value.systemParams.startMonth) &&
+    isFiniteNumber(value.systemParams.annualRate) &&
+    Array.isArray(value.items) &&
+    value.items.every(isValidItem) &&
+    Array.isArray(value.anchors) &&
+    value.anchors.every(isValidAnchor)
+  )
+}
+
 function loadData(): PlanData {
   const raw = localStorage.getItem(STORAGE_KEY)
 
@@ -30,12 +81,18 @@ function loadData(): PlanData {
   }
 
   try {
-    return JSON.parse(raw) as PlanData
-  } catch {
-    localStorage.removeItem(STORAGE_KEY)
+    const parsed: unknown = JSON.parse(raw)
 
-    return createDefault()
+    if (isValidPlanData(parsed)) {
+      return parsed
+    }
+  } catch {
+    // Fall through to the same recovery path as structurally invalid data.
   }
+
+  localStorage.removeItem(STORAGE_KEY)
+
+  return createDefault()
 }
 
 export function useStore() {

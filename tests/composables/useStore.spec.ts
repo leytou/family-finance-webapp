@@ -183,6 +183,52 @@ describe('useStore', () => {
     expect(localStorage.getItem('family-finance-plan')).toBeNull()
   })
 
+  it('localStorage 存在合法 JSON 但缺少 PlanData 必要结构时不抛错并移除坏数据', async () => {
+    localStorage.setItem('family-finance-plan', JSON.stringify({ version: 1 }))
+    const useStore = await loadUseStore()
+
+    expect(() => useStore()).not.toThrow()
+
+    const store = useStore()
+    expect(store.data.value.version).toBe(1)
+    expect(store.data.value.items).toEqual([])
+    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.systemParams.currentSavings).toBe(0)
+    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+  })
+
+  it('localStorage 存在嵌套结构损坏的 PlanData 时不抛错并移除坏数据', async () => {
+    localStorage.setItem(
+      'family-finance-plan',
+      JSON.stringify({
+        version: 1,
+        systemParams: {
+          currentSavings: 100000,
+          startMonth: '202601',
+          annualRate: 0.025,
+        },
+        items: [
+          {
+            id: 'salary',
+            name: '工资',
+            type: 'income',
+          },
+        ],
+        anchors: [{ month: 202601, actualSavings: 100000 }],
+      }),
+    )
+    const useStore = await loadUseStore()
+
+    expect(() => useStore()).not.toThrow()
+
+    const store = useStore()
+    expect(store.data.value.version).toBe(1)
+    expect(store.data.value.items).toEqual([])
+    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.systemParams.currentSavings).toBe(0)
+    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+  })
+
   it('多次 useStore 调用共享同一个响应式数据源', async () => {
     const useStore = await loadUseStore()
     const a = useStore()
