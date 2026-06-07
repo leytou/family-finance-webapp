@@ -1,14 +1,7 @@
-export interface AmountSegment {
-  amount: number
-  startMonth: number
-  endMonth: number
-}
-
-export interface CashFlowItem {
+export interface FlowColumn {
   id: string
   name: string
-  type: 'income' | 'expense'
-  segments: AmountSegment[]
+  entries: Record<number, number>  // 稀疏存储，key=YYYYMM，只存用户手动编辑的值
 }
 
 export interface MonthlyAnchor {
@@ -17,7 +10,6 @@ export interface MonthlyAnchor {
 }
 
 export interface SystemParams {
-  currentSavings: number
   startMonth: number
   annualRate: number
 }
@@ -25,16 +17,14 @@ export interface SystemParams {
 export interface PlanData {
   version: number
   systemParams: SystemParams
-  items: CashFlowItem[]
+  columns: FlowColumn[]
   anchors: MonthlyAnchor[]
 }
 
 export interface MonthResult {
   month: number
-  incomeItems: { name: string; amount: number }[]
-  expenseItems: { name: string; amount: number }[]
-  totalIncome: number
-  totalExpense: number
+  columnValues: { id: string; name: string; amount: number; isEdited: boolean }[]
+  totalFlow: number
   investReturn: number
   netSavings: number
   cumSavings: number
