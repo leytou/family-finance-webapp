@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
+import MonthlyTable from './components/MonthlyTable.vue'
 import ParamPanel from './components/ParamPanel.vue'
+import { calculate } from './composables/useCalculation'
+import { useStore } from './composables/useStore'
+
+const { data } = useStore()
+const results = computed(() => calculate(data.value))
 </script>
 
 <template>
@@ -12,7 +20,7 @@ import ParamPanel from './components/ParamPanel.vue'
         <ParamPanel />
       </aside>
       <section class="flex-1 flex flex-col overflow-hidden p-4">
-        表格区域
+        <MonthlyTable :results="results" />
       </section>
     </main>
   </div>
