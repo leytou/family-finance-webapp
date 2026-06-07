@@ -99,4 +99,36 @@ describe('ParamPanel', () => {
     expect((wrapper.get('[aria-label="锚点月份"]').element as HTMLInputElement).value).toBe('0')
     expect((wrapper.get('[aria-label="锚点金额"]').element as HTMLInputElement).value).toBe('0')
   })
+
+  it('新增月度锚点时允许金额为 0', async () => {
+    const ParamPanel = await loadParamPanel()
+    const wrapper = mount(ParamPanel)
+
+    await wrapper.get('[aria-label="锚点月份"]').setValue(202602)
+    await wrapper.get('[aria-label="锚点金额"]').setValue(0)
+    await wrapper.get('[aria-label="添加月度锚点"]').trigger('click')
+
+    const useStore = await loadUseStore()
+    const { data } = useStore()
+
+    expect(data.value.anchors).toEqual([{ month: 202602, actualSavings: 0 }])
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
+      { month: 202602, actualSavings: 0 },
+    ])
+  })
+
+  it('新增月度锚点时忽略非法月份', async () => {
+    const ParamPanel = await loadParamPanel()
+    const wrapper = mount(ParamPanel)
+
+    await wrapper.get('[aria-label="锚点月份"]').setValue(202613)
+    await wrapper.get('[aria-label="锚点金额"]').setValue(120000)
+    await wrapper.get('[aria-label="添加月度锚点"]').trigger('click')
+
+    const useStore = await loadUseStore()
+    const { data } = useStore()
+
+    expect(data.value.anchors).toEqual([])
+    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+  })
 })

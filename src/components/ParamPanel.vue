@@ -12,6 +12,17 @@ const { data, save, addItem, removeItem, addAnchor, removeAnchor } = useStore()
 const newAnchorMonth = ref<number>(0)
 const newAnchorValue = ref<number>(0)
 
+function isValidAnchorMonth(month: number): boolean {
+  if (!Number.isFinite(month) || !Number.isInteger(month)) {
+    return false
+  }
+
+  const year = Math.floor(month / 100)
+  const monthPart = month % 100
+
+  return year >= 1000 && year <= 9999 && monthPart >= 1 && monthPart <= 12
+}
+
 function updateItem(updated: CashFlowItem) {
   const index = data.value.items.findIndex(item => item.id === updated.id)
 
@@ -24,7 +35,7 @@ function updateItem(updated: CashFlowItem) {
 }
 
 function doAddAnchor() {
-  if (!newAnchorMonth.value || !newAnchorValue.value) {
+  if (!isValidAnchorMonth(newAnchorMonth.value) || !Number.isFinite(newAnchorValue.value)) {
     return
   }
 
