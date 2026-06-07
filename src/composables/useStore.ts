@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 
 import type { CashFlowItem, PlanData } from '../types'
 import { getCurrentMonth } from '../utils/month'
@@ -6,6 +6,8 @@ import { getCurrentMonth } from '../utils/month'
 const STORAGE_KEY = 'family-finance-plan'
 
 let sharedData: Ref<PlanData> | null = null
+let saveTimeout: ReturnType<typeof setTimeout> | null = null
+let resetSnapshot: string | null = null
 
 function createDefault(): PlanData {
   return {
@@ -39,11 +41,35 @@ function loadData(): PlanData {
 export function useStore() {
   if (!sharedData) {
     sharedData = ref<PlanData>(loadData())
+    watch(
+      sharedData,
+      () => {
+        const currentSnapshot = JSON.stringify(sharedData?.value)
+
+        if (resetSnapshot === currentSnapshot) {
+          resetSnapshot = null
+          return
+        }
+        resetSnapshot = null
+
+        if (saveTimeout) clearTimeout(saveTimeout)
+        saveTimeout = setTimeout(() => {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedData?.value))
+          saveTimeout = null
+        }, 300)
+      },
+      { deep: true },
+    )
   }
 
   const data = sharedData
 
   function save() {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout)
+      saveTimeout = null
+    }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data.value))
   }
 
@@ -56,12 +82,10 @@ export function useStore() {
     }
 
     data.value.items.push(item)
-    save()
   }
 
   function removeItem(id: string) {
     data.value.items = data.value.items.filter(item => item.id !== id)
-    save()
   }
 
   function addAnchor(month: number, actualSavings: number) {
@@ -72,17 +96,21 @@ export function useStore() {
     } else {
       data.value.anchors.push({ month, actualSavings })
     }
-
-    save()
   }
 
   function removeAnchor(month: number) {
     data.value.anchors = data.value.anchors.filter(anchor => anchor.month !== month)
-    save()
   }
 
   function reset() {
-    data.value = createDefault()
+    if (saveTimeout) {
+      clearTimeout(saveTimeout)
+      saveTimeout = null
+    }
+
+    const defaultData = createDefault()
+    resetSnapshot = JSON.stringify(defaultData)
+    data.value = defaultData
     localStorage.removeItem(STORAGE_KEY)
   }
 

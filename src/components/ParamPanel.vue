@@ -7,7 +7,7 @@ import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 import CashFlowItemEditor from './CashFlowItemEditor.vue'
 
-const { data, save, addItem, removeItem, addAnchor, removeAnchor } = useStore()
+const { data, addItem, removeItem, addAnchor, removeAnchor } = useStore()
 
 const newAnchorMonth = ref<number>(0)
 const newAnchorValue = ref<number>(0)
@@ -31,7 +31,6 @@ function updateItem(updated: CashFlowItem) {
   }
 
   data.value.items[index] = updated
-  save()
 }
 
 function doAddAnchor() {
@@ -56,7 +55,6 @@ function doAddAnchor() {
             v-model.number="data.systemParams.currentSavings"
             type="number"
             class="block w-full mt-1 h-7 px-2 border rounded text-xs"
-            @change="save()"
           />
         </label>
         <label class="block text-xs">
@@ -65,7 +63,6 @@ function doAddAnchor() {
             v-model.number="data.systemParams.startMonth"
             type="number"
             class="block w-full mt-1 h-7 px-2 border rounded text-xs"
-            @change="save()"
           />
         </label>
         <label class="block text-xs">
@@ -75,7 +72,6 @@ function doAddAnchor() {
             type="number"
             step="0.001"
             class="block w-full mt-1 h-7 px-2 border rounded text-xs"
-            @change="save()"
           />
         </label>
       </div>

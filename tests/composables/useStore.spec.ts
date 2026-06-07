@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 async function loadUseStore() {
   return (await import('../../src/composables/useStore')).useStore
@@ -6,9 +7,21 @@ async function loadUseStore() {
 
 describe('useStore', () => {
   beforeEach(() => {
+    vi.useRealTimers()
     localStorage.clear()
     vi.resetModules()
   })
+
+  afterEach(() => {
+    vi.clearAllTimers()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  async function flushAutoSave(ms = 300) {
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(ms)
+  }
 
   it('初次加载返回默认数据', async () => {
     const useStore = await loadUseStore()
@@ -58,11 +71,13 @@ describe('useStore', () => {
     expect(store.data.value.items).toHaveLength(0)
   })
 
-  it('addAnchor 添加锚点并保存', async () => {
+  it('addAnchor 添加锚点并自动保存', async () => {
+    vi.useFakeTimers()
     const useStore = await loadUseStore()
     const store = useStore()
 
     store.addAnchor(202601, 100000)
+    await flushAutoSave()
 
     expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
     expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
@@ -70,12 +85,14 @@ describe('useStore', () => {
     ])
   })
 
-  it('addAnchor 同月更新已有锚点而不是重复添加', async () => {
+  it('addAnchor 同月更新已有锚点而不是重复添加并自动保存', async () => {
+    vi.useFakeTimers()
     const useStore = await loadUseStore()
     const store = useStore()
 
     store.addAnchor(202601, 100000)
     store.addAnchor(202601, 120000)
+    await flushAutoSave()
 
     expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 120000 }])
     expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
@@ -83,7 +100,8 @@ describe('useStore', () => {
     ])
   })
 
-  it('removeAnchor 删除锚点并保存', async () => {
+  it('removeAnchor 删除锚点并自动保存', async () => {
+    vi.useFakeTimers()
     const useStore = await loadUseStore()
     const store = useStore()
 
@@ -94,6 +112,7 @@ describe('useStore', () => {
     store.save()
 
     store.removeAnchor(202601)
+    await flushAutoSave()
 
     expect(store.data.value.anchors).toEqual([{ month: 202602, actualSavings: 120000 }])
     expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
@@ -102,14 +121,33 @@ describe('useStore', () => {
   })
 
   it('reset 清空数据恢复默认', async () => {
+    vi.useFakeTimers()
     const useStore = await loadUseStore()
     const store = useStore()
 
     store.data.value.systemParams.currentSavings = 999999
     store.save()
     store.reset()
+    await flushAutoSave()
 
     expect(store.data.value.systemParams.currentSavings).toBe(0)
+    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+  })
+
+  it('reset 后同一轮事件中的新修改仍会自动保存', async () => {
+    vi.useFakeTimers()
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    store.data.value.systemParams.currentSavings = 999999
+    store.save()
+    store.reset()
+    store.data.value.systemParams.currentSavings = 123456
+    await flushAutoSave()
+
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.currentSavings).toBe(
+      123456,
+    )
   })
 
   it('exportData 返回反映当前数据的格式化 JSON', async () => {
@@ -157,5 +195,65 @@ describe('useStore', () => {
       name: '工资',
       type: 'income',
     })
+  })
+
+  it('直接修改系统参数后不调用 save 也会在 300ms 后自动保存', async () => {
+    vi.useFakeTimers()
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    store.data.value.systemParams.currentSavings = 500000
+
+    await nextTick()
+    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+
+    await vi.advanceTimersByTimeAsync(299)
+    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.currentSavings).toBe(
+      500000,
+    )
+  })
+
+  it('自动保存 debounce 生效且连续修改只保存最后一次数据', async () => {
+    vi.useFakeTimers()
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    store.data.value.systemParams.currentSavings = 100000
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(299)
+
+    store.data.value.systemParams.currentSavings = 200000
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(299)
+
+    expect(setItem).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(1)
+
+    expect(setItem).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.currentSavings).toBe(
+      200000,
+    )
+  })
+
+  it('多次 useStore 调用不会重复安装自动保存 watcher', async () => {
+    vi.useFakeTimers()
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    const useStore = await loadUseStore()
+    const a = useStore()
+    useStore()
+    useStore()
+
+    a.data.value.systemParams.currentSavings = 300000
+    await flushAutoSave()
+
+    expect(setItem).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.currentSavings).toBe(
+      300000,
+    )
   })
 })

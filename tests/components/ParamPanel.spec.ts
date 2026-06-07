@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 async function loadUseStore() {
   return (await import('../../src/composables/useStore')).useStore
@@ -11,9 +12,21 @@ async function loadParamPanel() {
 
 describe('ParamPanel', () => {
   beforeEach(() => {
+    vi.useRealTimers()
     localStorage.clear()
     vi.resetModules()
   })
+
+  afterEach(() => {
+    vi.clearAllTimers()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  async function flushAutoSave(ms = 300) {
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(ms)
+  }
 
   it('保留系统参数并支持新增收入和支出项目', async () => {
     const ParamPanel = await loadParamPanel()
@@ -34,7 +47,8 @@ describe('ParamPanel', () => {
     ])
   })
 
-  it('接收项目更新后替换原项目并保存', async () => {
+  it('接收项目更新后替换原项目并自动保存', async () => {
+    vi.useFakeTimers()
     const useStore = await loadUseStore()
     const { addItem, data } = useStore()
     addItem('工资', 'income')
@@ -53,6 +67,8 @@ describe('ParamPanel', () => {
       name: '工资调整',
       segments: [{ amount: 10000, startMonth: 202601, endMonth: 202612 }],
     })
+    await flushAutoSave()
+
     expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').items[0]).toMatchObject({
       id: original.id,
       name: '工资调整',
@@ -84,6 +100,7 @@ describe('ParamPanel', () => {
   })
 
   it('展示、删除并新增月度锚点', async () => {
+    vi.useFakeTimers()
     const useStore = await loadUseStore()
     const { data, save } = useStore()
     data.value.anchors = [{ month: 202601, actualSavings: 100000 }]
@@ -102,6 +119,7 @@ describe('ParamPanel', () => {
     await wrapper.get('[aria-label="锚点月份"]').setValue(202602)
     await wrapper.get('[aria-label="锚点金额"]').setValue(120000)
     await wrapper.get('[aria-label="添加月度锚点"]').trigger('click')
+    await flushAutoSave()
 
     expect(data.value.anchors).toEqual([{ month: 202602, actualSavings: 120000 }])
     expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
@@ -112,6 +130,7 @@ describe('ParamPanel', () => {
   })
 
   it('新增月度锚点时允许金额为 0', async () => {
+    vi.useFakeTimers()
     const ParamPanel = await loadParamPanel()
     const wrapper = mount(ParamPanel)
 
@@ -121,6 +140,7 @@ describe('ParamPanel', () => {
 
     const useStore = await loadUseStore()
     const { data } = useStore()
+    await flushAutoSave()
 
     expect(data.value.anchors).toEqual([{ month: 202602, actualSavings: 0 }])
     expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
@@ -141,5 +161,32 @@ describe('ParamPanel', () => {
 
     expect(data.value.anchors).toEqual([])
     expect(localStorage.getItem('family-finance-plan')).toBeNull()
+  })
+
+  it('系统参数输入变化不依赖 change 手动保存但仍更新 store 数据', async () => {
+    vi.useFakeTimers()
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    const ParamPanel = await loadParamPanel()
+    const wrapper = mount(ParamPanel)
+    const input = wrapper.findAll('input')[0]
+
+    ;(input.element as HTMLInputElement).value = '123456'
+    await input.trigger('input')
+
+    const useStore = await loadUseStore()
+    const { data } = useStore()
+
+    expect(data.value.systemParams.currentSavings).toBe(123456)
+    expect(setItem).not.toHaveBeenCalled()
+
+    await input.trigger('change')
+    expect(setItem).not.toHaveBeenCalled()
+
+    await flushAutoSave()
+
+    expect(setItem).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.currentSavings).toBe(
+      123456,
+    )
   })
 })
