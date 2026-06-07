@@ -44,6 +44,17 @@ function isDragSelected(month: number) {
   return isBetween(month, dragStart.value, dragEnd.value)
 }
 
+function isActive(month: number) {
+  return isSelected(month) || isDragSelected(month)
+}
+
+function selectSingle(month: number) {
+  emit('select', {
+    startMonth: month,
+    endMonth: month,
+  })
+}
+
 function onMouseDown(month: number) {
   dragging.value = true
   dragStart.value = month
@@ -75,21 +86,24 @@ function onMouseUp() {
 </script>
 
 <template>
-  <div class="grid grid-cols-12 gap-1 select-none" @mouseleave="onMouseUp">
+  <div class="grid grid-cols-12 gap-1 select-none" @mouseup="onMouseUp" @mouseleave="onMouseUp">
     <button
       v-for="month in months"
       :key="month"
       type="button"
       data-testid="grid-cell"
       class="h-7 rounded border text-[10px]"
+      :aria-selected="isActive(month)"
       :class="{
-        selected: isSelected(month) || isDragSelected(month),
-        'border-blue-600 bg-blue-600 text-white': isSelected(month) || isDragSelected(month),
-        'border-gray-200 hover:bg-blue-50': !isSelected(month) && !isDragSelected(month),
+        selected: isActive(month),
+        'border-blue-600 bg-blue-600 text-white': isActive(month),
+        'border-gray-200 hover:bg-blue-50': !isActive(month),
       }"
       @mousedown="onMouseDown(month)"
       @mousemove="onMouseMove(month)"
-      @mouseup="onMouseUp"
+      @mouseup.stop="onMouseUp"
+      @keydown.enter.prevent="selectSingle(month)"
+      @keydown.space.prevent="selectSingle(month)"
     >
       {{ formatMonth(month) }}
     </button>
