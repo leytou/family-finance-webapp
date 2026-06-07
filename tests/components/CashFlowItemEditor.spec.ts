@@ -35,10 +35,10 @@ describe('CashFlowItemEditor', () => {
 
   it('展开后可新增、修改和删除金额段', async () => {
     const item = createItem({
-      segments: [{ amount: 5000, startMonth: 202601, endMonth: 202612 }],
+      segments: [{ amount: 5000, startMonth: 202704, endMonth: 202712 }],
     })
     const wrapper = mount(CashFlowItemEditor, {
-      props: { item, startMonth: 202601 },
+      props: { item, startMonth: 202704 },
     })
 
     await wrapper.get('[aria-label="展开金额段"]').trigger('click')
@@ -51,14 +51,14 @@ describe('CashFlowItemEditor', () => {
     await wrapper.get('[aria-label="删除金额段"]').trigger('click')
 
     expect(wrapper.emitted('update')).toEqual([
-      [{ ...item, segments: [{ amount: 6000, startMonth: 202601, endMonth: 202612 }] }],
+      [{ ...item, segments: [{ amount: 6000, startMonth: 202704, endMonth: 202712 }] }],
       [{ ...item, segments: [{ amount: 5000, startMonth: 202602, endMonth: 202712 }] }],
       [
         {
           ...item,
           segments: [
-            { amount: 5000, startMonth: 202601, endMonth: 202612 },
-            { amount: 0, startMonth: 202601, endMonth: 203012 },
+            { amount: 5000, startMonth: 202704, endMonth: 202712 },
+            { amount: 0, startMonth: 202704, endMonth: 203203 },
           ],
         },
       ],

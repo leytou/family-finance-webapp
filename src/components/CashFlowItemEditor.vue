@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 import TimeGrid from './TimeGrid.vue'
 import type { AmountSegment, CashFlowItem } from '../types'
+import { addMonths } from '../utils/month'
 
 const props = defineProps<{
   item: CashFlowItem
@@ -32,7 +33,7 @@ function addSegment() {
     ...props.item,
     segments: [
       ...props.item.segments,
-      { amount: 0, startMonth: 202601, endMonth: 203012 },
+      { amount: 0, startMonth: props.startMonth, endMonth: addMonths(props.startMonth, 59) },
     ],
   })
 }
