@@ -16,46 +16,6 @@ function findButton(wrapper: ReturnType<typeof mount>, text: string) {
   return wrapper.findAll('button').find(button => button.text() === text)
 }
 
-function getTableRows(wrapper: ReturnType<typeof mount>, tableIndex: number): string[][] {
-  return wrapper
-    .findAll('table')
-    [tableIndex].findAll('tbody tr')
-    .map(row => row.findAll('td').map(cell => cell.text()))
-}
-
-function findRow(wrapper: ReturnType<typeof mount>, tableIndex: number, firstCell: string): string[] {
-  const row = getTableRows(wrapper, tableIndex).find(cells => cells[0] === firstCell)
-
-  if (!row) {
-    throw new Error(`找不到行：${firstCell}`)
-  }
-
-  return row
-}
-
-async function flushAutoSave(ms = 300) {
-  await nextTick()
-  await vi.advanceTimersByTimeAsync(ms)
-}
-
-function readBlobAsText(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-
-    reader.addEventListener('load', () => resolve(String(reader.result)))
-    reader.addEventListener('error', () => reject(reader.error))
-    reader.readAsText(blob)
-  })
-}
-
-function restoreUrlProperty(name: 'createObjectURL' | 'revokeObjectURL', descriptor: PropertyDescriptor | undefined) {
-  if (descriptor) {
-    Object.defineProperty(URL, name, descriptor)
-  } else {
-    Reflect.deleteProperty(URL, name)
-  }
-}
-
 describe('App', () => {
   let originalCreateObjectURLDescriptor: PropertyDescriptor | undefined
   let originalRevokeObjectURLDescriptor: PropertyDescriptor | undefined
@@ -75,10 +35,78 @@ describe('App', () => {
     restoreUrlProperty('revokeObjectURL', originalRevokeObjectURLDescriptor)
   })
 
+  function restoreUrlProperty(name: 'createObjectURL' | 'revokeObjectURL', descriptor: PropertyDescriptor | undefined) {
+    if (descriptor) {
+      Object.defineProperty(URL, name, descriptor)
+    } else {
+      Reflect.deleteProperty(URL, name)
+    }
+  }
+
+  function readBlobAsText(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+
+      reader.addEventListener('load', () => resolve(String(reader.result)))
+      reader.addEventListener('error', () => reject(reader.error))
+      reader.readAsText(blob)
+    })
+  }
+
+  it('渲染头部包含系统参数输入', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          AnnualTable: true,
+          MonthlyTable: true,
+        },
+      },
+    })
+
+    const header = wrapper.get('header')
+    expect(header.exists()).toBe(true)
+    expect(header.text()).toContain('家庭财务规划')
+
+    // 起始月份输入
+    const startMonthInput = wrapper.find('input[placeholder="YYYYMM"]')
+    expect(startMonthInput.exists()).toBe(true)
+
+    // 年化收益率输入
+    const annualRateInput = wrapper.findAll('input').find(input => input.attributes('step') === '0.001')
+    expect(annualRateInput?.exists()).toBe(true)
+  })
+
+  it('渲染两个表格区域', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          AnnualTable: true,
+          MonthlyTable: true,
+        },
+      },
+    })
+
+    const main = wrapper.get('main')
+    expect(main.exists()).toBe(true)
+
+    const tablePanes = main.findAll(':scope > div')
+    expect(tablePanes).toHaveLength(2)
+
+    // AnnualTable 在上方
+    expect(tablePanes[0].classes()).toContain('max-h-[35%]')
+    expect(tablePanes[0].findComponent({ name: 'AnnualTable' }).exists()).toBe(true)
+
+    // MonthlyTable 在下方
+    expect(tablePanes[1].classes()).toContain('flex-1')
+    expect(tablePanes[1].findComponent({ name: 'MonthlyTable' }).exists()).toBe(true)
+  })
+
   it('点击导出按钮创建并点击下载链接', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
-    store.data.value.systemParams.currentSavings = 888888
+    store.data.value.systemParams.annualRate = 0.05
     await nextTick()
     store.save()
 
@@ -112,7 +140,6 @@ describe('App', () => {
         stubs: {
           AnnualTable: true,
           MonthlyTable: true,
-          ParamPanel: true,
         },
       },
     })
@@ -128,24 +155,30 @@ describe('App', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:finance-plan')
   })
 
-  it('完成收入支出、锚点、分段、公式、刷新恢复、导出和重置流程', async () => {
-    vi.useFakeTimers()
-    const createObjectURL = vi.fn(() => 'blob:finance-plan')
-    const revokeObjectURL = vi.fn()
-    const anchors: HTMLAnchorElement[] = []
+  it('导出数据包含正确结构', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    // 添加一些测试数据
+    store.data.value.systemParams.annualRate = 0.03
+    const col = store.addColumn('工资')
+    store.updateColumnEntry(col.id, 202601, 10000)
+    store.addAnchor(202606, 50000)
+
     let exportedBlob: Blob | undefined
-    const initialConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    const createObjectURL = vi.fn((blob: Blob) => {
+      exportedBlob = blob
+      return 'blob:finance-plan'
+    })
 
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
-      value: (blob: Blob) => {
-        exportedBlob = blob
-        return createObjectURL(blob)
-      },
+      value: createObjectURL,
     })
     Object.defineProperty(URL, 'revokeObjectURL', {
       configurable: true,
-      value: revokeObjectURL,
+      value: vi.fn(),
     })
 
     const originalCreateElement = document.createElement.bind(document)
@@ -154,177 +187,45 @@ describe('App', () => {
 
       if (tagName.toLowerCase() === 'a') {
         vi.spyOn(element, 'click').mockImplementation(() => {})
-        anchors.push(element as HTMLAnchorElement)
       }
 
       return element
     })
 
     const App = await loadApp()
-    const wrapper = mount(App)
-
-    const systemInputs = wrapper.findAll('aside section:first-child input')
-    await systemInputs[0].setValue(100000)
-    await systemInputs[1].setValue(202601)
-    await systemInputs[2].setValue(0.025)
-
-    await wrapper.get('[aria-label="添加收入项目"]').trigger('click')
-    await wrapper.get('[aria-label="添加支出项目"]').trigger('click')
-
-    const editors = wrapper.findAllComponents({ name: 'CashFlowItemEditor' })
-    await editors[0].get('[aria-label="项目名称"]').setValue('工资')
-    await editors[0].get('[aria-label="展开金额段"]').trigger('click')
-    await editors[0].get('[aria-label="添加金额段"]').trigger('click')
-    await editors[0].get('[aria-label="金额"]').setValue(20000)
-
-    await editors[1].get('[aria-label="项目名称"]').setValue('房租')
-    await editors[1].get('[aria-label="展开金额段"]').trigger('click')
-    await editors[1].get('[aria-label="添加金额段"]').trigger('click')
-    await editors[1].get('[aria-label="金额"]').setValue(5000)
-    await nextTick()
-
-    expect(findRow(wrapper, 1, '2026-01')).toEqual([
-      '2026-01',
-      '20,000',
-      '5,000',
-      '208',
-      '15,208',
-      '115,208',
-    ])
-    expect(findRow(wrapper, 0, '工资')[1]).toBe('240,000')
-    expect(findRow(wrapper, 0, '房租')[1]).toBe('60,000')
-    expect(findRow(wrapper, 0, '年度结余')[1]).toBe('184,606')
-
-    await wrapper.get('[aria-label="编辑 2026-12 累计储蓄"]').trigger('click')
-    const editInput = wrapper.findAll('table')[1].find('input[type="number"]')
-    await editInput.setValue(250000)
-    await editInput.trigger('keyup.enter')
-    await nextTick()
-
-    expect(findRow(wrapper, 1, '2026-12')[5]).toBe('250,000')
-    expect(findRow(wrapper, 1, '2027-01')).toEqual([
-      '2027-01',
-      '20,000',
-      '5,000',
-      '521',
-      '15,521',
-      '265,521',
-    ])
-
-    const salaryEditor = wrapper.findAllComponents({ name: 'CashFlowItemEditor' })[0]
-    await salaryEditor.findAll('[aria-label="删除金额段"]')[0].trigger('click')
-    await salaryEditor.get('[aria-label="添加金额段"]').trigger('click')
-    let salaryInputs = salaryEditor.findAll('[aria-label="金额"]')
-    await salaryInputs[0].setValue(20000)
-    let salaryCells = salaryEditor.findAll('[data-testid="grid-cell"]')
-    await salaryCells[0].trigger('mousedown')
-    await salaryCells[11].trigger('mousemove')
-    await salaryCells[11].trigger('mouseup')
-
-    await salaryEditor.get('[aria-label="添加金额段"]').trigger('click')
-    salaryInputs = salaryEditor.findAll('[aria-label="金额"]')
-    await salaryInputs[1].setValue(25000)
-    salaryCells = salaryEditor.findAll('[data-testid="grid-cell"]')
-    await salaryCells[72].trigger('mousedown')
-    await salaryCells[119].trigger('mousemove')
-    await salaryCells[119].trigger('mouseup')
-    await nextTick()
-
-    expect(findRow(wrapper, 1, '2026-12')[1]).toBe('20,000')
-    expect(findRow(wrapper, 1, '2027-01')[1]).toBe('25,000')
-    expect(findRow(wrapper, 0, '工资')[1]).toBe('240,000')
-    expect(findRow(wrapper, 0, '工资')[2]).toBe('300,000')
-
-    await wrapper.get('[aria-label="编辑 2027-01 累计储蓄"]').trigger('mouseenter', {
-      clientX: 100,
-      clientY: 120,
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          AnnualTable: true,
+          MonthlyTable: true,
+        },
+      },
     })
-    expect(wrapper.text()).toContain('2027-01 - 累计储蓄')
-    expect(wrapper.text()).toContain('累计储蓄 = 上月累计 + 当月净储蓄(20,521)')
 
-    await flushAutoSave()
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').items).toMatchObject([
-      {
-        name: '工资',
-        type: 'income',
-        segments: [
-          { amount: 20000, startMonth: 202601, endMonth: 202612 },
-          { amount: 25000, startMonth: 202701, endMonth: 203012 },
-        ],
-      },
-      {
-        name: '房租',
-        type: 'expense',
-        segments: [{ amount: 5000, startMonth: 202601, endMonth: 203012 }],
-      },
-    ])
-    wrapper.unmount()
-    vi.resetModules()
-    initialConfirm.mockRestore()
-    const reloadedConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await findButton(wrapper, '导出')?.trigger('click')
 
-    const ReloadedApp = await loadApp()
-    const reloaded = mount(ReloadedApp)
-    expect(findRow(reloaded, 1, '2027-01')).toEqual([
-      '2027-01',
-      '25,000',
-      '5,000',
-      '521',
-      '20,521',
-      '270,521',
-    ])
-
-    await findButton(reloaded, '导出')?.trigger('click')
-    const exportAnchor = anchors.find(element => element.download === 'finance-plan.json')
-    expect(exportAnchor).toBeTruthy()
-    expect(exportAnchor?.download).toBe('finance-plan.json')
-    expect(exportAnchor?.click).toHaveBeenCalledTimes(1)
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:finance-plan')
-
-    const resetButton = findButton(reloaded, '重置')
-    expect(resetButton).toBeTruthy()
-    if (!resetButton) {
-      throw new Error('找不到重置按钮')
-    }
-    expect(resetButton.text()).toBe('重置')
-    await resetButton.trigger('click')
-    await nextTick()
-
-    expect(reloadedConfirm).toHaveBeenCalledWith('确定要重置所有数据？此操作不可撤销。')
-    expect(localStorage.getItem('family-finance-plan')).toBeNull()
-    expect(reloaded.findAllComponents({ name: 'CashFlowItemEditor' })).toHaveLength(0)
-    expect(getTableRows(reloaded, 1)).toHaveLength(60)
-    expect(getTableRows(reloaded, 1)[0].slice(1)).toEqual(['0', '0', '0'])
-
-    vi.useRealTimers()
     const exported = JSON.parse(await readBlobAsText(exportedBlob!))
+
+    expect(exported.version).toBe(2)
     expect(exported.systemParams).toEqual({
-      currentSavings: 100000,
-      startMonth: 202601,
-      annualRate: 0.025,
+      startMonth: expect.any(Number),
+      annualRate: 0.03,
     })
-    expect(exported.anchors).toEqual([{ month: 202612, actualSavings: 250000 }])
-    expect(exported.items).toMatchObject([
-      {
-        name: '工资',
-        type: 'income',
-        segments: [
-          { amount: 20000, startMonth: 202601, endMonth: 202612 },
-          { amount: 25000, startMonth: 202701, endMonth: 203012 },
-        ],
-      },
-      {
-        name: '房租',
-        type: 'expense',
-        segments: [{ amount: 5000, startMonth: 202601, endMonth: 203012 }],
-      },
-    ])
+    expect(exported.columns).toHaveLength(1)
+    expect(exported.columns[0]).toMatchObject({
+      name: '工资',
+      entries: { 202601: 10000 },
+    })
+    expect(exported.anchors).toEqual([{ month: 202606, actualSavings: 50000 }])
   })
 
   it('确认重置时清空数据', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
-    store.data.value.systemParams.currentSavings = 999999
+
+    // 添加一些测试数据
+    const col = store.addColumn('工资')
+    store.updateColumnEntry(col.id, 202601, 10000)
     await nextTick()
     store.save()
 
@@ -336,7 +237,6 @@ describe('App', () => {
         stubs: {
           AnnualTable: true,
           MonthlyTable: true,
-          ParamPanel: true,
         },
       },
     })
@@ -344,14 +244,19 @@ describe('App', () => {
     await findButton(wrapper, '重置')?.trigger('click')
 
     expect(window.confirm).toHaveBeenCalledWith('确定要重置所有数据？此操作不可撤销。')
-    expect(store.data.value.systemParams.currentSavings).toBe(0)
+    expect(store.data.value.columns).toEqual([])
+    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.systemParams.annualRate).toBe(0.025)
     expect(localStorage.getItem('family-finance-plan')).toBeNull()
   })
 
   it('取消重置时保留数据', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
-    store.data.value.systemParams.currentSavings = 999999
+
+    // 添加一些测试数据
+    const col = store.addColumn('工资')
+    store.updateColumnEntry(col.id, 202601, 10000)
     await nextTick()
     store.save()
 
@@ -363,38 +268,91 @@ describe('App', () => {
         stubs: {
           AnnualTable: true,
           MonthlyTable: true,
-          ParamPanel: true,
         },
       },
     })
 
     await findButton(wrapper, '重置')?.trigger('click')
 
-    expect(store.data.value.systemParams.currentSavings).toBe(999999)
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.currentSavings).toBe(999999)
+    expect(store.data.value.columns).toHaveLength(1)
+    expect(store.data.value.columns[0].name).toBe('工资')
+    expect(store.data.value.columns[0].entries[202601]).toBe(10000)
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').columns).toHaveLength(1)
   })
 
-  it('使用高数据密度的响应式分割布局', async () => {
+  it('系统参数输入正确绑定', async () => {
     const App = await loadApp()
     const wrapper = mount(App, {
       global: {
         stubs: {
           AnnualTable: true,
           MonthlyTable: true,
-          ParamPanel: true,
         },
       },
     })
 
-    expect(wrapper.get('main').classes()).toEqual(expect.arrayContaining(['flex-1', 'flex', 'overflow-hidden']))
-    expect(wrapper.get('aside').classes()).toEqual(
-      expect.arrayContaining(['w-72', 'min-w-72', 'border-r', 'overflow-y-auto', 'p-3', 'text-xs'])
-    )
+    const useStore = await loadUseStore()
+    const store = useStore()
 
-    const tablePanes = wrapper.find('main section').findAll(':scope > div')
-    expect(tablePanes[0].classes()).toEqual(
-      expect.arrayContaining(['flex-none', 'max-h-[35%]', 'overflow-auto', 'border-b'])
-    )
-    expect(tablePanes[1].classes()).toEqual(expect.arrayContaining(['flex-1', 'overflow-auto']))
+    // 起始月份
+    const startMonthInput = wrapper.find('input[placeholder="YYYYMM"]')
+    await startMonthInput.setValue(202602)
+    expect(store.data.value.systemParams.startMonth).toBe(202602)
+
+    // 年化收益率（显示为百分比，存储为小数）
+    const annualRateInput = wrapper.findAll('input').find(input => input.attributes('step') === '0.001')
+    await annualRateInput?.setValue('3.5')
+    expect(store.data.value.systemParams.annualRate).toBeCloseTo(0.035)
+  })
+
+  it('年化收益率正确显示（百分比格式）', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.data.value.systemParams.annualRate = 0.025
+
+    const App = await loadApp()
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          AnnualTable: true,
+          MonthlyTable: true,
+        },
+      },
+    })
+
+    const annualRateInput = wrapper.findAll('input').find(input => input.attributes('step') === '0.001')
+    expect(annualRateInput?.element.value).toBe('2.500')
+  })
+
+  it('整体布局结构正确', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          AnnualTable: true,
+          MonthlyTable: true,
+        },
+      },
+    })
+
+    // 外层容器
+    expect(wrapper.get('.h-screen').classes()).toContain('flex-col')
+    expect(wrapper.get('.h-screen').classes()).toContain('flex')
+
+    // 头部
+    expect(wrapper.get('header').classes()).toContain('h-12')
+    expect(wrapper.get('header').classes()).toContain('border-b')
+
+    // 主体区域
+    const main = wrapper.get('main')
+    expect(main.classes()).toContain('flex-1')
+    expect(main.classes()).toContain('flex-col')
+    expect(main.classes()).toContain('overflow-hidden')
+
+    // 两个表格区域
+    const tablePanes = main.findAll(':scope > div')
+    expect(tablePanes[0].classes()).toContain('max-h-[35%]')
+    expect(tablePanes[0].classes()).toContain('border-b')
+    expect(tablePanes[1].classes()).toContain('flex-1')
   })
 })

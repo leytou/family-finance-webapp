@@ -1,145 +1,406 @@
 import { describe, expect, it } from 'vitest'
-
-import { calculate } from '../../src/composables/useCalculation'
-import type { PlanData } from '../../src/types'
+import { calculate, resolveColumnValue } from '../../src/composables/useCalculation'
+import type { PlanData, FlowColumn } from '../../src/types'
 
 function makePlan(overrides: Partial<PlanData> = {}): PlanData {
   return {
-    version: 1,
+    version: 2,
     systemParams: {
-      currentSavings: 100000,
       startMonth: 202601,
       annualRate: 0,
     },
-    items: [],
+    columns: [],
     anchors: [],
     ...overrides,
   }
 }
 
+describe('resolveColumnValue', () => {
+  it('直接编辑值标记 isEdited=true', () => {
+    const column: FlowColumn = {
+      id: 'col1',
+      name: '工资',
+      entries: { 202601: 10000 },
+    }
+
+    const result = resolveColumnValue(column, 202601)
+
+    expect(result).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 10000,
+      isEdited: true,
+    })
+  })
+
+  it('延续值标记 isEdited=false', () => {
+    const column: FlowColumn = {
+      id: 'col1',
+      name: '工资',
+      entries: { 202601: 10000 },
+    }
+
+    const result = resolveColumnValue(column, 202602)
+
+    expect(result).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 10000,
+      isEdited: false,
+    })
+  })
+
+  it('未找到任何 entry 时返回 0 且 isEdited=false', () => {
+    const column: FlowColumn = {
+      id: 'col1',
+      name: '工资',
+      entries: {},
+    }
+
+    const result = resolveColumnValue(column, 202601)
+
+    expect(result).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 0,
+      isEdited: false,
+    })
+  })
+
+  it('entry 为 0 时延续 0 并标记 isEdited=false', () => {
+    const column: FlowColumn = {
+      id: 'col1',
+      name: '工资',
+      entries: { 202601: 10000, 202603: 0 },
+    }
+
+    expect(resolveColumnValue(column, 202602)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 10000,
+      isEdited: false,
+    })
+
+    expect(resolveColumnValue(column, 202603)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 0,
+      isEdited: true,
+    })
+
+    expect(resolveColumnValue(column, 202604)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 0,
+      isEdited: false,
+    })
+  })
+
+  it('0 之后再填非零重新开始延续', () => {
+    const column: FlowColumn = {
+      id: 'col1',
+      name: '工资',
+      entries: { 202601: 10000, 202603: 0, 202606: 15000 },
+    }
+
+    expect(resolveColumnValue(column, 202604)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 0,
+      isEdited: false,
+    })
+
+    expect(resolveColumnValue(column, 202605)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 0,
+      isEdited: false,
+    })
+
+    expect(resolveColumnValue(column, 202606)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 15000,
+      isEdited: true,
+    })
+
+    expect(resolveColumnValue(column, 202607)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 15000,
+      isEdited: false,
+    })
+  })
+
+  it('查找最近的 entry（最大的 key）', () => {
+    const column: FlowColumn = {
+      id: 'col1',
+      name: '工资',
+      entries: { 202601: 5000, 202603: 10000, 202605: 15000 },
+    }
+
+    expect(resolveColumnValue(column, 202602)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 5000,
+      isEdited: false,
+    })
+
+    expect(resolveColumnValue(column, 202604)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 10000,
+      isEdited: false,
+    })
+
+    expect(resolveColumnValue(column, 202606)).toEqual({
+      id: 'col1',
+      name: '工资',
+      amount: 15000,
+      isEdited: false,
+    })
+  })
+})
+
 describe('calculate', () => {
-  it('returns 60 months with unchanged savings when there are no income or expense items', () => {
+  it('空 columns 产生 60 个月全零', () => {
     const results = calculate(makePlan())
 
     expect(results).toHaveLength(60)
     expect(results[0]).toMatchObject({
       month: 202601,
-      incomeItems: [],
-      expenseItems: [],
-      totalIncome: 0,
-      totalExpense: 0,
+      columnValues: [],
+      totalFlow: 0,
       investReturn: 0,
       netSavings: 0,
-      cumSavings: 100000,
+      cumSavings: 0,
       isAnchor: false,
     })
     expect(results[59]).toMatchObject({
       month: 203012,
-      cumSavings: 100000,
+      totalFlow: 0,
+      investReturn: 0,
+      netSavings: 0,
+      cumSavings: 0,
     })
   })
 
-  it('adds a single income item to monthly income, net savings, and cumulative savings', () => {
+  it('单列单 entry 延续到后续月份', () => {
     const results = calculate(
       makePlan({
-        items: [
+        columns: [
           {
-            id: 'salary',
-            name: 'Salary',
-            type: 'income',
-            segments: [{ amount: 10000, startMonth: 202601, endMonth: 203012 }],
+            id: 'col1',
+            name: '工资',
+            entries: { 202601: 10000 },
           },
         ],
       }),
     )
 
     expect(results[0]).toMatchObject({
-      incomeItems: [{ name: 'Salary', amount: 10000 }],
-      expenseItems: [],
-      totalIncome: 10000,
-      totalExpense: 0,
+      month: 202601,
+      columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: true }],
+      totalFlow: 10000,
       netSavings: 10000,
-      cumSavings: 110000,
+      cumSavings: 10000,
     })
+
     expect(results[1]).toMatchObject({
-      totalIncome: 10000,
+      month: 202602,
+      columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: false }],
+      totalFlow: 10000,
       netSavings: 10000,
-      cumSavings: 120000,
+      cumSavings: 20000,
+    })
+
+    expect(results[5]).toMatchObject({
+      month: 202606,
+      columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: false }],
+      totalFlow: 10000,
+      netSavings: 10000,
+      cumSavings: 60000,
     })
   })
 
-  it('combines income and expense items into totals, net savings, and cumulative savings', () => {
+  it('entry 为 0 终止延续（后续月份显示 0）', () => {
     const results = calculate(
       makePlan({
-        items: [
+        columns: [
           {
-            id: 'salary',
-            name: 'Salary',
-            type: 'income',
-            segments: [{ amount: 10000, startMonth: 202601, endMonth: 203012 }],
-          },
-          {
-            id: 'rent',
-            name: 'Rent',
-            type: 'expense',
-            segments: [{ amount: 3000, startMonth: 202601, endMonth: 203012 }],
+            id: 'col1',
+            name: '工资',
+            entries: { 202601: 10000, 202604: 0 },
           },
         ],
       }),
     )
 
     expect(results[0]).toMatchObject({
-      incomeItems: [{ name: 'Salary', amount: 10000 }],
-      expenseItems: [{ name: 'Rent', amount: 3000 }],
-      totalIncome: 10000,
-      totalExpense: 3000,
-      netSavings: 7000,
-      cumSavings: 107000,
+      columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: true }],
+      totalFlow: 10000,
+      cumSavings: 10000,
     })
+
     expect(results[1]).toMatchObject({
-      totalIncome: 10000,
-      totalExpense: 3000,
-      netSavings: 7000,
-      cumSavings: 114000,
+      columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: false }],
+      totalFlow: 10000,
+      cumSavings: 20000,
+    })
+
+    expect(results[2]).toMatchObject({
+      columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: false }],
+      totalFlow: 10000,
+      cumSavings: 30000,
+    })
+
+    expect(results[3]).toMatchObject({
+      columnValues: [{ id: 'col1', name: '工资', amount: 0, isEdited: true }],
+      totalFlow: 0,
+      cumSavings: 30000,
+    })
+
+    expect(results[4]).toMatchObject({
+      columnValues: [{ id: 'col1', name: '工资', amount: 0, isEdited: false }],
+      totalFlow: 0,
+      cumSavings: 30000,
     })
   })
 
-  it('calculates investment return recursively from previous cumulative savings', () => {
+  it('0 之后再填非零重新开始延续', () => {
+    const results = calculate(
+      makePlan({
+        columns: [
+          {
+            id: 'col1',
+            name: '工资',
+            entries: { 202601: 10000, 202604: 0, 202607: 15000 },
+          },
+        ],
+      }),
+    )
+
+    expect(results[3]).toMatchObject({
+      columnValues: [{ id: 'col1', name: '工资', amount: 0, isEdited: true }],
+      totalFlow: 0,
+    })
+
+    expect(results[4]).toMatchObject({
+      columnValues: [{ id: 'col1', name: '工资', amount: 0, isEdited: false }],
+      totalFlow: 0,
+    })
+
+    expect(results[5]).toMatchObject({
+      columnValues: [{ id: 'col1', name: '工资', amount: 0, isEdited: false }],
+      totalFlow: 0,
+    })
+
+    expect(results[6]).toMatchObject({
+      columnValues: [{ id: 'col1', name: '工资', amount: 15000, isEdited: true }],
+      totalFlow: 15000,
+    })
+
+    expect(results[7]).toMatchObject({
+      columnValues: [{ id: 'col1', name: '工资', amount: 15000, isEdited: false }],
+      totalFlow: 15000,
+    })
+  })
+
+  it('多列正确汇总现金流', () => {
+    const results = calculate(
+      makePlan({
+        columns: [
+          {
+            id: 'col1',
+            name: '工资',
+            entries: { 202601: 10000 },
+          },
+          {
+            id: 'col2',
+            name: '房租',
+            entries: { 202601: -3000 },
+          },
+        ],
+      }),
+    )
+
+    expect(results[0]).toMatchObject({
+      columnValues: [
+        { id: 'col1', name: '工资', amount: 10000, isEdited: true },
+        { id: 'col2', name: '房租', amount: -3000, isEdited: true },
+      ],
+      totalFlow: 7000,
+      netSavings: 7000,
+      cumSavings: 7000,
+    })
+
+    expect(results[1]).toMatchObject({
+      columnValues: [
+        { id: 'col1', name: '工资', amount: 10000, isEdited: false },
+        { id: 'col2', name: '房租', amount: -3000, isEdited: false },
+      ],
+      totalFlow: 7000,
+      netSavings: 7000,
+      cumSavings: 14000,
+    })
+  })
+
+  it('投资收益基于上月累计', () => {
     const results = calculate(
       makePlan({
         systemParams: {
-          currentSavings: 120000,
           startMonth: 202601,
           annualRate: 0.12,
         },
+        columns: [
+          {
+            id: 'col1',
+            name: '工资',
+            entries: { 202601: 10000 },
+          },
+        ],
       }),
     )
 
-    expect(results[0].investReturn).toBe(1200)
-    expect(results[0].cumSavings).toBe(121200)
-    expect(results[1].investReturn).toBeCloseTo(1212)
+    // 首月无投资收益（上月累计为0）
+    expect(results[0].investReturn).toBe(0)
+    expect(results[0].cumSavings).toBe(10000)
+
+    // 第二个月投资收益 = 10000 * 0.12 / 12 = 100
+    expect(results[1].investReturn).toBe(100)
+    expect(results[1].cumSavings).toBe(20100)
+
+    // 第三个月投资收益 = 20100 * 0.12 / 12 = 201
+    expect(results[2].investReturn).toBe(201)
+    expect(results[2].cumSavings).toBe(30301)
   })
 
-  it('overwrites cumulative savings with monthly anchors and continues from the anchor value', () => {
+  it('锚点覆盖累计', () => {
     const results = calculate(
       makePlan({
-        items: [
+        columns: [
           {
-            id: 'salary',
-            name: 'Salary',
-            type: 'income',
-            segments: [{ amount: 10000, startMonth: 202601, endMonth: 203012 }],
+            id: 'col1',
+            name: '工资',
+            entries: { 202601: 10000 },
           },
         ],
         anchors: [{ month: 202603, actualSavings: 200000 }],
       }),
     )
 
+    // 前两个月正常累计
+    expect(results[0].cumSavings).toBe(10000)
+    expect(results[1].cumSavings).toBe(20000)
+
+    // 第三个月锚点覆盖
     expect(results[2]).toMatchObject({
       month: 202603,
       cumSavings: 200000,
       isAnchor: true,
     })
+
+    // 第四个月从锚点继续
     expect(results[3]).toMatchObject({
       month: 202604,
       cumSavings: 210000,
@@ -147,73 +408,88 @@ describe('calculate', () => {
     })
   })
 
-  it('uses later matching segments when multiple segments are active in the same month', () => {
+  it('投资收益和锚点协同工作', () => {
     const results = calculate(
       makePlan({
-        items: [
+        systemParams: {
+          startMonth: 202601,
+          annualRate: 0.12,
+        },
+        columns: [
           {
-            id: 'salary',
-            name: 'Salary',
-            type: 'income',
-            segments: [
-              { amount: 10000, startMonth: 202601, endMonth: 203012 },
-              { amount: 15000, startMonth: 202607, endMonth: 203012 },
-            ],
+            id: 'col1',
+            name: '工资',
+            entries: { 202601: 10000 },
           },
         ],
+        anchors: [{ month: 202603, actualSavings: 50000 },
+        { month: 202606, actualSavings: 100000 }],
       }),
     )
 
-    expect(results[0].totalIncome).toBe(10000)
-    expect(results[5].totalIncome).toBe(10000)
-    expect(results[6].totalIncome).toBe(15000)
+    // 第一月: 10000
+    expect(results[0].cumSavings).toBe(10000)
+
+    // 第二月: 10000 + 10000 + 100(投资收益) = 20100
+    expect(results[1].cumSavings).toBe(20100)
+
+    // 第三月: 锚点覆盖为 50000
+    expect(results[2].cumSavings).toBe(50000)
+    expect(results[2].isAnchor).toBe(true)
+
+    // 第四月: 50000 + 10000 + 500(投资收益) = 60500
+    expect(results[3].cumSavings).toBe(60500)
+
+    // 第五月: 60500 + 10000 + 605(投资收益) = 71105
+    expect(results[4].cumSavings).toBe(71105)
+
+    // 第六月: 锚点覆盖为 100000
+    expect(results[5].cumSavings).toBe(100000)
+    expect(results[5].isAnchor).toBe(true)
+
+    // 第七月: 100000 + 10000 + 1000(投资收益) = 111000
+    expect(results[6].cumSavings).toBe(111000)
   })
 
-  it('aggregates active income items with duplicate names', () => {
+  it('负值现金流正确处理', () => {
     const results = calculate(
       makePlan({
-        items: [
+        columns: [
           {
-            id: 'salary-primary',
-            name: 'Salary',
-            type: 'income',
-            segments: [{ amount: 10000, startMonth: 202601, endMonth: 203012 }],
+            id: 'col1',
+            name: '工资',
+            entries: { 202601: 10000 },
           },
           {
-            id: 'salary-secondary',
-            name: 'Salary',
-            type: 'income',
-            segments: [{ amount: 2000, startMonth: 202601, endMonth: 203012 }],
+            id: 'col2',
+            name: '房租',
+            entries: { 202601: -5000 },
+          },
+          {
+            id: 'col3',
+            name: '投资亏损',
+            entries: { 202602: -2000 },
           },
         ],
       }),
     )
 
-    expect(results[0].incomeItems).toEqual([{ name: 'Salary', amount: 12000 }])
-    expect(results[0].totalIncome).toBe(12000)
-  })
+    expect(results[0]).toMatchObject({
+      totalFlow: 5000,
+      netSavings: 5000,
+      cumSavings: 5000,
+    })
 
-  it('aggregates active expense items with duplicate names', () => {
-    const results = calculate(
-      makePlan({
-        items: [
-          {
-            id: 'rent-base',
-            name: 'Rent',
-            type: 'expense',
-            segments: [{ amount: 3000, startMonth: 202601, endMonth: 203012 }],
-          },
-          {
-            id: 'rent-service',
-            name: 'Rent',
-            type: 'expense',
-            segments: [{ amount: 500, startMonth: 202601, endMonth: 203012 }],
-          },
-        ],
-      }),
-    )
+    expect(results[1]).toMatchObject({
+      totalFlow: 3000,
+      netSavings: 3000,
+      cumSavings: 8000,
+    })
 
-    expect(results[0].expenseItems).toEqual([{ name: 'Rent', amount: 3500 }])
-    expect(results[0].totalExpense).toBe(3500)
+    expect(results[2]).toMatchObject({
+      totalFlow: 3000,
+      netSavings: 3000,
+      cumSavings: 11000,
+    })
   })
 })

@@ -14,7 +14,9 @@ export function resolveColumnValue(
   month: number,
 ): { id: string; name: string; amount: number; isEdited: boolean } {
   // 规则1: 若该月存在编辑值，直接返回
-  if (month in column.entries) {
+  // 注意：entries 的键在 JavaScript 中是字符串，所以需要用 String(month) 检查
+  const monthKey = String(month)
+  if (monthKey in column.entries) {
     return {
       id: column.id,
       name: column.name,
