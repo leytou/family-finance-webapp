@@ -269,7 +269,8 @@ function getValueClass(value: number): string {
         <tr
           v-for="result in results"
           :key="result.month"
-          class="border-b hover:bg-gray-50"
+          class="hover:bg-gray-50"
+          :class="result.month % 100 === 12 ? 'border-b-2 border-gray-400' : 'border-b'"
         >
           <td class="px-1 py-0 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
 
