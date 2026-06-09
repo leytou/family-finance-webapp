@@ -9,6 +9,13 @@ export interface MonthlyAnchor {
   actualSavings: number
 }
 
+export interface PlanSnapshot {
+  id: string
+  name: string                          // 默认「YYYY-MM 计划」，可重命名
+  createdMonth: number                  // 封存时的系统当前月（YYYYMM）
+  projection: Record<number, number>    // 稀疏存储：key=YYYYMM，value=该月计划累计储蓄
+}
+
 export interface SystemParams {
   startMonth: number
   annualRate: number
@@ -19,6 +26,7 @@ export interface PlanData {
   systemParams: SystemParams
   columns: FlowColumn[]
   anchors: MonthlyAnchor[]
+  snapshots: PlanSnapshot[]
 }
 
 export interface MonthResult {
