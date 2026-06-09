@@ -116,30 +116,27 @@ const BALANCE_COLUMN_ID = '__balance__'
 // 右键菜单状态：columnId 为现金流列 id，或 BALANCE_COLUMN_ID 表示余额列
 const contextMenu = ref<{ columnId: string; month: number; x: number; y: number } | null>(null)
 
+// 返回某列在指定月份"严格下方"所有编辑过值的行
+function editedBelowRows(columnId: string, month: number): MonthResult[] {
+  return props.results.filter(r =>
+    r.month > month &&
+    (columnId === BALANCE_COLUMN_ID ? r.isAnchor : getColumnValue(r, columnId).isEdited))
+}
+
 // 统计某列在指定月份"严格下方"编辑过的值的数量
 function countEditedBelow(columnId: string, month: number): number {
-  let count = 0
-  for (const r of props.results) {
-    if (r.month <= month) continue
-    if (columnId === BALANCE_COLUMN_ID) {
-      if (r.isAnchor) count++
-    } else {
-      if (getColumnValue(r, columnId).isEdited) count++
-    }
-  }
-  return count
+  return editedBelowRows(columnId, month).length
 }
 
 // 清除某列在指定月份"严格下方"所有编辑过的值
 function clearEditedBelow(columnId: string, month: number): void {
-  for (const r of props.results) {
-    if (r.month <= month) continue
+  editedBelowRows(columnId, month).forEach(r => {
     if (columnId === BALANCE_COLUMN_ID) {
-      if (r.isAnchor) store.removeAnchor(r.month)
+      store.removeAnchor(r.month)
     } else {
-      if (getColumnValue(r, columnId).isEdited) store.updateColumnEntry(columnId, r.month, null)
+      store.updateColumnEntry(columnId, r.month, null)
     }
-  }
+  })
 }
 
 // 打开右键菜单
