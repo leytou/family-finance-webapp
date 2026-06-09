@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import ContextMenu from '../../src/components/ContextMenu.vue'
 
 describe('ContextMenu', () => {
@@ -76,5 +77,21 @@ describe('ContextMenu', () => {
 
     expect(wrapper.emitted('close')).toHaveLength(1)
     wrapper.unmount()
+  })
+
+  it('点击外部时 emit close', async () => {
+    const outside = document.createElement('div')
+    document.body.appendChild(outside)
+    const wrapper = mount(ContextMenu, {
+      props: { x: 0, y: 0, items: [{ label: '清除下方编辑值', onClick: () => {} }] },
+      attachTo: document.body,
+    })
+
+    outside.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await nextTick()
+
+    expect(wrapper.emitted('close')).toHaveLength(1)
+    wrapper.unmount()
+    outside.remove()
   })
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useClickOutside } from '../composables/useClickOutside'
 
 export interface MenuItem {
@@ -28,6 +28,11 @@ function handleItemClick(item: MenuItem) {
 
 // 点击菜单外部关闭（mousedown 捕获阶段，先于其他点击处理）
 useClickOutside(menuRef, () => emit('close'))
+
+// 挂载后聚焦菜单容器，使其能接收 Esc 键盘事件（真实场景下焦点原本在触发单元格）
+onMounted(() => {
+  menuRef.value?.focus()
+})
 </script>
 
 <template>
