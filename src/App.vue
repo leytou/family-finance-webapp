@@ -1,27 +1,21 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import AnnualTable from './components/AnnualTable.vue'
 import MonthlyTable from './components/MonthlyTable.vue'
+import ScenarioTabs from './components/ScenarioTabs.vue'
+import ComparisonView from './components/ComparisonView.vue'
 import { calculate } from './composables/useCalculation'
 import { useStore } from './composables/useStore'
 
-const { data, reset, exportData } = useStore()
+const { data, reset } = useStore()
 const results = computed(() => calculate(data.value))
 
-function handleExport() {
-  const blob = new Blob([exportData()], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-
-  anchor.href = url
-  anchor.download = 'finance-plan.json'
-  anchor.click()
-  URL.revokeObjectURL(url)
-}
+// 对比视图切换
+const showComparison = ref(false)
 
 function handleReset() {
-  if (window.confirm('确定要重置所有数据？此操作不可撤销。')) {
+  if (window.confirm('确定要重置当前方案？此操作不可撤销。')) {
     reset()
   }
 }
@@ -30,7 +24,12 @@ function handleReset() {
 <template>
   <div class="h-screen flex flex-col px-8">
     <header class="h-12 flex items-center justify-between px-4 border-b">
-      <h1 class="text-lg font-bold">家庭财务规划</h1>
+      <div class="flex items-center gap-3">
+        <h1 class="text-lg font-bold whitespace-nowrap">家庭财务规划</h1>
+        <div class="border-l pl-3">
+          <ScenarioTabs />
+        </div>
+      </div>
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
           <label class="text-xs whitespace-nowrap">起始月份</label>
@@ -51,21 +50,33 @@ function handleReset() {
             class="border rounded px-2 py-1 text-sm w-20"
           />
         </div>
-        <button class="px-3 py-1 border rounded text-sm hover:bg-gray-50" type="button" @click="handleExport">
-          导出
-        </button>
         <button class="px-3 py-1 border rounded text-sm hover:bg-gray-50" type="button" @click="handleReset">
           重置
+        </button>
+        <button
+          class="px-3 py-1 border rounded text-sm"
+          :class="showComparison ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'"
+          type="button"
+          @click="showComparison = !showComparison"
+        >
+          对比
         </button>
       </div>
     </header>
     <main class="flex-1 flex flex-col overflow-hidden">
-      <div class="flex-none max-h-[35%] overflow-auto border-b">
-        <AnnualTable :results="results" />
-      </div>
-      <div class="flex-1 overflow-auto">
-        <MonthlyTable :results="results" />
-      </div>
+      <template v-if="showComparison">
+        <div class="flex-1 overflow-auto">
+          <ComparisonView @close="showComparison = false" />
+        </div>
+      </template>
+      <template v-else>
+        <div class="flex-none max-h-[35%] overflow-auto border-b">
+          <AnnualTable :results="results" />
+        </div>
+        <div class="flex-1 overflow-auto">
+          <MonthlyTable :results="results" />
+        </div>
+      </template>
     </main>
   </div>
 </template>
