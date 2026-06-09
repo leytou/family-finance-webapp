@@ -35,6 +35,9 @@ const editingCell = ref<{ columnId: string; month: number } | null>(null)
 const editCellValue = ref<string>('')
 const editCellInput = ref<HTMLInputElement | null>(null)
 
+// 上下键在行间移动编辑状态时，跳过 blur 触发的关闭/保存（避免误关闭新打开的编辑框）
+const skipBlur = ref(false)
+
 // 累计列编辑状态
 const editingCumMonth = ref<number | null>(null)
 const editCumValue = ref<string>('')
@@ -141,6 +144,28 @@ function cancelEditCell() {
   editCellValue.value = ''
 }
 
+// 上下键在同一列的相邻行间移动编辑状态
+async function moveEditCell(columnId: string, month: number, direction: -1 | 1) {
+  const idx = props.results.findIndex(r => r.month === month)
+  const targetIdx = idx + direction
+  if (idx === -1 || targetIdx < 0 || targetIdx >= props.results.length) return
+  // 先保存并关闭当前单元格，跳过 blur 重复触发；
+  // 分两帧关闭/打开，确保函数 ref 的卸载(置 null)先于挂载(置元素)，
+  // 否则向上移动时挂载早于卸载，ref 被错误置 null 导致新输入框无法聚焦。
+  skipBlur.value = true
+  confirmEditCell()
+  await nextTick()
+  const target = props.results[targetIdx]
+  startEditCell(columnId, target.month, getColumnValue(target, columnId).amount)
+  await nextTick()
+  skipBlur.value = false
+}
+
+function handleEditCellBlur() {
+  if (skipBlur.value) return
+  confirmEditCell()
+}
+
 // 累计列编辑（锚点）
 const editCumOriginalValue = ref<number>(0)
 
@@ -175,6 +200,25 @@ function confirmEditCum() {
 function cancelEditCum() {
   editingCumMonth.value = null
   editCumValue.value = ''
+}
+
+// 上下键在余额列的相邻行间移动编辑状态
+async function moveEditCum(month: number, direction: -1 | 1) {
+  const idx = props.results.findIndex(r => r.month === month)
+  const targetIdx = idx + direction
+  if (idx === -1 || targetIdx < 0 || targetIdx >= props.results.length) return
+  // 分两帧关闭/打开，确保卸载先于挂载（同 moveEditCell）
+  skipBlur.value = true
+  confirmEditCum()
+  await nextTick()
+  startEditCum(props.results[targetIdx])
+  await nextTick()
+  skipBlur.value = false
+}
+
+function handleEditCumBlur() {
+  if (skipBlur.value) return
+  confirmEditCum()
 }
 
 // 点击外部退出编辑（mousedown 捕获阶段，先于 blur 触发）
@@ -287,14 +331,16 @@ function getValueClass(value: number): string {
             <input
               v-if="editingCell?.columnId === column.id && editingCell?.month === result.month"
               :ref="setEditCellInput"
-              type="number"
-              step="1"
+              type="text"
+              inputmode="numeric"
               class="absolute inset-0 border rounded px-1 text-right text-[11px]"
               :value="editCellValue"
               @input="editCellValue = ($event.target as HTMLInputElement).value"
               @keyup.enter="confirmEditCell"
               @keyup.escape="cancelEditCell"
-              @blur="confirmEditCell"
+              @keydown.up.prevent="moveEditCell(column.id, result.month, -1)"
+              @keydown.down.prevent="moveEditCell(column.id, result.month, 1)"
+              @blur="handleEditCellBlur"
             />
             <span
               v-else
@@ -387,14 +433,16 @@ function getValueClass(value: number): string {
             <input
               v-if="editingCumMonth === result.month"
               :ref="setEditCumInput"
-              type="number"
-              step="1"
+              type="text"
+              inputmode="numeric"
               class="absolute inset-0 border rounded px-1 text-right text-[11px]"
               :value="editCumValue"
               @input="editCumValue = ($event.target as HTMLInputElement).value"
               @keyup.enter="confirmEditCum"
               @keyup.escape="cancelEditCum"
-              @blur="confirmEditCum"
+              @keydown.up.prevent="moveEditCum(result.month, -1)"
+              @keydown.down.prevent="moveEditCum(result.month, 1)"
+              @blur="handleEditCumBlur"
             />
             <span
               v-else
