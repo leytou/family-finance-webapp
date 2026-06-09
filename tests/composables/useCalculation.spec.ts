@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { calculate, resolveColumnValue } from '../../src/composables/useCalculation'
-import type { PlanData, FlowColumn } from '../../src/types'
+import { calculate, resolveColumnValue, buildComparison } from '../../src/composables/useCalculation'
+import type { PlanData, FlowColumn, MonthResult, PlanSnapshot } from '../../src/types'
 
 function makePlan(overrides: Partial<PlanData> = {}): PlanData {
   return {
@@ -491,5 +491,65 @@ describe('calculate', () => {
       monthlyBalance: 3000,
       cumSavings: 11000,
     })
+  })
+})
+
+describe('buildComparison', () => {
+  function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
+    return {
+      month: 202601,
+      columnValues: [],
+      totalFlow: 0,
+      investReturn: 0,
+      monthlyIncome: 0,
+      monthlyExpense: 0,
+      monthlyBalance: 0,
+      cumSavings: 0,
+      isAnchor: false,
+      ...overrides,
+    }
+  }
+
+  const results: MonthResult[] = [
+    makeResult({ month: 202601, cumSavings: 5000, isAnchor: false }),
+    makeResult({ month: 202602, cumSavings: 8500, isAnchor: true }),
+    makeResult({ month: 202603, cumSavings: 12000, isAnchor: false }),
+  ]
+
+  const snapshot: PlanSnapshot = {
+    id: 's1',
+    name: '2026-01 计划',
+    createdMonth: 202601,
+    projection: { 202601: 5000, 202602: 9000 },
+  }
+
+  it('snapshot 为 null 时 predicted/diff 全为 null', () => {
+    const cmp = buildComparison(results, null)
+    expect(cmp.map(c => c.predicted)).toEqual([null, null, null])
+    expect(cmp.map(c => c.diff)).toEqual([null, null, null])
+    expect(cmp.map(c => c.actual)).toEqual([5000, 8500, 12000])
+  })
+
+  it('predicted 取自快照，缺失月为 null', () => {
+    const cmp = buildComparison(results, snapshot)
+    expect(cmp[0].predicted).toBe(5000)
+    expect(cmp[1].predicted).toBe(9000)
+    expect(cmp[2].predicted).toBeNull()
+  })
+
+  it('diff 仅在该月 isAnchor 且 predicted 非空时计算', () => {
+    const cmp = buildComparison(results, snapshot)
+    expect(cmp[0].diff).toBeNull()
+    expect(cmp[1].diff).toBe(-500)
+    expect(cmp[2].diff).toBeNull()
+  })
+
+  it('isAnchor 但 predicted 缺失时 diff 为 null', () => {
+    const anchoredNoPredict: MonthResult[] = [
+      makeResult({ month: 202603, cumSavings: 12000, isAnchor: true }),
+    ]
+    const cmp = buildComparison(anchoredNoPredict, snapshot)
+    expect(cmp[0].predicted).toBeNull()
+    expect(cmp[0].diff).toBeNull()
   })
 })
