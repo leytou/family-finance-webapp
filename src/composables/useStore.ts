@@ -1,6 +1,7 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
-import type { PlanData, FlowColumn, Scenario, Workspace } from '../types'
-import { getCurrentMonth } from '../utils/month'
+import type { PlanData, FlowColumn, Scenario, Workspace, PlanSnapshot } from '../types'
+import { getCurrentMonth, formatMonth } from '../utils/month'
+import { calculate } from './useCalculation'
 
 const STORAGE_KEY = 'family-finance-plan'
 let sharedWorkspace: Ref<Workspace> | null = null
@@ -20,6 +21,7 @@ function createDefault(): PlanData {
     },
     columns: [],
     anchors: [],
+    snapshots: [],
   }
 }
 
@@ -57,9 +59,23 @@ function isValidAnchor(value: unknown): boolean {
   return isFiniteNumber(value.month) && isFiniteNumber(value.actualSavings)
 }
 
+function isValidSnapshot(value: unknown): boolean {
+  if (!isObject(value)) return false
+  if (typeof value.id !== 'string' || typeof value.name !== 'string') return false
+  if (!isFiniteNumber(value.createdMonth)) return false
+  if (!isObject(value.projection)) return false
+  for (const key in value.projection) {
+    if (!Number.isInteger(Number(key)) || !isFiniteNumber(value.projection[key])) return false
+  }
+  return true
+}
+
 function isValidPlanData(value: unknown): value is PlanData {
   if (!isObject(value) || !isObject(value.systemParams)) return false
   if (value.version !== 2) return false
+  if ('snapshots' in value) {
+    if (!Array.isArray(value.snapshots) || !value.snapshots.every(isValidSnapshot)) return false
+  }
   return (
     isFiniteNumber(value.version) &&
     isFiniteNumber(value.systemParams.startMonth) &&
@@ -88,6 +104,15 @@ function isValidWorkspace(value: unknown): value is Workspace {
   return value.scenarios.every(isValidScenario)
 }
 
+function normalizeWorkspace(ws: Workspace): Workspace {
+  for (const scenario of ws.scenarios) {
+    if (!Array.isArray(scenario.plan.snapshots)) {
+      scenario.plan.snapshots = []
+    }
+  }
+  return ws
+}
+
 function loadWorkspace(): Workspace {
   const raw = localStorage.getItem(STORAGE_KEY)
   if (!raw) {
@@ -97,15 +122,15 @@ function loadWorkspace(): Workspace {
   try {
     const parsed: unknown = JSON.parse(raw)
     // 已是 Workspace 格式
-    if (isValidWorkspace(parsed)) return parsed
+    if (isValidWorkspace(parsed)) return normalizeWorkspace(parsed)
     // 旧 PlanData 格式 → 迁移
     if (isValidPlanData(parsed)) {
       const id = generateId()
-      const migrated: Workspace = {
+      const migrated: Workspace = normalizeWorkspace({
         version: 1,
         scenarios: [{ id, name: '默认方案', plan: parsed }],
         activeId: id,
-      }
+      })
       // 立即保存迁移后的数据
       localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
       return migrated
@@ -216,6 +241,36 @@ export function useStore() {
     plan.anchors = plan.anchors.filter(anchor => anchor.month !== month)
   }
 
+  function addSnapshot(): PlanSnapshot {
+    const plan = getActivePlan()
+    const results = calculate(plan)
+    const projection: Record<number, number> = {}
+    for (const r of results) {
+      projection[r.month] = r.cumSavings
+    }
+    const snapshot: PlanSnapshot = {
+      id: generateId(),
+      name: `${formatMonth(plan.systemParams.startMonth)} 计划`,
+      createdMonth: plan.systemParams.startMonth,
+      projection,
+    }
+    plan.snapshots.push(snapshot)
+    return snapshot
+  }
+
+  function removeSnapshot(id: string): void {
+    const plan = getActivePlan()
+    plan.snapshots = plan.snapshots.filter(s => s.id !== id)
+  }
+
+  function renameSnapshot(id: string, name: string): void {
+    const plan = getActivePlan()
+    const snapshot = plan.snapshots.find(s => s.id === id)
+    if (snapshot) {
+      snapshot.name = name
+    }
+  }
+
   // 重置当前方案（不影响其他方案）
   function reset() {
     if (saveTimeout) {
@@ -288,6 +343,9 @@ export function useStore() {
     updateColumnEntry,
     addAnchor,
     removeAnchor,
+    addSnapshot,
+    removeSnapshot,
+    renameSnapshot,
     reset,
     addScenario,
     duplicateScenario,

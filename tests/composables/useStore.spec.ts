@@ -586,4 +586,79 @@ describe('useStore', () => {
       expect(store.workspace.value.activeId).toBe(originalId)
     })
   })
+
+  it('默认方案的 plan 含空 snapshots 数组', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.snapshots).toEqual([])
+  })
+
+  it('加载缺少 snapshots 字段的存量 Workspace 时补为空数组且不清空数据', async () => {
+    localStorage.setItem(
+      'family-finance-plan',
+      JSON.stringify({
+        version: 1,
+        activeId: 'sc1',
+        scenarios: [
+          {
+            id: 'sc1',
+            name: '默认方案',
+            plan: {
+              version: 2,
+              systemParams: { startMonth: 202601, annualRate: 0.025 },
+              columns: [],
+              anchors: [{ month: 202601, actualSavings: 100000 }],
+              // 注意：故意不含 snapshots
+            },
+          },
+        ],
+      }),
+    )
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+    expect(store.data.value.snapshots).toEqual([])
+  })
+
+  it('addSnapshot 收录各月累计储蓄并按 createdMonth 命名', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.data.value.systemParams.startMonth = 202601
+    store.data.value.systemParams.annualRate = 0
+    store.addColumn('工资')
+    const colId = store.data.value.columns[0].id
+    store.updateColumnEntry(colId, 202601, 5000)
+
+    const snap = store.addSnapshot()
+
+    expect(store.data.value.snapshots).toHaveLength(1)
+    expect(snap.name).toBe('2026-01 计划')
+    expect(snap.createdMonth).toBe(202601)
+    expect(snap.projection[202601]).toBe(5000)
+    expect(snap.projection[202602]).toBe(10000)
+  })
+
+  it('removeSnapshot 删除指定快照', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    const snap = store.addSnapshot()
+    store.removeSnapshot(snap.id)
+    expect(store.data.value.snapshots).toEqual([])
+  })
+
+  it('renameSnapshot 重命名指定快照', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    const snap = store.addSnapshot()
+    store.renameSnapshot(snap.id, '买房前基线')
+    expect(store.data.value.snapshots[0].name).toBe('买房前基线')
+  })
+
+  it('reset 清空当前方案的 snapshots', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.addSnapshot()
+    store.reset()
+    expect(store.data.value.snapshots).toEqual([])
+  })
 })
