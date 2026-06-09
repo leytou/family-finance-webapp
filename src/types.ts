@@ -32,3 +32,15 @@ export interface MonthResult {
   cumSavings: number
   isAnchor: boolean
 }
+
+export interface Scenario {
+  id: string
+  name: string        // 如「买房方案」「租房方案」
+  plan: PlanData      // 完整独立副本，含各自的现金流列、锚点、系统参数
+}
+
+export interface Workspace {
+  version: number
+  scenarios: Scenario[]
+  activeId: string    // 当前激活（查看/编辑）的方案 id
+}
