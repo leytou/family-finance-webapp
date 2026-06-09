@@ -507,4 +507,39 @@ describe('MonthlyTable', () => {
     expect(input.exists()).toBe(true)
     expect((input.element as HTMLInputElement).value).toContain('计划')
   })
+
+  it('选中快照后显示「当时预计」「差额」两列并按规则计算', async () => {
+    const store = useSharedStore()
+    store.data.value.snapshots = [
+      { id: 's1', name: '2026-01 计划', createdMonth: 202601, projection: { 202601: 5000, 202602: 9000 } },
+    ]
+    const results = [
+      createResult({ month: 202601, cumSavings: 5000, isAnchor: false }),
+      createResult({ month: 202602, cumSavings: 8500, isAnchor: true }),
+    ]
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    // 选中快照
+    const select = wrapper.find('[aria-label="选择对比快照"]')
+    await select.setValue('s1')
+    await nextTick()
+
+    const headers = wrapper.findAll('th').map(c => c.text())
+    expect(headers).toContain('当时预计')
+    expect(headers).toContain('差额')
+
+    // 表体含预计值 9,000 与差额 -500（202602 行，anchor）
+    const bodyText = wrapper.find('tbody').text()
+    expect(bodyText).toContain('9,000')
+    expect(bodyText).toContain('-500')
+  })
+
+  it('未选中快照时不渲染对比列', async () => {
+    const store = useSharedStore()
+    store.data.value.snapshots = []
+    const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+    const headers = wrapper.findAll('th').map(c => c.text())
+    expect(headers).not.toContain('当时预计')
+    expect(headers).not.toContain('差额')
+  })
 })

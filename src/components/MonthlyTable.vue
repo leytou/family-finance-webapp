@@ -6,6 +6,7 @@ import type { MonthResult } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 import { useStore } from '../composables/useStore'
+import { buildComparison } from '../composables/useCalculation'
 import { useClickOutside } from '../composables/useClickOutside'
 
 type FormulaField = 'investReturn' | 'monthlyBalance' | 'cumSavings'
@@ -26,6 +27,26 @@ const selectedSnapshotId = ref<string | null>(null)
 const selectedSnapshot = computed(
   () => snapshots.value.find(s => s.id === selectedSnapshotId.value) ?? null,
 )
+
+const comparisonByMonth = computed(() => {
+  const list = buildComparison(props.results, selectedSnapshot.value)
+  const map = new Map<number, { predicted: number | null; diff: number | null }>()
+  for (const c of list) {
+    map.set(c.month, { predicted: c.predicted, diff: c.diff })
+  }
+  return map
+})
+
+function getComparison(month: number) {
+  return comparisonByMonth.value.get(month) ?? { predicted: null, diff: null }
+}
+
+function getDiffClass(diff: number | null): string {
+  if (diff === null) return ''
+  if (diff > 0) return 'text-green-600'
+  if (diff < 0) return 'text-red-600'
+  return 'text-gray-500'
+}
 
 // 快照重命名状态
 const renamingSnapshotId = ref<string | null>(null)
@@ -453,6 +474,9 @@ function getValueClass(value: number): string {
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">支出</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">结余</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">余额</th>
+          <!-- 对比列表头 -->
+          <th v-if="selectedSnapshot" class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">当时预计</th>
+          <th v-if="selectedSnapshot" class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">差额</th>
         </tr>
       </thead>
 
@@ -602,6 +626,26 @@ function getValueClass(value: number): string {
               @mouseleave="popover = null"
             >
               {{ formatCurrency(result.cumSavings) }}
+            </span>
+          </td>
+          <!-- 对比列：当时预计 -->
+          <td
+            v-if="selectedSnapshot"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap text-gray-600"
+          >
+            <span v-if="getComparison(result.month).predicted !== null">
+              {{ formatCurrency(getComparison(result.month).predicted as number) }}
+            </span>
+            <span v-else class="text-gray-300">—</span>
+          </td>
+          <!-- 对比列：差额 -->
+          <td
+            v-if="selectedSnapshot"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="getDiffClass(getComparison(result.month).diff)"
+          >
+            <span v-if="getComparison(result.month).diff !== null">
+              {{ formatCurrency(getComparison(result.month).diff as number) }}
             </span>
           </td>
         </tr>
