@@ -457,4 +457,133 @@ describe('useStore', () => {
     expect(store.workspace.value.scenarios).toHaveLength(1)
     expect(store.workspace.value.scenarios[0].name).toBe('默认方案')
   })
+
+  describe('方案操作', () => {
+    it('addScenario 创建空白方案并激活', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      expect(store.workspace.value.scenarios).toHaveLength(1)
+      const newScenario = store.addScenario()
+      await nextTick()
+
+      expect(store.workspace.value.scenarios).toHaveLength(2)
+      expect(store.workspace.value.activeId).toBe(newScenario.id)
+      expect(newScenario.name).toBe('')
+      expect(newScenario.plan.columns).toEqual([])
+      expect(newScenario.plan.anchors).toEqual([])
+      // data 指向新方案（通过 activeId 找到的 scenario.plan）
+      expect(store.data.value).toEqual(newScenario.plan)
+      // systemParams 也相同
+      expect(store.data.value.systemParams.startMonth).toBe(newScenario.plan.systemParams.startMonth)
+      expect(store.data.value.systemParams.annualRate).toBe(newScenario.plan.systemParams.annualRate)
+    })
+
+    it('duplicateScenario 深拷贝当前方案并激活', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      // 在当前方案中添加数据
+      const col = store.addColumn('工资')
+      store.updateColumnEntry(col.id, 202601, 10000)
+      store.addAnchor(202601, 50000)
+
+      const originalId = store.workspace.value.activeId
+      const duplicated = store.duplicateScenario()
+
+      expect(store.workspace.value.scenarios).toHaveLength(2)
+      expect(store.workspace.value.activeId).toBe(duplicated.id)
+      expect(duplicated.id).not.toBe(originalId)
+      expect(duplicated.name).toBe('')
+      // 深拷贝：数据相同但不是同一引用
+      expect(duplicated.plan.columns).toHaveLength(1)
+      expect(duplicated.plan.columns[0].name).toBe('工资')
+      expect(duplicated.plan.columns[0].entries[202601]).toBe(10000)
+      expect(duplicated.plan.anchors).toEqual([{ month: 202601, actualSavings: 50000 }])
+      // 修改新方案不影响原方案
+      store.renameColumn(duplicated.plan.columns[0].id, '薪水')
+      const original = store.workspace.value.scenarios.find((s) => s.id === originalId)!
+      expect(original.plan.columns[0].name).toBe('工资')
+    })
+
+    it('removeScenario 删除指定方案，若删当前则切换到第一个', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      const s1 = store.addScenario()
+      const s2 = store.addScenario()
+      // activeId 是 s2 的 id
+      store.removeScenario(s2.id)
+
+      expect(store.workspace.value.scenarios).toHaveLength(2)
+      // 删的是当前方案，自动切换到第一个
+      expect(store.workspace.value.activeId).toBe(store.workspace.value.scenarios[0].id)
+    })
+
+    it('removeScenario 删除非当前方案不影响 activeId', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      const s1 = store.addScenario()
+      const s2 = store.addScenario()
+      // activeId 是 s2 的 id，删除 s1 不影响
+      store.removeScenario(s1.id)
+
+      expect(store.workspace.value.activeId).toBe(s2.id)
+      expect(store.workspace.value.scenarios).toHaveLength(2)
+    })
+
+    it('removeScenario 仅剩一个方案时禁止删除', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      const onlyId = store.workspace.value.scenarios[0].id
+      store.removeScenario(onlyId)
+
+      // 不应删除
+      expect(store.workspace.value.scenarios).toHaveLength(1)
+      expect(store.workspace.value.scenarios[0].id).toBe(onlyId)
+    })
+
+    it('renameScenario 重命名指定方案', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      const id = store.workspace.value.scenarios[0].id
+      store.renameScenario(id, '买房方案')
+
+      expect(store.workspace.value.scenarios[0].name).toBe('买房方案')
+    })
+
+    it('switchScenario 切换激活方案', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      store.renameScenario(store.workspace.value.scenarios[0].id, '方案A')
+      const s2 = store.addScenario()
+      await nextTick()
+      store.renameScenario(s2.id, '方案B')
+
+      // 当前是方案B
+      expect(store.workspace.value.activeId).toBe(s2.id)
+      expect(store.data.value).toEqual(s2.plan)
+      expect(store.data.value.systemParams.startMonth).toBe(s2.plan.systemParams.startMonth)
+
+      // 切换到方案A
+      store.switchScenario(store.workspace.value.scenarios[0].id)
+      await nextTick()
+      expect(store.workspace.value.activeId).toBe(store.workspace.value.scenarios[0].id)
+      expect(store.data.value).toEqual(store.workspace.value.scenarios[0].plan)
+      expect(store.data.value.systemParams.startMonth).toBe(store.workspace.value.scenarios[0].plan.systemParams.startMonth)
+    })
+
+    it('switchScenario 无效 id 不切换', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      const originalId = store.workspace.value.activeId
+      store.switchScenario('nonexistent')
+      expect(store.workspace.value.activeId).toBe(originalId)
+    })
+  })
 })
