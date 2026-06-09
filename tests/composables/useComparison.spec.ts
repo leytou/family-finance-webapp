@@ -9,6 +9,7 @@ function createTestPlan(overrides: Partial<PlanData> = {}): PlanData {
     systemParams: { startMonth: 202601, annualRate: 0 },
     columns: [],
     anchors: [],
+    snapshots: [],
     ...overrides,
   }
 }

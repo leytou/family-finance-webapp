@@ -11,6 +11,7 @@ function makePlan(overrides: Partial<PlanData> = {}): PlanData {
     },
     columns: [],
     anchors: [],
+    snapshots: [],
     ...overrides,
   }
 }
