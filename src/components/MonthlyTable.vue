@@ -17,6 +17,59 @@ const props = defineProps<{
 const store = useStore()
 const columns = computed(() => store.data.value.columns)
 
+// 快照对比
+const snapshots = computed(() => store.data.value.snapshots)
+const sortedSnapshots = computed(() =>
+  [...snapshots.value].sort((a, b) => b.createdMonth - a.createdMonth),
+)
+const selectedSnapshotId = ref<string | null>(null)
+const selectedSnapshot = computed(
+  () => snapshots.value.find(s => s.id === selectedSnapshotId.value) ?? null,
+)
+
+// 快照重命名状态
+const renamingSnapshotId = ref<string | null>(null)
+const snapshotRenameValue = ref<string>('')
+const snapshotRenameInput = ref<HTMLInputElement | null>(null)
+function setSnapshotRenameInput(el: any) { snapshotRenameInput.value = el ?? null }
+
+function handleAddSnapshot() {
+  const snap = store.addSnapshot()
+  selectedSnapshotId.value = snap.id
+  renamingSnapshotId.value = snap.id
+  snapshotRenameValue.value = snap.name
+}
+
+function confirmSnapshotRename() {
+  if (renamingSnapshotId.value === null) return
+  const trimmed = snapshotRenameValue.value.trim()
+  if (trimmed) {
+    store.renameSnapshot(renamingSnapshotId.value, trimmed)
+  }
+  renamingSnapshotId.value = null
+  snapshotRenameValue.value = ''
+}
+
+function cancelSnapshotRename() {
+  renamingSnapshotId.value = null
+  snapshotRenameValue.value = ''
+}
+
+function startSnapshotRename() {
+  if (!selectedSnapshot.value) return
+  renamingSnapshotId.value = selectedSnapshot.value.id
+  snapshotRenameValue.value = selectedSnapshot.value.name
+}
+
+function handleRemoveSnapshot() {
+  const snap = selectedSnapshot.value
+  if (!snap) return
+  if (window.confirm(`确定要删除快照"${snap.name}"吗？`)) {
+    store.removeSnapshot(snap.id)
+    selectedSnapshotId.value = null
+  }
+}
+
 // FormulaPopover 相关
 const popover = ref<{
   result: MonthResult
@@ -274,6 +327,7 @@ function handleEditCumBlur() {
 useClickOutside(editCellInput, confirmEditCell)
 useClickOutside(editCumInput, confirmEditCum)
 useClickOutside(renameInput, confirmRename)
+useClickOutside(snapshotRenameInput, confirmSnapshotRename)
 
 // v-focus 指令：元素挂载时自动聚焦
 const vFocus = {
@@ -291,7 +345,51 @@ function getValueClass(value: number): string {
 </script>
 
 <template>
-  <div class="h-full overflow-auto border rounded bg-white">
+  <div class="h-full flex flex-col">
+    <!-- 快照对比工具条 -->
+    <div class="flex-none flex items-center gap-2 px-2 py-1 border-b bg-gray-50 text-[12px]">
+      <span class="text-gray-500">计划对比</span>
+      <!-- 命名编辑态 -->
+      <input
+        v-if="renamingSnapshotId !== null"
+        :ref="setSnapshotRenameInput"
+        v-focus
+        type="text"
+        class="border rounded px-1 text-[12px] w-32"
+        :value="snapshotRenameValue"
+        @input="snapshotRenameValue = ($event.target as HTMLInputElement).value"
+        @keyup.enter="confirmSnapshotRename"
+        @keyup.escape="cancelSnapshotRename"
+        @blur="confirmSnapshotRename"
+      />
+      <!-- 选择器 -->
+      <select
+        v-else
+        aria-label="选择对比快照"
+        class="border rounded px-1 py-0.5 text-[12px]"
+        :value="selectedSnapshotId ?? ''"
+        @change="selectedSnapshotId = ($event.target as HTMLSelectElement).value || null"
+      >
+        <option value="">无</option>
+        <option v-for="s in sortedSnapshots" :key="s.id" :value="s.id">{{ s.name }}</option>
+      </select>
+      <!-- 选中快照后的重命名/删除 -->
+      <template v-if="selectedSnapshot && renamingSnapshotId === null">
+        <button type="button" class="text-blue-600 hover:text-blue-800" aria-label="重命名快照" @click="startSnapshotRename">重命名</button>
+        <button type="button" class="text-red-600 hover:text-red-800" aria-label="删除快照" @click="handleRemoveSnapshot">删除</button>
+      </template>
+      <button
+        type="button"
+        class="ml-auto px-2 py-0.5 border rounded hover:bg-white"
+        aria-label="封存当前计划"
+        @click="handleAddSnapshot"
+      >
+        封存当前计划
+      </button>
+    </div>
+
+    <!-- 原表格容器 -->
+    <div class="flex-1 overflow-auto border rounded bg-white">
     <table class="min-w-full border-collapse text-[11px] leading-tight">
       <thead class="sticky top-0 z-1 bg-gray-50">
         <tr class="border-b">
@@ -509,6 +607,7 @@ function getValueClass(value: number): string {
         </tr>
       </tbody>
     </table>
+    </div>
   </div>
 
   <FormulaPopover

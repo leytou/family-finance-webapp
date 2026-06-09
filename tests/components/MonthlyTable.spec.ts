@@ -483,4 +483,28 @@ describe('MonthlyTable', () => {
       .get('[role="menuitem"]')
     expect(menuItem.attributes('aria-disabled')).toBe('true')
   })
+
+  it('渲染快照工具条与封存按钮', async () => {
+    const useStore = await loadUseStore()
+    useStore()
+    const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+    expect(wrapper.find('[aria-label="封存当前计划"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="选择对比快照"]').exists()).toBe(true)
+  })
+
+  it('点击封存按钮新增一份快照并自动选中', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601, cumSavings: 5000 })] } })
+
+    await wrapper.find('[aria-label="封存当前计划"]').trigger('click')
+    await nextTick()
+
+    expect(store.data.value.snapshots).toHaveLength(1)
+    // 封存后自动进入重命名状态，显示 input 而非 select
+    const input = wrapper.find('input[type="text"].w-32')
+    expect(input.exists()).toBe(true)
+    expect((input.element as HTMLInputElement).value).toContain('计划')
+  })
 })
