@@ -5,6 +5,8 @@ import MonthlyTable from '../../src/components/MonthlyTable.vue'
 import { calculate } from '../../src/composables/useCalculation'
 // 静态导入：与组件内部 useStore 共享同一模块实例（组件通过静态 import 使用 store）。
 // 右键菜单相关测试需要组件读取测试所修改的同一 store，故用此而非 loadUseStore。
+// 隔离正确性依赖两点：本组右键测试声明在旧测试之后（旧测试仅经 props 路径用 store，互不干扰）；
+// 且 MonthlyTable 保持静态导入 useStore（若改为动态导入会与此处单例失配，组件与测试将读到不同 store）。
 import { useStore as useSharedStore } from '../../src/composables/useStore'
 import type { MonthResult } from '../../src/types'
 
@@ -389,8 +391,8 @@ describe('MonthlyTable', () => {
     store.reset()
     store.data.value.systemParams.startMonth = 202601
 
-    const col = store.addColumn('测试列')
-    store.updateColumnEntry(col.id, 202602, 5000)
+    // 需要一个现金流列才能右键它的单元格
+    store.addColumn('测试列')
     const results = calculate(store.data.value).slice(0, 3)
 
     const wrapper = mount(MonthlyTable, { props: { results } })
