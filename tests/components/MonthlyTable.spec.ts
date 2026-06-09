@@ -3,6 +3,9 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import MonthlyTable from '../../src/components/MonthlyTable.vue'
 import { calculate } from '../../src/composables/useCalculation'
+// 静态导入：与组件内部 useStore 共享同一模块实例（组件通过静态 import 使用 store）。
+// 右键菜单相关测试需要组件读取测试所修改的同一 store，故用此而非 loadUseStore。
+import { useStore as useSharedStore } from '../../src/composables/useStore'
 import type { MonthResult } from '../../src/types'
 
 async function loadUseStore() {
@@ -379,5 +382,103 @@ describe('MonthlyTable', () => {
     expect(thead.classes()).toContain('sticky')
     expect(thead.classes()).toContain('top-0')
     expect(thead.classes()).toContain('bg-gray-50')
+  })
+
+  it('右键现金流单元格弹出菜单', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+
+    const col = store.addColumn('测试列')
+    store.updateColumnEntry(col.id, 202602, 5000)
+    const results = calculate(store.data.value).slice(0, 3)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    // 第一行第一个现金流单元格（月份列之后）
+    const firstRowCells = wrapper.findAll('tbody tr')[0].findAll('td')
+    await firstRowCells[1].trigger('contextmenu')
+
+    expect(wrapper.findComponent({ name: 'ContextMenu' }).exists()).toBe(true)
+    expect(wrapper.text()).toContain('清除下方编辑值')
+  })
+
+  it('清除现金流列下方编辑值，当前行及上方保留', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+
+    const col = store.addColumn('测试列')
+    store.updateColumnEntry(col.id, 202601, 1000)
+    store.updateColumnEntry(col.id, 202602, 2000)
+    store.updateColumnEntry(col.id, 202603, 3000)
+    const results = calculate(store.data.value).slice(0, 3)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    // 在第二行（202602）该列单元格右键
+    const secondRowCells = wrapper.findAll('tbody tr')[1].findAll('td')
+    await secondRowCells[1].trigger('contextmenu')
+
+    // 点击"清除下方编辑值"
+    const menuItem = wrapper
+      .findComponent({ name: 'ContextMenu' })
+      .get('[role="menuitem"]')
+    await menuItem.trigger('click')
+
+    // 202601、202602 的编辑值保留，202603 被清除
+    expect(col.entries[202601]).toBe(1000)
+    expect(col.entries[202602]).toBe(2000)
+    expect(col.entries[202603]).toBeUndefined()
+  })
+
+  it('清除余额列下方锚点，当前行及上方保留', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+
+    store.addColumn('测试列')
+    store.addAnchor(202601, 10000)
+    store.addAnchor(202602, 20000)
+    store.addAnchor(202603, 30000)
+    const results = calculate(store.data.value).slice(0, 3)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    // 第二行余额列（最后一列）右键
+    const secondRowCells = wrapper.findAll('tbody tr')[1].findAll('td')
+    await secondRowCells[secondRowCells.length - 1].trigger('contextmenu')
+
+    const menuItem = wrapper
+      .findComponent({ name: 'ContextMenu' })
+      .get('[role="menuitem"]')
+    await menuItem.trigger('click')
+
+    // 202601、202602 锚点保留，202603 被清除
+    const months = store.data.value.anchors.map((a) => a.month)
+    expect(months).toContain(202601)
+    expect(months).toContain(202602)
+    expect(months).not.toContain(202603)
+  })
+
+  it('下方无编辑值时菜单项禁用', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+
+    const col = store.addColumn('测试列')
+    store.updateColumnEntry(col.id, 202603, 3000)
+    const results = calculate(store.data.value).slice(0, 3)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    // 在最后一行（202603）该列右键，下方没有任何行
+    const lastRowCells = wrapper.findAll('tbody tr')[2].findAll('td')
+    await lastRowCells[1].trigger('contextmenu')
+
+    const menuItem = wrapper
+      .findComponent({ name: 'ContextMenu' })
+      .get('[role="menuitem"]')
+    expect(menuItem.attributes('aria-disabled')).toBe('true')
   })
 })

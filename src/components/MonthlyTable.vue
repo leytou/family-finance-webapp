@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import FormulaPopover from './FormulaPopover.vue'
+import ContextMenu from './ContextMenu.vue'
 import type { MonthResult } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
@@ -108,6 +109,57 @@ function handleAddColumn() {
 // 现金流列单元格编辑
 // 记录编辑前的原始值，用于判断是否真正发生变化
 const editCellOriginalValue = ref<number>(0)
+
+// 余额列在右键菜单逻辑中的特殊列标识
+const BALANCE_COLUMN_ID = '__balance__'
+
+// 右键菜单状态：columnId 为现金流列 id，或 BALANCE_COLUMN_ID 表示余额列
+const contextMenu = ref<{ columnId: string; month: number; x: number; y: number } | null>(null)
+
+// 统计某列在指定月份"严格下方"编辑过的值的数量
+function countEditedBelow(columnId: string, month: number): number {
+  let count = 0
+  for (const r of props.results) {
+    if (r.month <= month) continue
+    if (columnId === BALANCE_COLUMN_ID) {
+      if (r.isAnchor) count++
+    } else {
+      if (getColumnValue(r, columnId).isEdited) count++
+    }
+  }
+  return count
+}
+
+// 清除某列在指定月份"严格下方"所有编辑过的值
+function clearEditedBelow(columnId: string, month: number): void {
+  for (const r of props.results) {
+    if (r.month <= month) continue
+    if (columnId === BALANCE_COLUMN_ID) {
+      if (r.isAnchor) store.removeAnchor(r.month)
+    } else {
+      if (getColumnValue(r, columnId).isEdited) store.updateColumnEntry(columnId, r.month, null)
+    }
+  }
+}
+
+// 打开右键菜单
+function openContextMenu(columnId: string, month: number, event: MouseEvent): void {
+  contextMenu.value = { columnId, month, x: event.clientX, y: event.clientY }
+}
+
+// 当前右键菜单的菜单项
+const contextMenuItems = computed(() => {
+  const ctx = contextMenu.value
+  if (!ctx) return []
+  const count = countEditedBelow(ctx.columnId, ctx.month)
+  return [
+    {
+      label: '清除下方编辑值',
+      disabled: count === 0,
+      onClick: () => clearEditedBelow(ctx.columnId, ctx.month),
+    },
+  ]
+})
 
 function startEditCell(columnId: string, month: number, currentValue: number) {
   editingCell.value = { columnId, month }
@@ -327,6 +379,7 @@ function getValueClass(value: number): string {
               getValueClass(getColumnValue(result, column.id).amount),
               { 'bg-blue-100': getColumnValue(result, column.id).isEdited }
             ]"
+            @contextmenu.prevent="openContextMenu(column.id, result.month, $event)"
           >
             <input
               v-if="editingCell?.columnId === column.id && editingCell?.month === result.month"
@@ -429,6 +482,7 @@ function getValueClass(value: number): string {
               getValueClass(result.cumSavings),
               { 'bg-blue-100': result.isAnchor }
             ]"
+            @contextmenu.prevent="openContextMenu(BALANCE_COLUMN_ID, result.month, $event)"
           >
             <input
               v-if="editingCumMonth === result.month"
@@ -467,5 +521,13 @@ function getValueClass(value: number): string {
     :x="popover.x"
     :y="popover.y"
     @close="popover = null"
+  />
+
+  <ContextMenu
+    v-if="contextMenu"
+    :x="contextMenu.x"
+    :y="contextMenu.y"
+    :items="contextMenuItems"
+    @close="contextMenu = null"
   />
 </template>
