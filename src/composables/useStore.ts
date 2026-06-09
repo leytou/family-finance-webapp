@@ -1,11 +1,15 @@
-import { ref, watch, type Ref } from 'vue'
-import type { PlanData, FlowColumn } from '../types'
+import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
+import type { PlanData, FlowColumn, Scenario, Workspace } from '../types'
 import { getCurrentMonth } from '../utils/month'
 
 const STORAGE_KEY = 'family-finance-plan'
-let sharedData: Ref<PlanData> | null = null
+let sharedWorkspace: Ref<Workspace> | null = null
 let saveTimeout: ReturnType<typeof setTimeout> | null = null
 let resetSnapshot: string | null = null
+
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+}
 
 function createDefault(): PlanData {
   return {
@@ -16,6 +20,15 @@ function createDefault(): PlanData {
     },
     columns: [],
     anchors: [],
+  }
+}
+
+function createDefaultWorkspace(): Workspace {
+  const id = generateId()
+  return {
+    version: 1,
+    scenarios: [{ id, name: '默认方案', plan: createDefault() }],
+    activeId: id,
   }
 }
 
@@ -46,7 +59,6 @@ function isValidAnchor(value: unknown): boolean {
 
 function isValidPlanData(value: unknown): value is PlanData {
   if (!isObject(value) || !isObject(value.systemParams)) return false
-  // 只接受 v2 格式，旧格式(v1)视为无效数据
   if (value.version !== 2) return false
   return (
     isFiniteNumber(value.version) &&
@@ -59,26 +71,62 @@ function isValidPlanData(value: unknown): value is PlanData {
   )
 }
 
-function loadData(): PlanData {
+function isValidScenario(value: unknown): value is Scenario {
+  if (!isObject(value)) return false
+  if (typeof value.id !== 'string') return false
+  if (typeof value.name !== 'string') return false
+  return isValidPlanData(value.plan)
+}
+
+function isValidWorkspace(value: unknown): value is Workspace {
+  if (!isObject(value)) return false
+  if (value.version !== 1) return false
+  if (!Array.isArray(value.scenarios) || value.scenarios.length === 0) return false
+  if (typeof value.activeId !== 'string') return false
+  const ids: string[] = value.scenarios.map((s: unknown) => isObject(s) ? (s as Record<string, unknown>).id as string : '')
+  if (!ids.includes(value.activeId)) return false
+  return value.scenarios.every(isValidScenario)
+}
+
+function loadWorkspace(): Workspace {
   const raw = localStorage.getItem(STORAGE_KEY)
-  if (!raw) return createDefault()
+  if (!raw) {
+    // 初次加载，不立即保存，等待数据变化时再保存
+    return createDefaultWorkspace()
+  }
   try {
     const parsed: unknown = JSON.parse(raw)
-    if (isValidPlanData(parsed)) return parsed
+    // 已是 Workspace 格式
+    if (isValidWorkspace(parsed)) return parsed
+    // 旧 PlanData 格式 → 迁移
+    if (isValidPlanData(parsed)) {
+      const id = generateId()
+      const migrated: Workspace = {
+        version: 1,
+        scenarios: [{ id, name: '默认方案', plan: parsed }],
+        activeId: id,
+      }
+      // 立即保存迁移后的数据
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
+      return migrated
+    }
   } catch {
     // Fall through to recovery
   }
+  // 数据损坏，移除坏数据并返回默认 Workspace，立即保存
   localStorage.removeItem(STORAGE_KEY)
-  return createDefault()
+  const defaultWorkspace = createDefaultWorkspace()
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultWorkspace))
+  return defaultWorkspace
 }
 
 export function useStore() {
-  if (!sharedData) {
-    sharedData = ref<PlanData>(loadData())
+  if (!sharedWorkspace) {
+    sharedWorkspace = ref<Workspace>(loadWorkspace())
     watch(
-      sharedData,
+      sharedWorkspace,
       () => {
-        const currentSnapshot = JSON.stringify(sharedData?.value)
+        const currentSnapshot = JSON.stringify(sharedWorkspace?.value)
         if (resetSnapshot === currentSnapshot) {
           resetSnapshot = null
           return
@@ -86,7 +134,7 @@ export function useStore() {
         resetSnapshot = null
         if (saveTimeout) clearTimeout(saveTimeout)
         saveTimeout = setTimeout(() => {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedData?.value))
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedWorkspace?.value))
           saveTimeout = null
         }, 300)
       },
@@ -94,81 +142,145 @@ export function useStore() {
     )
   }
 
-  const data = sharedData
+  const workspace = sharedWorkspace
+
+  // data 指向当前激活方案的 plan（computed 代理）
+  const data: ComputedRef<PlanData> = computed(() => {
+    const scenario = workspace.value.scenarios.find(s => s.id === workspace.value.activeId)
+    return scenario!.plan
+  })
 
   function save() {
     if (saveTimeout) {
       clearTimeout(saveTimeout)
       saveTimeout = null
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data.value))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace.value))
   }
 
-  // 列操作函数
+  // 获取当前激活方案的 plan 的辅助函数
+  function getActivePlan(): PlanData {
+    const scenario = workspace.value.scenarios.find(s => s.id === workspace.value.activeId)
+    return scenario!.plan
+  }
+
+  // 列操作函数（作用于当前激活方案）
   function addColumn(name?: string): FlowColumn {
+    const plan = getActivePlan()
     const column: FlowColumn = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      id: generateId(),
       name: name ?? '新列',
       entries: {},
     }
-    data.value.columns.push(column)
+    plan.columns.push(column)
     return column
   }
 
   function removeColumn(id: string): void {
-    data.value.columns = data.value.columns.filter(col => col.id !== id)
+    const plan = getActivePlan()
+    plan.columns = plan.columns.filter(col => col.id !== id)
   }
 
   function renameColumn(id: string, name: string): void {
-    const column = data.value.columns.find(col => col.id === id)
+    const plan = getActivePlan()
+    const column = plan.columns.find(col => col.id === id)
     if (column) {
       column.name = name
     }
   }
 
   function updateColumnEntry(colId: string, month: number, value: number | null): void {
-    const column = data.value.columns.find(col => col.id === colId)
+    const plan = getActivePlan()
+    const column = plan.columns.find(col => col.id === colId)
     if (!column) return
 
     if (value === null) {
-      // 删除 entry
       delete column.entries[month]
     } else {
-      // 设置 entry
       column.entries[month] = value
     }
   }
 
   function addAnchor(month: number, actualSavings: number) {
-    const existing = data.value.anchors.findIndex(anchor => anchor.month === month)
+    const plan = getActivePlan()
+    const existing = plan.anchors.findIndex(anchor => anchor.month === month)
     if (existing >= 0) {
-      data.value.anchors[existing].actualSavings = actualSavings
+      plan.anchors[existing].actualSavings = actualSavings
     } else {
-      data.value.anchors.push({ month, actualSavings })
+      plan.anchors.push({ month, actualSavings })
     }
   }
 
   function removeAnchor(month: number) {
-    data.value.anchors = data.value.anchors.filter(anchor => anchor.month !== month)
+    const plan = getActivePlan()
+    plan.anchors = plan.anchors.filter(anchor => anchor.month !== month)
   }
 
+  // 重置当前方案（不影响其他方案）
   function reset() {
     if (saveTimeout) {
       clearTimeout(saveTimeout)
       saveTimeout = null
     }
-    const defaultData = createDefault()
-    resetSnapshot = JSON.stringify(defaultData)
-    data.value = defaultData
-    localStorage.removeItem(STORAGE_KEY)
+    const defaultPlan = createDefault()
+    resetSnapshot = JSON.stringify({ ...workspace.value })
+    const scenario = workspace.value.scenarios.find(s => s.id === workspace.value.activeId)
+    if (scenario) {
+      scenario.plan = defaultPlan
+    }
   }
 
-  function exportData(): string {
-    return JSON.stringify(data.value, null, 2)
+  // 方案级操作
+  function addScenario(): Scenario {
+    const id = generateId()
+    const scenario: Scenario = { id, name: '', plan: createDefault() }
+    workspace.value.scenarios.push(scenario)
+    workspace.value.activeId = id
+    return scenario
+  }
+
+  function duplicateScenario(): Scenario {
+    const current = workspace.value.scenarios.find(s => s.id === workspace.value.activeId)
+    if (!current) throw new Error('未找到当前激活方案')
+    const id = generateId()
+    const scenario: Scenario = {
+      id,
+      name: '',
+      plan: JSON.parse(JSON.stringify(current.plan)),
+    }
+    workspace.value.scenarios.push(scenario)
+    workspace.value.activeId = id
+    return scenario
+  }
+
+  function removeScenario(id: string): void {
+    if (workspace.value.scenarios.length <= 1) return
+    const index = workspace.value.scenarios.findIndex(s => s.id === id)
+    if (index === -1) return
+    workspace.value.scenarios.splice(index, 1)
+    // 如果删除的是当前激活方案，切换到第一个
+    if (workspace.value.activeId === id) {
+      workspace.value.activeId = workspace.value.scenarios[0].id
+    }
+  }
+
+  function renameScenario(id: string, name: string): void {
+    const scenario = workspace.value.scenarios.find(s => s.id === id)
+    if (scenario) {
+      scenario.name = name
+    }
+  }
+
+  function switchScenario(id: string): void {
+    const exists = workspace.value.scenarios.some(s => s.id === id)
+    if (exists) {
+      workspace.value.activeId = id
+    }
   }
 
   return {
     data,
+    workspace,
     save,
     addColumn,
     removeColumn,
@@ -177,6 +289,10 @@ export function useStore() {
     addAnchor,
     removeAnchor,
     reset,
-    exportData,
+    addScenario,
+    duplicateScenario,
+    removeScenario,
+    renameScenario,
+    switchScenario,
   }
 }

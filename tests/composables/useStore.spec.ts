@@ -136,7 +136,7 @@ describe('useStore', () => {
     await flushAutoSave()
 
     expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.anchors).toEqual([
       { month: 202601, actualSavings: 100000 },
     ])
   })
@@ -151,7 +151,7 @@ describe('useStore', () => {
     await flushAutoSave()
 
     expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 120000 }])
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.anchors).toEqual([
       { month: 202601, actualSavings: 120000 },
     ])
   })
@@ -171,12 +171,12 @@ describe('useStore', () => {
     await flushAutoSave()
 
     expect(store.data.value.anchors).toEqual([{ month: 202602, actualSavings: 120000 }])
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').anchors).toEqual([
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.anchors).toEqual([
       { month: 202602, actualSavings: 120000 },
     ])
   })
 
-  it('reset 清空数据恢复默认', async () => {
+  it('reset 仅重置当前方案恢复默认', async () => {
     vi.useFakeTimers()
     const useStore = await loadUseStore()
     const store = useStore()
@@ -188,10 +188,14 @@ describe('useStore', () => {
     store.reset()
     await flushAutoSave()
 
+    // 当前方案被重置
     expect(store.data.value.columns).toEqual([])
     expect(store.data.value.anchors).toEqual([])
     expect(store.data.value.systemParams.annualRate).toBe(0.025)
-    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+    // Workspace 仍存在于 localStorage
+    const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
+    expect(saved.version).toBe(1)
+    expect(saved.scenarios).toHaveLength(1)
   })
 
   it('reset 后同一轮事件中的新修改仍会自动保存', async () => {
@@ -206,27 +210,10 @@ describe('useStore', () => {
     await flushAutoSave()
 
     const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
-    expect(saved.columns).toHaveLength(1)
-    expect(saved.columns[0].name).toBe('房租')
+    expect(saved.scenarios[0].plan.columns).toHaveLength(1)
+    expect(saved.scenarios[0].plan.columns[0].name).toBe('房租')
   })
 
-  it('exportData 返回反映当前数据的格式化 JSON', async () => {
-    const useStore = await loadUseStore()
-    const store = useStore()
-
-    store.data.value.systemParams.annualRate = 0.05
-    store.data.value.columns = [
-      {
-        id: 'col1',
-        name: '工资',
-        entries: { 202601: 10000, 202602: 12000 },
-      },
-    ]
-
-    expect(store.exportData()).toBe(JSON.stringify(store.data.value, null, 2))
-    expect(store.exportData()).toContain('"version": 2')
-    expect(JSON.parse(store.exportData()).systemParams.annualRate).toBe(0.05)
-  })
 
   it('localStorage 存在 malformed JSON 时不抛错并移除坏数据', async () => {
     localStorage.setItem('family-finance-plan', '{bad json')
@@ -238,7 +225,9 @@ describe('useStore', () => {
     expect(store.data.value.version).toBe(2)
     expect(store.data.value.columns).toEqual([])
     expect(store.data.value.anchors).toEqual([])
-    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+    const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
+    expect(saved.version).toBe(1)
+    expect(saved.scenarios).toHaveLength(1)
   })
 
   it('localStorage 存在合法 JSON 但缺少 PlanData 必要结构时不抛错并移除坏数据', async () => {
@@ -251,7 +240,9 @@ describe('useStore', () => {
     expect(store.data.value.version).toBe(2)
     expect(store.data.value.columns).toEqual([])
     expect(store.data.value.anchors).toEqual([])
-    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+    const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
+    expect(saved.version).toBe(1)
+    expect(saved.scenarios).toHaveLength(1)
   })
 
   it('localStorage 存在嵌套结构损坏的 PlanData 时不抛错并移除坏数据', async () => {
@@ -281,7 +272,9 @@ describe('useStore', () => {
     expect(store.data.value.version).toBe(2)
     expect(store.data.value.columns).toEqual([])
     expect(store.data.value.anchors).toEqual([])
-    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+    const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
+    expect(saved.version).toBe(1)
+    expect(saved.scenarios).toHaveLength(1)
   })
 
   it('多次 useStore 调用共享同一个响应式数据源', async () => {
@@ -311,7 +304,7 @@ describe('useStore', () => {
     expect(localStorage.getItem('family-finance-plan')).toBeNull()
 
     await vi.advanceTimersByTimeAsync(1)
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.annualRate).toBe(0.05)
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.systemParams.annualRate).toBe(0.05)
   })
 
   it('自动保存 debounce 生效且连续修改只保存最后一次数据', async () => {
@@ -333,7 +326,7 @@ describe('useStore', () => {
     await vi.advanceTimersByTimeAsync(1)
 
     expect(setItem).toHaveBeenCalledTimes(1)
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.annualRate).toBe(0.04)
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.systemParams.annualRate).toBe(0.04)
   })
 
   it('多次 useStore 调用不会重复安装自动保存 watcher', async () => {
@@ -348,10 +341,10 @@ describe('useStore', () => {
     await flushAutoSave()
 
     expect(setItem).toHaveBeenCalledTimes(1)
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').systemParams.annualRate).toBe(0.06)
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.systemParams.annualRate).toBe(0.06)
   })
 
-  it('旧格式数据（version 1）加载时返回默认值', async () => {
+  it('旧格式数据（version 1）加载时返回默认 Workspace', async () => {
     localStorage.setItem(
       'family-finance-plan',
       JSON.stringify({
@@ -376,10 +369,92 @@ describe('useStore', () => {
     const useStore = await loadUseStore()
     const store = useStore()
 
-    // 应该返回默认值，因为旧格式被视为无效
+    // 旧格式被视为无效，返回默认 Workspace
     expect(store.data.value.version).toBe(2)
     expect(store.data.value.columns).toEqual([])
     expect(store.data.value.anchors).toEqual([])
-    expect(localStorage.getItem('family-finance-plan')).toBeNull()
+  })
+
+  it('旧 PlanData 格式自动迁移为 Workspace 默认方案', async () => {
+    const oldPlan = {
+      version: 2,
+      systemParams: { startMonth: 202601, annualRate: 0.025 },
+      columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000 } }],
+      anchors: [{ month: 202601, actualSavings: 50000 }],
+    }
+    localStorage.setItem('family-finance-plan', JSON.stringify(oldPlan))
+
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    // data 仍可正常访问（指向迁移后的默认方案 plan）
+    expect(store.data.value.columns).toHaveLength(1)
+    expect(store.data.value.columns[0].name).toBe('工资')
+    expect(store.data.value.columns[0].entries[202601]).toBe(10000)
+    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 50000 }])
+    expect(store.data.value.systemParams.startMonth).toBe(202601)
+
+    // workspace 结构正确
+    expect(store.workspace.value.version).toBe(1)
+    expect(store.workspace.value.scenarios).toHaveLength(1)
+    expect(store.workspace.value.scenarios[0].name).toBe('默认方案')
+    expect(store.workspace.value.activeId).toBe(store.workspace.value.scenarios[0].id)
+
+    // 已写回为 Workspace 格式
+    const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
+    expect(saved.version).toBe(1)
+    expect(saved.scenarios).toHaveLength(1)
+    expect(saved.scenarios[0].name).toBe('默认方案')
+  })
+
+  it('初次加载创建包含默认方案的 Workspace', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    expect(store.workspace.value.version).toBe(1)
+    expect(store.workspace.value.scenarios).toHaveLength(1)
+    expect(store.workspace.value.scenarios[0].name).toBe('默认方案')
+    expect(store.workspace.value.activeId).toBe(store.workspace.value.scenarios[0].id)
+    // 默认方案的 plan 是空白 plan
+    expect(store.data.value.columns).toEqual([])
+    expect(store.data.value.anchors).toEqual([])
+  })
+
+  it('加载已有的 Workspace 格式数据', async () => {
+    const workspace = {
+      version: 1,
+      scenarios: [
+        { id: 's1', name: '买房方案', plan: { version: 2, systemParams: { startMonth: 202601, annualRate: 0.03 }, columns: [], anchors: [] } },
+        { id: 's2', name: '租房方案', plan: { version: 2, systemParams: { startMonth: 202601, annualRate: 0.025 }, columns: [], anchors: [] } },
+      ],
+      activeId: 's2',
+    }
+    localStorage.setItem('family-finance-plan', JSON.stringify(workspace))
+
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    // data 指向 activeId = s2 的 plan
+    expect(store.data.value.systemParams.annualRate).toBe(0.025)
+    expect(store.workspace.value.scenarios).toHaveLength(2)
+    expect(store.workspace.value.activeId).toBe('s2')
+  })
+
+  it('Workspace 中 activeId 无效时返回默认 Workspace', async () => {
+    const badWorkspace = {
+      version: 1,
+      scenarios: [
+        { id: 's1', name: '方案A', plan: { version: 2, systemParams: { startMonth: 202601, annualRate: 0.025 }, columns: [], anchors: [] } },
+      ],
+      activeId: 'nonexistent',
+    }
+    localStorage.setItem('family-finance-plan', JSON.stringify(badWorkspace))
+
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    // 应返回默认 Workspace
+    expect(store.workspace.value.scenarios).toHaveLength(1)
+    expect(store.workspace.value.scenarios[0].name).toBe('默认方案')
   })
 })
