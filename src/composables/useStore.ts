@@ -1,6 +1,6 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import type { PlanData, FlowColumn, Scenario, Workspace, PlanSnapshot } from '../types'
-import { getCurrentMonth, formatMonth } from '../utils/month'
+import { getCurrentMonth, formatMonth, addMonths } from '../utils/month'
 import { calculate } from './useCalculation'
 
 const STORAGE_KEY = 'family-finance-plan'
@@ -51,6 +51,12 @@ function isValidColumn(value: unknown): boolean {
     const month = Number(key)
     const amount = value.entries[key]
     if (!Number.isInteger(month) || !isFiniteNumber(amount)) return false
+  }
+  if (value.yearlyMonths !== undefined) {
+    if (!isObject(value.yearlyMonths)) return false
+    for (const key in value.yearlyMonths) {
+      if (!Number.isInteger(Number(key))) return false
+    }
   }
   return true
 }
@@ -241,8 +247,30 @@ export function useStore() {
 
     if (value === null) {
       delete column.entries[month]
+      // 联动清除年度标记：entry 已不存在，标记无意义且会残留
+      if (column.yearlyMonths) delete column.yearlyMonths[month]
     } else {
       column.entries[month] = value
+    }
+  }
+
+  // 把指定月（须存在直接编辑值）的金额复制到投影范围内所有同月，并标记为 yearly。
+  // 快照式：每个年份同月是独立 entry，之后单独修改某月不影响其它年份。
+  function syncYearly(colId: string, month: number): void {
+    const plan = getActivePlan()
+    const column = plan.columns.find(col => col.id === colId)
+    if (!column) return
+    const amount = column.entries[month]
+    if (amount === undefined) return                 // 无值不可同步
+    if (!column.yearlyMonths) column.yearlyMonths = {}
+    const moy = month % 100
+    const start = plan.systemParams.startMonth
+    for (let i = 0; i < 60; i++) {                   // 与 calculate 的 PROJECTION_MONTHS 一致
+      const m = addMonths(start, i)
+      if (m % 100 === moy) {
+        column.entries[m] = amount
+        column.yearlyMonths[m] = true
+      }
     }
   }
 
@@ -362,6 +390,7 @@ export function useStore() {
     renameColumn,
     moveColumn,
     updateColumnEntry,
+    syncYearly,
     addAnchor,
     removeAnchor,
     addSnapshot,

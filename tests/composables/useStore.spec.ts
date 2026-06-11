@@ -127,6 +127,21 @@ describe('useStore', () => {
     expect(() => store.updateColumnEntry('nonexistent', 202601, 10000)).not.toThrow()
   })
 
+  it('updateColumnEntry 删除 entry 时联动清除 yearlyMonths 标记', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.data.value.systemParams.startMonth = 202601
+    const col = store.addColumn('年终奖')
+    store.updateColumnEntry(col.id, 202612, 50000)
+    store.syncYearly(col.id, 202612)
+    const column = store.data.value.columns[0]
+    expect(column.yearlyMonths?.[202612]).toBe(true)
+
+    store.updateColumnEntry(col.id, 202612, null)
+    expect(column.entries[202612]).toBeUndefined()
+    expect(column.yearlyMonths?.[202612]).toBeUndefined()
+  })
+
   it('addAnchor 添加锚点并自动保存', async () => {
     vi.useFakeTimers()
     const useStore = await loadUseStore()
@@ -692,6 +707,63 @@ describe('useStore', () => {
     const store = useStore()
     expect(store.data.value.systemParams.initialDeposit).toBe(0)
     expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+  })
+
+  describe('syncYearly', () => {
+    it('把当前月值写入投影范围内所有同月并标记 yearly，源头也标记', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.data.value.systemParams.startMonth = 202601
+      const col = store.addColumn('年终奖')
+      store.updateColumnEntry(col.id, 202612, 50000)
+
+      store.syncYearly(col.id, 202612)
+
+      const column = store.data.value.columns[0]
+      // 投影范围 202601..203012 内所有 12 月
+      expect(column.entries[202612]).toBe(50000)
+      expect(column.entries[202712]).toBe(50000)
+      expect(column.entries[202812]).toBe(50000)
+      expect(column.entries[202912]).toBe(50000)
+      expect(column.entries[203012]).toBe(50000)
+      expect(column.yearlyMonths?.[202612]).toBe(true)
+      expect(column.yearlyMonths?.[202712]).toBe(true)
+      expect(column.yearlyMonths?.[203012]).toBe(true)
+    })
+
+    it('对无值的月不操作', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.data.value.systemParams.startMonth = 202601
+      const col = store.addColumn('年终奖')
+      // 202612 没有 entry
+      store.syncYearly(col.id, 202612)
+      const column = store.data.value.columns[0]
+      expect(column.entries[202612]).toBeUndefined()
+      expect(column.yearlyMonths).toBeUndefined()
+    })
+
+    it('不存在的列不抛错', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      expect(() => store.syncYearly('nonexistent', 202612)).not.toThrow()
+    })
+
+    it('直接修改某月 entry 不影响其它年份同月（快照语义）', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.data.value.systemParams.startMonth = 202601
+      const col = store.addColumn('年终奖')
+      store.updateColumnEntry(col.id, 202612, 50000)
+      store.syncYearly(col.id, 202612)
+
+      // 单独改 202712，其它年份不变
+      store.updateColumnEntry(col.id, 202712, 70000)
+      const column = store.data.value.columns[0]
+      expect(column.entries[202612]).toBe(50000)
+      expect(column.entries[202712]).toBe(70000)
+      expect(column.entries[202812]).toBe(50000)
+    })
   })
 
   describe('moveColumn', () => {
