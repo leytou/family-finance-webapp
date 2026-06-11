@@ -8,11 +8,22 @@ import ComparisonView from './components/ComparisonView.vue'
 import { calculate } from './composables/useCalculation'
 import { useStore } from './composables/useStore'
 
-const { data, reset } = useStore()
+const { data, reset, setStartMonth } = useStore()
 const results = computed(() => calculate(data.value))
 
 // 对比视图切换
 const showComparison = ref(false)
+
+// 起始月份规范化失败时短暂红框反馈（显示值靠 :value 单向绑定自动回退到旧合法值）
+const startMonthInvalid = ref(false)
+
+function onStartMonthBlur(e: Event) {
+  const raw = Number((e.target as HTMLInputElement).value)
+  if (!setStartMonth(raw)) {
+    startMonthInvalid.value = true
+    setTimeout(() => (startMonthInvalid.value = false), 1500)
+  }
+}
 
 function handleReset() {
   if (window.confirm('确定要重置当前方案？此操作不可撤销。')) {
@@ -34,9 +45,12 @@ function handleReset() {
         <div class="flex items-center gap-2">
           <label class="text-xs whitespace-nowrap">起始月份</label>
           <input
-            v-model.number="data.systemParams.startMonth"
+            :value="data.systemParams.startMonth"
+            @blur="onStartMonthBlur"
+            @keydown.enter="($event.target as HTMLInputElement).blur()"
             type="number"
-            class="border rounded px-2 py-1 text-sm w-24"
+            :class="startMonthInvalid ? 'border-red-500' : 'border'"
+            class="rounded px-2 py-1 text-sm w-24"
             placeholder="YYYYMM"
           />
         </div>

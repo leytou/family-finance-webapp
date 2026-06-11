@@ -134,6 +134,7 @@ describe('App', () => {
 
     const startMonthInput = wrapper.find('input[placeholder="YYYYMM"]')
     await startMonthInput.setValue(202602)
+    await startMonthInput.trigger('blur')
     expect(store.data.value.systemParams.startMonth).toBe(202602)
 
     const annualRateInput = wrapper.findAll('input').find(input => input.attributes('step') === '0.001')
@@ -166,5 +167,34 @@ describe('App', () => {
 
     await initialDepositInput.setValue('50000')
     expect(store.data.value.systemParams.initialDeposit).toBe(50000)
+  })
+
+  it('起始月份输入越界月份 blur 后进位写入', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    const startMonthInput = wrapper.find('input[placeholder="YYYYMM"]')
+    await startMonthInput.setValue(202613)   // 13 月 → 进位为次年 1 月
+    await startMonthInput.trigger('blur')
+
+    expect(store.data.value.systemParams.startMonth).toBe(202701)
+  })
+
+  it('起始月份输入非法值 blur 后回退不写入', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    const useStore = await loadUseStore()
+    const store = useStore()
+    const before = store.data.value.systemParams.startMonth
+
+    const startMonthInput = wrapper.find('input[placeholder="YYYYMM"]')
+    await startMonthInput.setValue(2026)   // 位数不足 → 非法
+    await startMonthInput.trigger('blur')
+
+    expect(store.data.value.systemParams.startMonth).toBe(before)
   })
 })
