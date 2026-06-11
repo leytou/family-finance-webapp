@@ -50,6 +50,15 @@ function handleReset() {
             class="border rounded px-2 py-1 text-sm w-20"
           />
         </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs whitespace-nowrap">初始存款</label>
+          <input
+            v-model.number="data.systemParams.initialDeposit"
+            type="number"
+            class="border rounded px-2 py-1 text-sm w-28"
+            placeholder="元"
+          />
+        </div>
         <button class="px-3 py-1 border rounded text-sm hover:bg-gray-50" type="button" @click="handleReset">
           重置
         </button>

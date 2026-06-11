@@ -153,4 +153,18 @@ describe('App', () => {
     expect(main.classes()).toContain('flex-1')
     expect(main.classes()).toContain('flex-col')
   })
+
+  it('初始存款输入框正确绑定', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    const initialDepositInput = wrapper.find('input[placeholder="元"]')
+    expect(initialDepositInput.exists()).toBe(true)
+
+    await initialDepositInput.setValue('50000')
+    expect(store.data.value.systemParams.initialDeposit).toBe(50000)
+  })
 })
