@@ -526,6 +526,22 @@ describe('calculate', () => {
     expect(results[0].investReturn).toBe(0)
     expect(results[0].cumSavings).toBe(0)
   })
+
+  it('initialDeposit 为空串（输入框清空）时首月起点视为 0', () => {
+    const results = calculate(
+      makePlan({
+        systemParams: {
+          startMonth: 202601,
+          annualRate: 0.12,
+          initialDeposit: '' as unknown as number,
+        },
+        columns: [],
+      }),
+    )
+
+    expect(results[0].investReturn).toBe(0)
+    expect(results[0].cumSavings).toBe(0)
+  })
 })
 
 describe('buildComparison', () => {

@@ -64,9 +64,9 @@ export function calculate(plan: PlanData): MonthResult[] {
   for (let index = 0; index < PROJECTION_MONTHS; index++) {
     const month = addMonths(plan.systemParams.startMonth, index)
 
-    // 首月 prevCum = 初始存款（起点本金，参与投资收益）；未设置时视为 0
+    // 首月 prevCum = 初始存款（起点本金，参与投资收益）；未设置或非法时视为 0
     const prevCum = index === 0
-      ? (plan.systemParams.initialDeposit ?? 0)
+      ? (Number(plan.systemParams.initialDeposit) || 0)
       : results[index - 1].cumSavings
 
     // 解析各列在该月的值
