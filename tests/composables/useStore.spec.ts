@@ -710,7 +710,7 @@ describe('useStore', () => {
   })
 
   describe('syncYearly', () => {
-    it('把当前月值写入投影范围内所有同月并标记 yearly，源头也标记', async () => {
+    it('从当前月起向下写入所有年份同月并标记 yearly（源头为最早同月时覆盖全部）', async () => {
       const useStore = await loadUseStore()
       const store = useStore()
       store.data.value.systemParams.startMonth = 202601
@@ -763,6 +763,33 @@ describe('useStore', () => {
       expect(column.entries[202612]).toBe(50000)
       expect(column.entries[202712]).toBe(70000)
       expect(column.entries[202812]).toBe(50000)
+    })
+
+    it('只同步到当前月及下方年份同月，不破坏过去（上方）年份', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.data.value.systemParams.startMonth = 202601
+      const col = store.addColumn('年终奖')
+      // 过去年份已有不同实际值
+      store.updateColumnEntry(col.id, 202612, 50000)
+      store.updateColumnEntry(col.id, 202712, 60000)
+      // 在 202812 填值并同步
+      store.updateColumnEntry(col.id, 202812, 70000)
+      store.syncYearly(col.id, 202812)
+
+      const column = store.data.value.columns[0]
+      // 上方（过去）年份保持原值、未被标记
+      expect(column.entries[202612]).toBe(50000)
+      expect(column.entries[202712]).toBe(60000)
+      expect(column.yearlyMonths?.[202612]).toBeUndefined()
+      expect(column.yearlyMonths?.[202712]).toBeUndefined()
+      // 当前月及下方年份被写入 70000 并标记
+      expect(column.entries[202812]).toBe(70000)
+      expect(column.entries[202912]).toBe(70000)
+      expect(column.entries[203012]).toBe(70000)
+      expect(column.yearlyMonths?.[202812]).toBe(true)
+      expect(column.yearlyMonths?.[202912]).toBe(true)
+      expect(column.yearlyMonths?.[203012]).toBe(true)
     })
   })
 

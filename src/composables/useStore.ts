@@ -265,7 +265,8 @@ export function useStore() {
     }
   }
 
-  // 把指定月（须存在直接编辑值）的金额复制到投影范围内所有同月，并标记为 yearly。
+  // 把指定月（须存在直接编辑值）的金额复制到「当前月及下方」所有同月，并标记为 yearly。
+  // 不触碰上方（过去）年份，避免破坏已发生的实际数据。
   // 快照式：每个年份同月是独立 entry，之后单独修改某月不影响其它年份。
   function syncYearly(colId: string, month: number): void {
     const plan = getActivePlan()
@@ -278,7 +279,8 @@ export function useStore() {
     const start = plan.systemParams.startMonth
     for (let i = 0; i < 60; i++) {                   // 与 calculate 的 PROJECTION_MONTHS 一致
       const m = addMonths(start, i)
-      if (m % 100 === moy) {
+      // 仅当前月及下方（m >= month）：保护上方过去年份不被覆盖
+      if (m % 100 === moy && m >= month) {
         column.entries[m] = amount
         column.yearlyMonths[m] = true
       }
