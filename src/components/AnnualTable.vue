@@ -125,7 +125,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
       </thead>
       <tbody>
         <tr class="border-b hover:bg-gray-50">
-          <td class="px-1 py-0 whitespace-nowrap">年初余额</td>
+          <td class="px-1 py-0 whitespace-nowrap">年初存款</td>
           <td
             v-for="summary in yearSummaries"
             :key="`start-${summary.year}`"
@@ -175,7 +175,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
         </tr>
 
         <tr class="border-b bg-gray-50 font-bold">
-          <td class="px-1 py-0 whitespace-nowrap">年末余额</td>
+          <td class="px-1 py-0 whitespace-nowrap">年末存款</td>
           <td
             v-for="summary in yearSummaries"
             :key="`end-${summary.year}`"

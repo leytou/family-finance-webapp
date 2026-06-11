@@ -51,7 +51,7 @@ describe('AnnualTable', () => {
       },
     })
 
-    expect(rowText(wrapper, '年初余额')).toEqual(['年初余额', '150,000'])
+    expect(rowText(wrapper, '年初存款')).toEqual(['年初存款', '150,000'])
   })
 
   it('按年份汇总现金流并展示后续年份才出现的列', () => {
@@ -113,15 +113,15 @@ describe('AnnualTable', () => {
     const headers = wrapper.findAll('th').map((cell) => cell.text())
     expect(headers).toEqual(['项目', '2026', '2027'])
 
-    expect(rowText(wrapper, '年初余额')).toEqual(['年初余额', '0', '22,220'])
+    expect(rowText(wrapper, '年初存款')).toEqual(['年初存款', '0', '22,220'])
     expect(rowText(wrapper, '工资')).toEqual(['工资', '22,000', '20,000'])
     expect(rowText(wrapper, '奖金')).toEqual(['奖金', '0', '10,000'])
     expect(rowText(wrapper, '育儿')).toEqual(['育儿', '0', '-14,000'])
     expect(rowText(wrapper, '理财收益')).toEqual(['理财收益', '220', '170'])
     expect(rowText(wrapper, '年度结余')).toEqual(['年度结余', '22,220', '16,170'])
-    expect(rowText(wrapper, '年末余额')).toEqual(['年末余额', '22,220', '38,390'])
+    expect(rowText(wrapper, '年末存款')).toEqual(['年末存款', '22,220', '38,390'])
 
-    const endSavingsRow = wrapper.findAll('tbody tr').find((row) => row.find('td').text() === '年末余额')
+    const endSavingsRow = wrapper.findAll('tbody tr').find((row) => row.find('td').text() === '年末存款')
     expect(endSavingsRow?.classes()).toContain('bg-gray-50')
     expect(endSavingsRow?.classes()).toContain('font-bold')
   })
@@ -177,7 +177,7 @@ describe('AnnualTable', () => {
     expect(rowText(wrapper, '房租')).toEqual(['房租', '-15,000'])
     expect(rowText(wrapper, '理财收益')).toEqual(['理财收益', '350'])
     expect(rowText(wrapper, '年度结余')).toEqual(['年度结余', '15,350'])
-    expect(rowText(wrapper, '年末余额')).toEqual(['年末余额', '15,350'])
+    expect(rowText(wrapper, '年末存款')).toEqual(['年末存款', '15,350'])
   })
 
   it('使用紧凑表格样式并保持金额列等宽右对齐', () => {
