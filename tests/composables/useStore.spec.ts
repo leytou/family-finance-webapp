@@ -693,4 +693,81 @@ describe('useStore', () => {
     expect(store.data.value.systemParams.initialDeposit).toBe(0)
     expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
   })
+
+  describe('moveColumn', () => {
+    it('side=before 将列插到目标列前', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const a = store.addColumn('A')
+      const b = store.addColumn('B')
+      const c = store.addColumn('C')
+
+      store.moveColumn(c.id, a.id, 'before')
+
+      expect(store.data.value.columns.map(col => col.id)).toEqual([c.id, a.id, b.id])
+    })
+
+    it('side=after 将列插到目标列后', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const a = store.addColumn('A')
+      const b = store.addColumn('B')
+      const c = store.addColumn('C')
+
+      store.moveColumn(a.id, c.id, 'after')
+
+      expect(store.data.value.columns.map(col => col.id)).toEqual([b.id, c.id, a.id])
+    })
+
+    it('fromId 等于 toId 时无变化', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const a = store.addColumn('A')
+      const b = store.addColumn('B')
+
+      store.moveColumn(a.id, a.id, 'before')
+
+      expect(store.data.value.columns.map(col => col.id)).toEqual([a.id, b.id])
+    })
+
+    it('不存在的 fromId 无变化', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const a = store.addColumn('A')
+
+      store.moveColumn('不存在', a.id, 'before')
+
+      expect(store.data.value.columns.map(col => col.id)).toEqual([a.id])
+    })
+
+    it('重排后列数据(名称、条目)完整跟随', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const a = store.addColumn('工资')
+      store.updateColumnEntry(a.id, 202601, 5000)
+      const b = store.addColumn('房租')
+
+      store.moveColumn(b.id, a.id, 'before')
+
+      const moved = store.data.value.columns.find(col => col.id === a.id)
+      expect(moved?.name).toBe('工资')
+      expect(moved?.entries[202601]).toBe(5000)
+    })
+
+    it('保存后重新加载顺序保留', async () => {
+      let useStore = await loadUseStore()
+      const store1 = useStore()
+      store1.addColumn('A')
+      store1.addColumn('B')
+      const c = store1.addColumn('C')
+      store1.moveColumn(c.id, store1.data.value.columns[0]!.id, 'before')
+      store1.save()
+
+      vi.resetModules()
+      useStore = await loadUseStore()
+      const store2 = useStore()
+
+      expect(store2.data.value.columns.map(col => col.name)).toEqual(['C', 'A', 'B'])
+    })
+  })
 })

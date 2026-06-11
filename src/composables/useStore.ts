@@ -219,6 +219,21 @@ export function useStore() {
     }
   }
 
+  function moveColumn(fromId: string, toId: string, side: 'before' | 'after'): void {
+    if (fromId === toId) return              // 拖到自身，无操作
+    const plan = getActivePlan()
+    const fromIdx = plan.columns.findIndex(col => col.id === fromId)
+    if (fromIdx === -1) return
+    const [moved] = plan.columns.splice(fromIdx, 1)   // 先移除
+    let toIdx = plan.columns.findIndex(col => col.id === toId)  // 移除后重新查找，避免索引错位
+    if (toIdx === -1) {
+      plan.columns.push(moved)
+      return
+    }
+    if (side === 'after') toIdx += 1
+    plan.columns.splice(toIdx, 0, moved)
+  }
+
   function updateColumnEntry(colId: string, month: number, value: number | null): void {
     const plan = getActivePlan()
     const column = plan.columns.find(col => col.id === colId)
@@ -345,6 +360,7 @@ export function useStore() {
     addColumn,
     removeColumn,
     renameColumn,
+    moveColumn,
     updateColumnEntry,
     addAnchor,
     removeAnchor,
