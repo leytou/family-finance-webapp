@@ -405,6 +405,93 @@ describe('MonthlyTable', () => {
     expect(wrapper.text()).toContain('清除下方编辑值')
   })
 
+  it('右键有直接编辑值的现金流单元格，菜单含「同步到每年此月」且启用', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    const col = store.addColumn('年终奖')
+    store.updateColumnEntry(col.id, 202612, 50000)
+    const results = calculate(store.data.value).slice(0, 12) // 到 202612（索引 11）
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const row = wrapper.findAll('tbody tr')[11]
+    await row.findAll('td')[1].trigger('contextmenu') // 该列单元格
+
+    const menu = wrapper.findComponent({ name: 'ContextMenu' })
+    expect(menu.text()).toContain('同步到每年此月')
+    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到每年此月')!
+    expect(syncItem.attributes('aria-disabled')).toBe('false')
+  })
+
+  it('右键无直接编辑值的现金流单元格，「同步到每年此月」禁用', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    store.addColumn('年终奖')
+    store.updateColumnEntry(store.data.value.columns[0].id, 202601, 50000) // 202601 有值，202602 为延续值
+    const results = calculate(store.data.value).slice(0, 3)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const row = wrapper.findAll('tbody tr')[1] // 202602，延续值无直接 entry
+    await row.findAll('td')[1].trigger('contextmenu')
+
+    const menu = wrapper.findComponent({ name: 'ContextMenu' })
+    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到每年此月')!
+    expect(syncItem.attributes('aria-disabled')).toBe('true')
+  })
+
+  it('点击「同步到每年此月」后该列所有年份同月都有值并标记', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    const col = store.addColumn('年终奖')
+    store.updateColumnEntry(col.id, 202612, 50000)
+    const results = calculate(store.data.value).slice(0, 12)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const row = wrapper.findAll('tbody tr')[11]
+    await row.findAll('td')[1].trigger('contextmenu')
+
+    const menu = wrapper.findComponent({ name: 'ContextMenu' })
+    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到每年此月')!
+    await syncItem.trigger('click')
+
+    expect(col.entries[202712]).toBe(50000)
+    expect(col.entries[203012]).toBe(50000)
+    expect(col.yearlyMonths?.[202612]).toBe(true)
+    expect(col.yearlyMonths?.[202712]).toBe(true)
+  })
+
+  it('yearly 单元格显示 ↻ 角标', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    const col = store.addColumn('年终奖')
+    store.updateColumnEntry(col.id, 202612, 50000)
+    store.syncYearly(col.id, 202612)
+    const results = calculate(store.data.value).slice(0, 12)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const row = wrapper.findAll('tbody tr')[11] // 202612
+    expect(row.text()).toContain('↻')
+  })
+
+  it('余额列右键菜单不含「同步到每年此月」', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    store.addColumn('测试列')
+    const results = calculate(store.data.value).slice(0, 3)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const row = wrapper.findAll('tbody tr')[0]
+    const cells = row.findAll('td')
+    await cells[cells.length - 1].trigger('contextmenu') // 余额列（最后一列）
+
+    const menu = wrapper.findComponent({ name: 'ContextMenu' })
+    expect(menu.text()).not.toContain('同步到每年此月')
+  })
+
   it('清除现金流列下方编辑值，当前行及上方保留', async () => {
     const store = useSharedStore()
     store.reset()
@@ -422,10 +509,11 @@ describe('MonthlyTable', () => {
     const secondRowCells = wrapper.findAll('tbody tr')[1].findAll('td')
     await secondRowCells[1].trigger('contextmenu')
 
-    // 点击"清除下方编辑值"
+    // 点击"清除下方编辑值"（菜单已含"同步到每年此月"，按文本精确定位）
     const menuItem = wrapper
       .findComponent({ name: 'ContextMenu' })
-      .get('[role="menuitem"]')
+      .findAll('[role="menuitem"]')
+      .find(i => i.text() === '清除下方编辑值')!
     await menuItem.trigger('click')
 
     // 202601、202602 的编辑值保留，202603 被清除
@@ -480,7 +568,8 @@ describe('MonthlyTable', () => {
 
     const menuItem = wrapper
       .findComponent({ name: 'ContextMenu' })
-      .get('[role="menuitem"]')
+      .findAll('[role="menuitem"]')
+      .find(i => i.text() === '清除下方编辑值')!
     expect(menuItem.attributes('aria-disabled')).toBe('true')
   })
 
