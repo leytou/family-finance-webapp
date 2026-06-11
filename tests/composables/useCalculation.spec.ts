@@ -161,6 +161,52 @@ describe('resolveColumnValue', () => {
       isEdited: false,
     })
   })
+
+  it('yearly 标记的月不向前延续，其后非同月归 0', () => {
+    const column: FlowColumn = {
+      id: 'col1',
+      name: '年终奖',
+      entries: { 202612: 50000 },
+      yearlyMonths: { 202612: true },
+    }
+
+    // 202612 自身：直接 entry
+    expect(resolveColumnValue(column, 202612)).toEqual({
+      id: 'col1', name: '年终奖', amount: 50000, isEdited: true,
+    })
+    // 202701：跳过 yearly 的 202612，无源 → 0
+    expect(resolveColumnValue(column, 202701)).toEqual({
+      id: 'col1', name: '年终奖', amount: 0, isEdited: false,
+    })
+    // 202706：仍跳过 → 0
+    expect(resolveColumnValue(column, 202706)).toEqual({
+      id: 'col1', name: '年终奖', amount: 0, isEdited: false,
+    })
+  })
+
+  it('无 yearlyMonths 字段时延续行为不变（回归）', () => {
+    const column: FlowColumn = {
+      id: 'col1', name: '工资', entries: { 202601: 10000 },
+    }
+    expect(resolveColumnValue(column, 202602)).toEqual({
+      id: 'col1', name: '工资', amount: 10000, isEdited: false,
+    })
+  })
+
+  it('yearly 与非 yearly 混合：非 yearly 仍延续，yearly 不作为延续源', () => {
+    const column: FlowColumn = {
+      id: 'col1',
+      name: '混合',
+      entries: { 202601: 1000, 202612: 50000 },
+      yearlyMonths: { 202612: true },
+    }
+    // 202602 延续非 yearly 的 202601
+    expect(resolveColumnValue(column, 202602).amount).toBe(1000)
+    // 202612 自身 yearly 值
+    expect(resolveColumnValue(column, 202612).amount).toBe(50000)
+    // 202701：跳过 yearly 202612，回退到非 yearly 202601 → 1000
+    expect(resolveColumnValue(column, 202701).amount).toBe(1000)
+  })
 })
 
 describe('calculate', () => {

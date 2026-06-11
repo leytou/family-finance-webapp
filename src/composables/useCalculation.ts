@@ -25,8 +25,12 @@ export function resolveColumnValue(
     }
   }
 
-  // 规则2: 向前查找最近的 entry（key < month）
-  const entryKeys = Object.keys(column.entries).map(Number).filter(key => key < month)
+  // 规则2: 向前查找最近的 entry（key < month），跳过被标记为 yearly 的月
+  // yearly 月是脉冲项，不向前延续；否则其后所有月会被错误蔓延
+  const isYearlyKey = (k: number) => Boolean(column.yearlyMonths?.[k])
+  const entryKeys = Object.keys(column.entries)
+    .map(Number)
+    .filter(key => key < month && !isYearlyKey(key))
 
   if (entryKeys.length > 0) {
     // 找到最近的 entry（最大的 key）

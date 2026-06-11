@@ -1,7 +1,8 @@
 export interface FlowColumn {
   id: string
   name: string
-  entries: Record<number, number>  // 稀疏存储，key=YYYYMM，只存用户手动编辑的值
+  entries: Record<number, number>          // 稀疏存储，key=YYYYMM，只存用户手动编辑的值
+  yearlyMonths?: Record<number, true>      // 标记哪些月是「年度重复项」(key=YYYYMM，存在即标记)；标记月不向前延续
 }
 
 export interface MonthlyAnchor {
