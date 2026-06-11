@@ -18,6 +18,7 @@ function createDefault(): PlanData {
     systemParams: {
       startMonth: getCurrentMonth(),
       annualRate: 0.025,
+      initialDeposit: 0,
     },
     columns: [],
     anchors: [],
@@ -108,6 +109,10 @@ function normalizeWorkspace(ws: Workspace): Workspace {
   for (const scenario of ws.scenarios) {
     if (!Array.isArray(scenario.plan.snapshots)) {
       scenario.plan.snapshots = []
+    }
+    // 初始存款缺失或非有限数时补 0（轻量容错，保留存量方案数据）
+    if (!isFiniteNumber(scenario.plan.systemParams.initialDeposit)) {
+      scenario.plan.systemParams.initialDeposit = 0
     }
   }
   return ws

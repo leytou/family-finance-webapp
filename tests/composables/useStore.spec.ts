@@ -661,4 +661,36 @@ describe('useStore', () => {
     store.reset()
     expect(store.data.value.snapshots).toEqual([])
   })
+
+  it('默认方案的初始存款为 0', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.systemParams.initialDeposit).toBe(0)
+  })
+
+  it('加载缺少 initialDeposit 的存量数据时补 0 且不清空数据', async () => {
+    localStorage.setItem(
+      'family-finance-plan',
+      JSON.stringify({
+        version: 1,
+        activeId: 'sc1',
+        scenarios: [
+          {
+            id: 'sc1',
+            name: '默认方案',
+            plan: {
+              version: 2,
+              systemParams: { startMonth: 202601, annualRate: 0.025 },
+              columns: [],
+              anchors: [{ month: 202601, actualSavings: 100000 }],
+            },
+          },
+        ],
+      }),
+    )
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.systemParams.initialDeposit).toBe(0)
+    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+  })
 })
