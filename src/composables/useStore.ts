@@ -1,6 +1,6 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import type { PlanData, FlowColumn, Scenario, Workspace, PlanSnapshot } from '../types'
-import { getCurrentMonth, formatMonth, addMonths } from '../utils/month'
+import { getCurrentMonth, formatMonth, addMonths, normalizeMonth } from '../utils/month'
 import { calculate } from './useCalculation'
 
 const STORAGE_KEY = 'family-finance-plan'
@@ -200,6 +200,17 @@ export function useStore() {
     return scenario!.plan
   }
 
+  /**
+   * 设置起始月份（受控入口）：对原始值做规范化，
+   * 合法（含进位）则写入并返回 true；非法（非 6 位整数）则忽略并返回 false。
+   */
+  function setStartMonth(raw: number): boolean {
+    const normalized = normalizeMonth(raw)
+    if (normalized === null) return false
+    getActivePlan().systemParams.startMonth = normalized
+    return true
+  }
+
   // 列操作函数（作用于当前激活方案）
   function addColumn(name?: string): FlowColumn {
     const plan = getActivePlan()
@@ -385,6 +396,7 @@ export function useStore() {
     data,
     workspace,
     save,
+    setStartMonth,
     addColumn,
     removeColumn,
     renameColumn,

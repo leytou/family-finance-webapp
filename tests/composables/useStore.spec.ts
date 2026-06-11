@@ -842,4 +842,53 @@ describe('useStore', () => {
       expect(store2.data.value.columns.map(col => col.name)).toEqual(['C', 'A', 'B'])
     })
   })
+
+  describe('setStartMonth', () => {
+    it('合法月份写入并返回 true', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      expect(store.setStartMonth(202603)).toBe(true)
+      expect(store.data.value.systemParams.startMonth).toBe(202603)
+    })
+
+    it('越界月份进位后写入规范化值', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      expect(store.setStartMonth(202613)).toBe(true)
+      expect(store.data.value.systemParams.startMonth).toBe(202701)
+    })
+
+    it('0 月进位为上年 12 月', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+
+      expect(store.setStartMonth(202600)).toBe(true)
+      expect(store.data.value.systemParams.startMonth).toBe(202512)
+    })
+
+    it('位数不足返回 false 且不改原值', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const before = store.data.value.systemParams.startMonth
+
+      expect(store.setStartMonth(2026)).toBe(false)
+      expect(store.data.value.systemParams.startMonth).toBe(before)
+    })
+
+    it('作用于当前激活方案', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const other = store.addScenario()           // 新建并激活新方案
+      await nextTick()
+      const previousActive = store.workspace.value.scenarios[0]
+
+      store.setStartMonth(202709)
+
+      expect(store.data.value.systemParams.startMonth).toBe(202709)           // 当前激活方案已写入
+      expect(other.plan.systemParams.startMonth).toBe(202709)                 // other 即激活方案
+      expect(previousActive.plan.systemParams.startMonth).not.toBe(202709)    // 非激活方案不受影响
+    })
+  })
 })
