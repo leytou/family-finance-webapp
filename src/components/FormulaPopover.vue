@@ -19,7 +19,7 @@ const emit = defineEmits<{
 const formulaLabels: Record<FormulaField, string> = {
   investReturn: '理财收益',
   monthlyBalance: '本月结余',
-  cumSavings: '余额',
+  cumSavings: '存款',
 }
 
 function getFormula(): string {
@@ -32,10 +32,10 @@ function getFormula(): string {
       return `本月结余 = 收入(${formatCurrency(r.monthlyIncome)}) - 支出(${formatCurrency(r.monthlyExpense)}) + 理财(${formatCurrency(r.investReturn)}) = ${formatCurrency(r.monthlyBalance)}`
     case 'cumSavings':
       if (r.isAnchor) {
-        return `锚点月份，余额 = ${formatCurrency(r.cumSavings)}`
+        return `锚点月份，存款 = ${formatCurrency(r.cumSavings)}`
       }
 
-      return `余额 = 上月余额 + 当月结余(${formatCurrency(r.monthlyBalance)})`
+      return `存款 = 上月存款 + 当月结余(${formatCurrency(r.monthlyBalance)})`
   }
 }
 </script>

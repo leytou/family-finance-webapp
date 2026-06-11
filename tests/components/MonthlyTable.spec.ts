@@ -57,7 +57,7 @@ describe('MonthlyTable', () => {
     expect(headers).toContain('+')
     expect(headers).toContain('理财')
     expect(headers).toContain('结余')
-    expect(headers).toContain('余额')
+    expect(headers).toContain('存款')
   })
 
   it('显示月份和计算结果', async () => {
@@ -265,7 +265,7 @@ describe('MonthlyTable', () => {
 
     // 余额单元格（hover 触发公式）
     const cumSpan = cells[cells.length - 1].find('span')
-    expect(cumSpan.attributes('aria-label')).toBe('编辑 2026-01 月末余额')
+    expect(cumSpan.attributes('aria-label')).toBe('编辑 2026-01 月末存款')
   })
 
   it('点击理财和结余按钮显示公式弹窗', async () => {
@@ -330,8 +330,8 @@ describe('MonthlyTable', () => {
     // hover 余额值
     await cumSpan.trigger('mouseenter', { clientX: 100, clientY: 120 })
 
-    expect(wrapper.text()).toContain('余额')
-    expect(wrapper.text()).toContain('上月余额')
+    expect(wrapper.text()).toContain('存款')
+    expect(wrapper.text()).toContain('上月存款')
     expect(wrapper.text()).toContain('当月结余')
 
     // mouseleave 隐藏弹窗
@@ -362,7 +362,7 @@ describe('MonthlyTable', () => {
     await cumSpan.trigger('mouseenter', { clientX: 100, clientY: 120 })
 
     expect(wrapper.text()).toContain('锚点月份')
-    expect(wrapper.text()).toContain('余额')
+    expect(wrapper.text()).toContain('存款')
   })
 
   it('表格样式正确应用', async () => {

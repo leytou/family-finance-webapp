@@ -102,7 +102,7 @@ const popover = ref<{
 const formulaLabels: Record<FormulaField, string> = {
   investReturn: '理财收益',
   monthlyBalance: '本月结余',
-  cumSavings: '余额',
+  cumSavings: '存款',
 }
 
 // 现金流列单元格编辑状态
@@ -473,7 +473,7 @@ function getValueClass(value: number): string {
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">收入</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">支出</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">结余</th>
-          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">余额</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">存款</th>
           <!-- 对比列表头 -->
           <th v-if="selectedSnapshot" class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">当时预计</th>
           <th v-if="selectedSnapshot" class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">差额</th>
@@ -620,7 +620,7 @@ function getValueClass(value: number): string {
             <span
               v-else
               class="block w-full cursor-pointer text-right"
-              :aria-label="`编辑 ${formatMonth(result.month)} 月末余额`"
+              :aria-label="`编辑 ${formatMonth(result.month)} 月末存款`"
               @click="startEditCum(result)"
               @mouseenter="showFormula(result, 'cumSavings', $event)"
               @mouseleave="popover = null"

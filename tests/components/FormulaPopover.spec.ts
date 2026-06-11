@@ -75,7 +75,7 @@ describe('FormulaPopover', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('锚点月份，余额 = 108,125')
+    expect(wrapper.text()).toContain('锚点月份，存款 = 108,125')
 
     await wrapper.trigger('mouseleave')
 
@@ -97,7 +97,7 @@ describe('FormulaPopover', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('余额 = 上月余额 + 当月结余(8,625)')
+    expect(wrapper.text()).toContain('存款 = 上月存款 + 当月结余(8,625)')
   })
 
   it('展示本月结余公式细节（多列）', () => {
