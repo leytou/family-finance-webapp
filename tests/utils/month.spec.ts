@@ -6,7 +6,9 @@ import {
   formatMonth,
   getCurrentMonth,
   isInRange,
+  isValidYyyyMm,
   monthRange,
+  normalizeMonth,
 } from '../../src/utils/month'
 
 describe('month utils', () => {
@@ -83,6 +85,65 @@ describe('month utils', () => {
       expect(currentMonth).toBeGreaterThan(202000)
       expect(monthPart).toBeGreaterThanOrEqual(1)
       expect(monthPart).toBeLessThanOrEqual(12)
+    })
+  })
+
+  describe('isValidYyyyMm', () => {
+    it('6 位整数返回 true', () => {
+      expect(isValidYyyyMm(202601)).toBe(true)
+      expect(isValidYyyyMm(202613)).toBe(true)   // 位数合法即可，月份越界由 normalize 处理
+    })
+
+    it('位数不足返回 false', () => {
+      expect(isValidYyyyMm(2026)).toBe(false)
+      expect(isValidYyyyMm(20261)).toBe(false)
+      expect(isValidYyyyMm(202)).toBe(false)
+    })
+
+    it('负数、0、非整数、NaN 返回 false', () => {
+      expect(isValidYyyyMm(-202601)).toBe(false)
+      expect(isValidYyyyMm(0)).toBe(false)
+      expect(isValidYyyyMm(202601.5)).toBe(false)
+      expect(isValidYyyyMm(NaN)).toBe(false)
+    })
+  })
+
+  describe('normalizeMonth', () => {
+    it('合法月份原样返回', () => {
+      expect(normalizeMonth(202612)).toBe(202612)
+      expect(normalizeMonth(202601)).toBe(202601)
+    })
+
+    it('13 月进位为次年 1 月', () => {
+      expect(normalizeMonth(202613)).toBe(202701)
+    })
+
+    it('0 月进位为上年 12 月', () => {
+      expect(normalizeMonth(202600)).toBe(202512)
+    })
+
+    it('大额越界月份整体进位', () => {
+      expect(normalizeMonth(202699)).toBe(203403)   // 2026 年 99 月 → 2034 年 3 月
+    })
+
+    it('位数不足返回 null', () => {
+      expect(normalizeMonth(2026)).toBeNull()
+      expect(normalizeMonth(20261)).toBeNull()
+    })
+
+    it('负数、0、非整数、NaN 返回 null', () => {
+      expect(normalizeMonth(-5)).toBeNull()
+      expect(normalizeMonth(0)).toBeNull()
+      expect(normalizeMonth(1.5)).toBeNull()
+      expect(normalizeMonth(NaN)).toBeNull()
+    })
+
+    it('边界 100000（1000 年 0 月）进位为 99912（记录行为，不额外约束）', () => {
+      expect(normalizeMonth(100000)).toBe(99912)
+    })
+
+    it('边界 999999（9999 年 99 月）进位为 1000703（记录行为，不额外约束）', () => {
+      expect(normalizeMonth(999999)).toBe(1000703)
     })
   })
 })
