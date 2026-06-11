@@ -235,12 +235,12 @@ const contextMenuItems = computed(() => {
   if (!ctx) return []
   const items: { label: string; disabled?: boolean; onClick: () => void }[] = []
 
-  // 同步到每年此月：仅现金流列，且该月存在直接编辑值时启用
+  // 同步到下方每年此月：仅现金流列，且该月存在直接编辑值时启用
   if (ctx.columnId !== BALANCE_COLUMN_ID) {
     const column = columns.value.find(c => c.id === ctx.columnId)
     const hasDirectEntry = column ? String(ctx.month) in column.entries : false
     items.push({
-      label: '同步到每年此月',
+      label: '同步到下方每年此月',
       disabled: !hasDirectEntry,
       onClick: () => store.syncYearly(ctx.columnId, ctx.month),
     })

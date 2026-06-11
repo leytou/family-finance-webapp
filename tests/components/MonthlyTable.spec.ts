@@ -405,7 +405,7 @@ describe('MonthlyTable', () => {
     expect(wrapper.text()).toContain('清除下方编辑值')
   })
 
-  it('右键有直接编辑值的现金流单元格，菜单含「同步到每年此月」且启用', async () => {
+  it('右键有直接编辑值的现金流单元格，菜单含「同步到下方每年此月」且启用', async () => {
     const store = useSharedStore()
     store.reset()
     store.data.value.systemParams.startMonth = 202601
@@ -418,12 +418,12 @@ describe('MonthlyTable', () => {
     await row.findAll('td')[1].trigger('contextmenu') // 该列单元格
 
     const menu = wrapper.findComponent({ name: 'ContextMenu' })
-    expect(menu.text()).toContain('同步到每年此月')
-    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到每年此月')!
+    expect(menu.text()).toContain('同步到下方每年此月')
+    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到下方每年此月')!
     expect(syncItem.attributes('aria-disabled')).toBe('false')
   })
 
-  it('右键无直接编辑值的现金流单元格，「同步到每年此月」禁用', async () => {
+  it('右键无直接编辑值的现金流单元格，「同步到下方每年此月」禁用', async () => {
     const store = useSharedStore()
     store.reset()
     store.data.value.systemParams.startMonth = 202601
@@ -436,11 +436,11 @@ describe('MonthlyTable', () => {
     await row.findAll('td')[1].trigger('contextmenu')
 
     const menu = wrapper.findComponent({ name: 'ContextMenu' })
-    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到每年此月')!
+    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到下方每年此月')!
     expect(syncItem.attributes('aria-disabled')).toBe('true')
   })
 
-  it('点击「同步到每年此月」后该列所有年份同月都有值并标记', async () => {
+  it('点击「同步到下方每年此月」后该列所有年份同月都有值并标记', async () => {
     const store = useSharedStore()
     store.reset()
     store.data.value.systemParams.startMonth = 202601
@@ -453,7 +453,7 @@ describe('MonthlyTable', () => {
     await row.findAll('td')[1].trigger('contextmenu')
 
     const menu = wrapper.findComponent({ name: 'ContextMenu' })
-    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到每年此月')!
+    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到下方每年此月')!
     await syncItem.trigger('click')
 
     expect(col.entries[202712]).toBe(50000)
@@ -476,7 +476,7 @@ describe('MonthlyTable', () => {
     expect(row.text()).toContain('↻')
   })
 
-  it('余额列右键菜单不含「同步到每年此月」', async () => {
+  it('余额列右键菜单不含「同步到下方每年此月」', async () => {
     const store = useSharedStore()
     store.reset()
     store.data.value.systemParams.startMonth = 202601
@@ -489,7 +489,7 @@ describe('MonthlyTable', () => {
     await cells[cells.length - 1].trigger('contextmenu') // 余额列（最后一列）
 
     const menu = wrapper.findComponent({ name: 'ContextMenu' })
-    expect(menu.text()).not.toContain('同步到每年此月')
+    expect(menu.text()).not.toContain('同步到下方每年此月')
   })
 
   it('清除现金流列下方编辑值，当前行及上方保留', async () => {
@@ -509,7 +509,7 @@ describe('MonthlyTable', () => {
     const secondRowCells = wrapper.findAll('tbody tr')[1].findAll('td')
     await secondRowCells[1].trigger('contextmenu')
 
-    // 点击"清除下方编辑值"（菜单已含"同步到每年此月"，按文本精确定位）
+    // 点击"清除下方编辑值"（菜单已含"同步到下方每年此月"，按文本精确定位）
     const menuItem = wrapper
       .findComponent({ name: 'ContextMenu' })
       .findAll('[role="menuitem"]')
