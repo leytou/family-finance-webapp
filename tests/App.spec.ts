@@ -196,5 +196,6 @@ describe('App', () => {
     await startMonthInput.trigger('blur')
 
     expect(store.data.value.systemParams.startMonth).toBe(before)
+    expect(startMonthInput.element.value).toBe(String(before))
   })
 })
