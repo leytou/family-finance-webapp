@@ -493,6 +493,39 @@ describe('calculate', () => {
       cumSavings: 11000,
     })
   })
+
+  it('初始存款作为首月起点并参与投资收益', () => {
+    const results = calculate(
+      makePlan({
+        systemParams: {
+          startMonth: 202601,
+          annualRate: 0.12,
+          initialDeposit: 100000,
+        },
+        columns: [],
+      }),
+    )
+
+    // 首月：理财收益 = 100000 * 0.12 / 12 = 1000；月末存款 = 100000 + 1000 = 101000
+    expect(results[0].investReturn).toBe(1000)
+    expect(results[0].cumSavings).toBe(101000)
+
+    // 次月：理财收益 = 101000 * 0.12 / 12 = 1010；月末存款 = 101000 + 1010 = 102010
+    expect(results[1].investReturn).toBe(1010)
+    expect(results[1].cumSavings).toBe(102010)
+  })
+
+  it('未设置初始存款时首月起点为 0（回归）', () => {
+    const results = calculate(
+      makePlan({
+        systemParams: { startMonth: 202601, annualRate: 0.12 },
+        columns: [],
+      }),
+    )
+
+    expect(results[0].investReturn).toBe(0)
+    expect(results[0].cumSavings).toBe(0)
+  })
 })
 
 describe('buildComparison', () => {

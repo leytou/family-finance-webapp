@@ -19,6 +19,7 @@ export interface PlanSnapshot {
 export interface SystemParams {
   startMonth: number
   annualRate: number
+  initialDeposit?: number   // 初始存款（元），作为累计计算的起点本金；缺失视为 0
 }
 
 export interface PlanData {
