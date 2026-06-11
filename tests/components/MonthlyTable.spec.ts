@@ -542,4 +542,118 @@ describe('MonthlyTable', () => {
     expect(headers).not.toContain('当时预计')
     expect(headers).not.toContain('差额')
   })
+
+  describe('拖拽排序', () => {
+    function fireDrag(el: Element, type: string, clientX = 0): void {
+      // jsdom 的 DragEvent.dataTransfer 不可靠；handler 内对 dataTransfer 做了空值保护，
+      // 且只用到 clientX / preventDefault / currentTarget，故用 MouseEvent 携带 clientX 触发即可
+      el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX }))
+    }
+
+    function mockRect(left = 0, width = 100) {
+      return vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+        left,
+        top: 0,
+        right: left + width,
+        bottom: 0,
+        width,
+        height: 0,
+        x: left,
+        y: 0,
+        toJSON: () => {},
+      } as DOMRect)
+    }
+
+    function dynamicHeaders(wrapper: ReturnType<typeof mount>) {
+      return wrapper.findAll('thead th').filter(th => th.attributes('draggable') === 'true')
+    }
+
+    it('动态列头渲染为 draggable，固定列不可拖拽', () => {
+      const store = useSharedStore()
+      store.reset()
+      store.addColumn('A')
+      store.addColumn('B')
+
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+
+      const dyn = dynamicHeaders(wrapper)
+      expect(dyn).toHaveLength(2)
+
+      const fixed = wrapper.findAll('thead th').filter(th => th.attributes('draggable') !== 'true')
+      const fixedNames = fixed.map(th => th.text())
+      expect(fixedNames).toContain('理财')
+      expect(fixedNames).toContain('收入')
+      expect(fixedNames).toContain('支出')
+      expect(fixedNames).toContain('结余')
+      expect(fixedNames).toContain('存款')
+    })
+
+    it('拖拽动态列头可重排列顺序', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.addColumn('A')
+      store.addColumn('B')
+      store.addColumn('C')
+
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+      const rectSpy = mockRect(0, 100)
+      try {
+        const dyn = dynamicHeaders(wrapper)
+        // 拖 C（索引2）到 A（索引0）之前
+        fireDrag(dyn[2]!.element, 'dragstart')
+        await nextTick()
+        fireDrag(dyn[0]!.element, 'dragover', 10) // 左半区 → before
+        await nextTick()
+        fireDrag(dyn[0]!.element, 'drop', 10)
+        await nextTick()
+      } finally {
+        rectSpy.mockRestore()
+      }
+
+      expect(store.data.value.columns.map(c => c.name)).toEqual(['C', 'A', 'B'])
+    })
+
+    it('dragover 后目标列显示对应插入线 class', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.addColumn('A')
+      store.addColumn('B')
+
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+      const rectSpy = mockRect(0, 100)
+      try {
+        const dyn = dynamicHeaders(wrapper)
+        fireDrag(dyn[0]!.element, 'dragstart')
+        await nextTick()
+        fireDrag(dyn[1]!.element, 'dragover', 10) // before
+        await nextTick()
+        // 重新查询，确保读到重渲染后的 class
+        expect(dynamicHeaders(wrapper)[1]!.classes()).toContain('drag-line-left')
+
+        fireDrag(dyn[1]!.element, 'dragover', 90) // after
+        await nextTick()
+        expect(dynamicHeaders(wrapper)[1]!.classes()).toContain('drag-line-right')
+      } finally {
+        rectSpy.mockRestore()
+      }
+    })
+
+    it('被拖动中的列显示半透明 class', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.addColumn('A')
+      store.addColumn('B')
+
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+      const dyn = dynamicHeaders(wrapper)
+      fireDrag(dyn[0]!.element, 'dragstart')
+      await nextTick()
+
+      expect(dynamicHeaders(wrapper)[0]!.classes()).toContain('opacity-50')
+
+      fireDrag(dyn[0]!.element, 'dragend')
+      await nextTick()
+      expect(dynamicHeaders(wrapper)[0]!.classes()).not.toContain('opacity-50')
+    })
+  })
 })

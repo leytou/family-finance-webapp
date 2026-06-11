@@ -8,6 +8,7 @@ import { formatMonth } from '../utils/month'
 import { useStore } from '../composables/useStore'
 import { buildComparison } from '../composables/useCalculation'
 import { useClickOutside } from '../composables/useClickOutside'
+import { useColumnDrag } from '../composables/useColumnDrag'
 
 type FormulaField = 'investReturn' | 'monthlyBalance' | 'cumSavings'
 
@@ -17,6 +18,16 @@ const props = defineProps<{
 
 const store = useStore()
 const columns = computed(() => store.data.value.columns)
+
+// 动态列拖拽（列头按住拖动重排，范围限动态列内部）
+const {
+  draggingColumnId,
+  dropTarget,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+} = useColumnDrag(store.moveColumn)
 
 // 快照对比
 const snapshots = computed(() => store.data.value.snapshots)
@@ -420,7 +431,18 @@ function getValueClass(value: number): string {
           <th
             v-for="column in columns"
             :key="column.id"
-            class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap relative group"
+            :draggable="renamingColumnId !== column.id"
+            :class="[
+              'px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap relative group',
+              draggingColumnId === column.id ? 'opacity-50' : '',
+              dropTarget?.columnId === column.id
+                ? (dropTarget.side === 'before' ? 'drag-line-left' : 'drag-line-right')
+                : '',
+            ]"
+            @dragstart="onDragStart(column.id, $event)"
+            @dragover="onDragOver(column.id, $event)"
+            @drop="onDrop(column.id, $event)"
+            @dragend="onDragEnd"
           >
             <!-- 重命名输入框 -->
             <input
@@ -671,3 +693,13 @@ function getValueClass(value: number): string {
     @close="contextMenu = null"
   />
 </template>
+
+<style scoped>
+/* 拖拽插入线：用 box-shadow 不占布局空间，避免列宽跳动 */
+.drag-line-left {
+  box-shadow: -2px 0 0 0 #3b82f6;
+}
+.drag-line-right {
+  box-shadow: 2px 0 0 0 #3b82f6;
+}
+</style>
