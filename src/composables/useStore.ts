@@ -58,6 +58,7 @@ function isValidColumn(value: unknown): boolean {
       if (!Number.isInteger(Number(key))) return false
     }
   }
+  if (value.enabled !== undefined && typeof value.enabled !== 'boolean') return false
   return true
 }
 
@@ -242,6 +243,13 @@ export function useStore() {
     }
   }
 
+  function setColumnEnabled(id: string, enabled: boolean): void {
+    const plan = getActivePlan()
+    const column = plan.columns.find(col => col.id === id)
+    if (!column) return
+    column.enabled = enabled
+  }
+
   function moveColumn(fromId: string, toId: string, side: 'before' | 'after'): void {
     if (fromId === toId) return              // 拖到自身，无操作
     const plan = getActivePlan()
@@ -409,6 +417,7 @@ export function useStore() {
     addColumn,
     removeColumn,
     renameColumn,
+    setColumnEnabled,
     moveColumn,
     updateColumnEntry,
     syncYearly,
