@@ -1108,3 +1108,73 @@ describe('useStore', () => {
     })
   })
 })
+
+describe('fund 校验与迁移', () => {
+  // 复用文件顶部已有的 loadUseStore（动态 import + resetModules 隔离）
+  beforeEach(() => {
+    vi.useRealTimers()
+    localStorage.clear()
+    vi.resetModules()
+  })
+
+  it('旧数据（无 fund、SystemParams 无 fundRate）加载时补默认', async () => {
+    const legacy = {
+      version: 2,
+      systemParams: { startMonth: 202601, annualRate: 0.03 },
+      columns: [], anchors: [], snapshots: [], events: [],
+    }
+    localStorage.setItem('family-finance-plan', JSON.stringify({
+      version: 1,
+      scenarios: [{ id: 's1', name: '默认方案', plan: legacy }],
+      activeId: 's1',
+    }))
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.systemParams.fundRate).toBe(0.015)
+    expect(store.data.value.systemParams.fundInterestMonth).toBe(7)
+    expect(store.data.value.fund).toBeUndefined()
+  })
+
+  it('含合法 fund 的数据正常加载', async () => {
+    const plan = {
+      version: 2,
+      systemParams: { startMonth: 202601, annualRate: 0.03, fundRate: 0.015, fundInterestMonth: 7 },
+      columns: [], anchors: [], snapshots: [], events: [],
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: {} },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 1000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [{ id: 'w1', name: '买房', month: 202602, amount: 30000 }],
+        anchors: [{ month: 202603, actualBalance: 500000 }],
+      },
+    }
+    localStorage.setItem('family-finance-plan', JSON.stringify({
+      version: 1,
+      scenarios: [{ id: 's1', name: '默认方案', plan }],
+      activeId: 's1',
+    }))
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.fund?.contribution.entries[202601]).toBe(1000)
+    expect(store.data.value.fund?.withdrawals).toHaveLength(1)
+  })
+
+  it('fund 内部结构非法（mortgage 非 FlowColumn）时整个 workspace 回退默认', async () => {
+    const bad = {
+      version: 2,
+      systemParams: { startMonth: 202601, annualRate: 0.03, fundRate: 0.015, fundInterestMonth: 7 },
+      columns: [], anchors: [], snapshots: [], events: [],
+      fund: { mortgage: '不是列', contribution: { id: 'c', name: 'x', entries: {} }, monthlyOffset: { id: 'o', name: 'x', entries: {} }, withdrawals: [], anchors: [] },
+    }
+    localStorage.setItem('family-finance-plan', JSON.stringify({
+      version: 1,
+      scenarios: [{ id: 's1', name: '默认方案', plan: bad }],
+      activeId: 's1',
+    }))
+    const useStore = await loadUseStore()
+    const store = useStore()
+    // isValidPlanData 因 fund 非法返回 false → isValidWorkspace false → loadWorkspace 回退默认
+    expect(store.data.value.columns).toEqual([])
+    expect(store.data.value.fund).toBeUndefined()
+  })
+})

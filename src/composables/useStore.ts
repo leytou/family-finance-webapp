@@ -19,6 +19,9 @@ function createDefault(): PlanData {
       startMonth: getCurrentMonth(),
       annualRate: 0.025,
       initialDeposit: 0,
+      fundRate: 0.015,
+      fundInterestMonth: 7,
+      fundInitialBalance: 0,
     },
     columns: [],
     anchors: [],
@@ -89,6 +92,31 @@ function isValidEvent(value: unknown): boolean {
   )
 }
 
+function isValidFundWithdrawal(value: unknown): boolean {
+  if (!isObject(value)) return false
+  return (
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    Number.isInteger(value.month) &&
+    isFiniteNumber(value.amount)
+  )
+}
+
+function isValidFundAnchor(value: unknown): boolean {
+  if (!isObject(value)) return false
+  return Number.isInteger(value.month) && isFiniteNumber(value.actualBalance)
+}
+
+function isValidFund(value: unknown): boolean {
+  if (!isObject(value)) return false
+  if (!isValidColumn(value.mortgage)) return false
+  if (!isValidColumn(value.contribution)) return false
+  if (!isValidColumn(value.monthlyOffset)) return false
+  if (!Array.isArray(value.withdrawals) || !value.withdrawals.every(isValidFundWithdrawal)) return false
+  if (!Array.isArray(value.anchors) || !value.anchors.every(isValidFundAnchor)) return false
+  return true
+}
+
 function isValidPlanData(value: unknown): value is PlanData {
   if (!isObject(value) || !isObject(value.systemParams)) return false
   if (value.version !== 2) return false
@@ -98,10 +126,16 @@ function isValidPlanData(value: unknown): value is PlanData {
   if ('events' in value) {
     if (!Array.isArray(value.events) || !value.events.every(isValidEvent)) return false
   }
+  if ('fund' in value) {
+    if (value.fund !== undefined && !isValidFund(value.fund)) return false
+  }
   return (
     isFiniteNumber(value.version) &&
     isFiniteNumber(value.systemParams.startMonth) &&
     isFiniteNumber(value.systemParams.annualRate) &&
+    // fund 参数可选：缺失时由 normalizeWorkspace 补默认；存在时须为有限数
+    (value.systemParams.fundRate === undefined || isFiniteNumber(value.systemParams.fundRate)) &&
+    (value.systemParams.fundInterestMonth === undefined || isFiniteNumber(value.systemParams.fundInterestMonth)) &&
     Array.isArray(value.columns) &&
     value.columns.every(isValidColumn) &&
     Array.isArray(value.anchors) &&
@@ -134,9 +168,24 @@ function normalizeWorkspace(ws: Workspace): Workspace {
     if (!Array.isArray(scenario.plan.events)) {
       scenario.plan.events = []
     }
-    // 初始存款缺失或非有限数时补 0（轻量容错，保留存量方案数据）
+    // 初始存款缺失或非有限数时补 0
     if (!isFiniteNumber(scenario.plan.systemParams.initialDeposit)) {
       scenario.plan.systemParams.initialDeposit = 0
+    }
+    // 公积金参数补默认（旧数据缺失时）
+    if (!isFiniteNumber(scenario.plan.systemParams.fundRate)) {
+      scenario.plan.systemParams.fundRate = 0.015
+    }
+    if (!isFiniteNumber(scenario.plan.systemParams.fundInterestMonth)) {
+      scenario.plan.systemParams.fundInterestMonth = 7
+    }
+    if (!isFiniteNumber(scenario.plan.systemParams.fundInitialBalance)) {
+      scenario.plan.systemParams.fundInitialBalance = 0
+    }
+    // fund 缺失保持 undefined（视为无公积金）；fund 存在则补其内部数组默认
+    if (scenario.plan.fund) {
+      if (!Array.isArray(scenario.plan.fund.withdrawals)) scenario.plan.fund.withdrawals = []
+      if (!Array.isArray(scenario.plan.fund.anchors)) scenario.plan.fund.anchors = []
     }
   }
   return ws
