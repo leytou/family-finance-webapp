@@ -6,6 +6,7 @@ import MonthlyTable from './components/MonthlyTable.vue'
 import ScenarioTabs from './components/ScenarioTabs.vue'
 import ComparisonView from './components/ComparisonView.vue'
 import ToolsMenu from './components/ToolsMenu.vue'
+import MonthPicker from './components/MonthPicker.vue'
 import { calculate } from './composables/useCalculation'
 import { useStore } from './composables/useStore'
 import { useHistory } from './composables/useHistory'
@@ -48,22 +49,11 @@ const results = computed(() => calculate(data.value))
 // 对比视图切换
 const showComparison = ref(false)
 
-// 起始月份规范化失败时短暂红框反馈（显示值靠 :value 单向绑定自动回退到旧合法值）
-const startMonthInvalid = ref(false)
-let startMonthInvalidTimer: ReturnType<typeof setTimeout> | null = null
-
-function onStartMonthBlur(e: Event) {
-  const raw = Number((e.target as HTMLInputElement).value)
-  if (!setStartMonth(raw)) {
-    startMonthInvalid.value = true
-    // 连续非法输入时清除上一个定时器，保证红框从最后一次 blur 起算 1500ms
-    if (startMonthInvalidTimer) clearTimeout(startMonthInvalidTimer)
-    startMonthInvalidTimer = setTimeout(() => {
-      startMonthInvalid.value = false
-      startMonthInvalidTimer = null
-    }, 1500)
-  }
-}
+// 起始月份：双向绑定桥接到 store 受控入口 setStartMonth（选出的值恒合法，原样写入）
+const startMonth = computed({
+  get: () => data.value.systemParams.startMonth,
+  set: (v: number) => { setStartMonth(v) },
+})
 </script>
 
 <template>
@@ -77,16 +67,8 @@ function onStartMonthBlur(e: Event) {
       </div>
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <label class="text-xs whitespace-nowrap">起始月份</label>
-          <input
-            :value="data.systemParams.startMonth"
-            @blur="onStartMonthBlur"
-            @keydown.enter="($event.target as HTMLInputElement).blur()"
-            type="number"
-            :class="startMonthInvalid ? 'border-red-500' : 'border'"
-            class="rounded px-2 py-1 text-sm w-24"
-            placeholder="YYYYMM"
-          />
+          <label for="start-month" class="text-xs whitespace-nowrap">起始月份</label>
+          <MonthPicker v-model="startMonth" input-id="start-month" />
         </div>
         <div class="flex items-center gap-2">
           <label class="text-xs whitespace-nowrap">年化收益率(%)</label>
