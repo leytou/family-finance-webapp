@@ -504,7 +504,7 @@ function getValueClass(value: number): string {
           </th>
 
           <!-- 固定列 -->
-          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">理财</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap border-l border-gray-300">理财</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">收入</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">支出</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">结余</th>
@@ -519,7 +519,7 @@ function getValueClass(value: number): string {
         <tr
           v-for="result in results"
           :key="result.month"
-          class="hover:bg-gray-50"
+          class="hover:bg-green-50 even:bg-gray-500/[0.04]"
           :class="result.month % 100 === 12 ? 'border-b-2 border-gray-400' : 'border-b'"
         >
           <td class="px-1 py-0 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
@@ -568,7 +568,7 @@ function getValueClass(value: number): string {
 
           <!-- 理财列 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l border-gray-300"
             :class="getValueClass(result.investReturn)"
           >
             <button

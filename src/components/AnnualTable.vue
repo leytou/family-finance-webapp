@@ -124,7 +124,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
         </tr>
       </thead>
       <tbody>
-        <tr class="border-b hover:bg-gray-50">
+        <tr class="border-b hover:bg-green-50 even:bg-gray-500/[0.04]">
           <td class="px-1 py-0 whitespace-nowrap">年初存款</td>
           <td
             v-for="summary in yearSummaries"
@@ -136,7 +136,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           </td>
         </tr>
 
-        <tr v-for="name in allColumnNames" :key="`col-${name}`" class="border-b hover:bg-gray-50">
+        <tr v-for="name in allColumnNames" :key="`col-${name}`" class="border-b hover:bg-green-50 even:bg-gray-500/[0.04]">
           <td class="px-1 py-0 whitespace-nowrap">{{ name }}</td>
           <td
             v-for="summary in yearSummaries"
@@ -150,7 +150,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           </td>
         </tr>
 
-        <tr class="border-b hover:bg-gray-50">
+        <tr class="border-b hover:bg-green-50 even:bg-gray-500/[0.04]">
           <td class="px-1 py-0 whitespace-nowrap">理财收益</td>
           <td
             v-for="summary in yearSummaries"
@@ -162,7 +162,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           </td>
         </tr>
 
-        <tr class="border-b font-semibold hover:bg-gray-50">
+        <tr class="border-b font-semibold hover:bg-green-50 even:bg-gray-500/[0.04]">
           <td class="px-1 py-0 whitespace-nowrap">年度结余</td>
           <td
             v-for="summary in yearSummaries"
