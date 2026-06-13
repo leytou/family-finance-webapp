@@ -1,4 +1,4 @@
-import type { FlowColumn, MonthResult, PlanData, PlanSnapshot } from '../types'
+import type { FlowColumn, FundConfig, MonthResult, PlanData, PlanSnapshot } from '../types'
 import { addMonths } from '../utils/month'
 
 const PROJECTION_MONTHS = 60
@@ -80,6 +80,17 @@ export function hasColumnValue(column: FlowColumn, month: number): boolean {
     .map(Number)
     .filter(key => key < month && !isYearlyKey(key))
   return entryKeys.length > 0
+}
+
+/**
+ * 解析月冲在指定月的「目标值」：月冲有用户输入（直接编辑或延续）则用之，
+ * 否则默认取房贷月供（mortgage）同月解析值（自动全额抵扣房贷）。
+ */
+export function resolveFundOffset(fund: FundConfig, month: number): number {
+  if (hasColumnValue(fund.monthlyOffset, month)) {
+    return resolveColumnValue(fund.monthlyOffset, month).amount
+  }
+  return resolveColumnValue(fund.mortgage, month).amount
 }
 
 /**

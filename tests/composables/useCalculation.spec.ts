@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { calculate, resolveColumnValue, hasColumnValue, buildComparison, aggregateByYear } from '../../src/composables/useCalculation'
-import type { PlanData, FlowColumn, MonthResult, PlanSnapshot } from '../../src/types'
+import { calculate, resolveColumnValue, hasColumnValue, resolveFundOffset, buildComparison, aggregateByYear } from '../../src/composables/useCalculation'
+import type { PlanData, FlowColumn, MonthResult, PlanSnapshot, FundConfig } from '../../src/types'
 
 function makePlan(overrides: Partial<PlanData> = {}): PlanData {
   return {
@@ -294,6 +294,42 @@ describe('hasColumnValue', () => {
   it('yearly 月本身 → true', () => {
     const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202612: 500 }, yearlyMonths: { 202612: true } }
     expect(hasColumnValue(column, 202612)).toBe(true)
+  })
+})
+
+describe('resolveFundOffset', () => {
+  function makeFund(overrides: Partial<FundConfig> = {}): FundConfig {
+    return {
+      mortgage: { id: 'm', name: '房贷月供', entries: { 202601: 5000 } },
+      contribution: { id: 'c', name: '公积金缴存', entries: {} },
+      monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+      withdrawals: [],
+      anchors: [],
+      ...overrides,
+    }
+  }
+
+  it('月冲未手填 → 默认取房贷月供', () => {
+    const fund = makeFund()
+    expect(resolveFundOffset(fund, 202601)).toBe(5000)
+    expect(resolveFundOffset(fund, 202603)).toBe(5000) // 房贷延续
+  })
+
+  it('月冲有直接编辑值 → 用月冲自身值', () => {
+    const fund = makeFund({ monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 3000 } } })
+    expect(resolveFundOffset(fund, 202601)).toBe(3000)
+  })
+
+  it('月冲向前延续 → 用延续值', () => {
+    const fund = makeFund({ monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 3000 } } })
+    expect(resolveFundOffset(fund, 202603)).toBe(3000)
+  })
+
+  it('月冲与房贷都无值 → 0', () => {
+    const fund = makeFund({
+      mortgage: { id: 'm', name: '房贷月供', entries: {} },
+    })
+    expect(resolveFundOffset(fund, 202601)).toBe(0)
   })
 })
 
