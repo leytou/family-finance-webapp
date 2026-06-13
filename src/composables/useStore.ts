@@ -23,6 +23,7 @@ function createDefault(): PlanData {
     columns: [],
     anchors: [],
     snapshots: [],
+    events: [],
   }
 }
 
@@ -78,11 +79,24 @@ function isValidSnapshot(value: unknown): boolean {
   return true
 }
 
+function isValidEvent(value: unknown): boolean {
+  if (!isObject(value)) return false
+  return (
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    Number.isInteger(value.month) &&
+    isFiniteNumber(value.amount)
+  )
+}
+
 function isValidPlanData(value: unknown): value is PlanData {
   if (!isObject(value) || !isObject(value.systemParams)) return false
   if (value.version !== 2) return false
   if ('snapshots' in value) {
     if (!Array.isArray(value.snapshots) || !value.snapshots.every(isValidSnapshot)) return false
+  }
+  if ('events' in value) {
+    if (!Array.isArray(value.events) || !value.events.every(isValidEvent)) return false
   }
   return (
     isFiniteNumber(value.version) &&
@@ -116,6 +130,9 @@ function normalizeWorkspace(ws: Workspace): Workspace {
   for (const scenario of ws.scenarios) {
     if (!Array.isArray(scenario.plan.snapshots)) {
       scenario.plan.snapshots = []
+    }
+    if (!Array.isArray(scenario.plan.events)) {
+      scenario.plan.events = []
     }
     // 初始存款缺失或非有限数时补 0（轻量容错，保留存量方案数据）
     if (!isFiniteNumber(scenario.plan.systemParams.initialDeposit)) {
@@ -301,6 +318,19 @@ export function useStore() {
     }
   }
 
+  // 整体替换某月的事件：先删该月全部，再写入「名称+金额」均有效的项。
+  // 半空行（名称空 / 金额非有限数）静默丢弃。供 EventEditor 关闭时提交。
+  function replaceMonthEvents(month: number, items: { name: string; amount: number }[]): void {
+    const plan = getActivePlan()
+    plan.events = plan.events.filter((e) => e.month !== month)
+    for (const it of items) {
+      const name = it.name.trim()
+      if (name && Number.isFinite(it.amount)) {
+        plan.events.push({ id: generateId(), name, month, amount: Math.round(it.amount) })
+      }
+    }
+  }
+
   function addAnchor(month: number, actualSavings: number) {
     const plan = getActivePlan()
     const existing = plan.anchors.findIndex(anchor => anchor.month === month)
@@ -421,6 +451,7 @@ export function useStore() {
     moveColumn,
     updateColumnEntry,
     syncYearly,
+    replaceMonthEvents,
     addAnchor,
     removeAnchor,
     addSnapshot,

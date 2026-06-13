@@ -6,6 +6,14 @@ export interface FlowColumn {
   enabled?: boolean                        // 缺省(undefined)/true=启用；false=禁用（不计入统计，数值仍灰显）
 }
 
+// 单月一次性大额收支（买房、生育、换车、择校费……）
+export interface MilestoneEvent {
+  id: string
+  name: string      // 如"买房"
+  month: number     // YYYYMM
+  amount: number    // 元；正=收入（如奖金/卖房），负=支出（如买房）
+}
+
 export interface MonthlyAnchor {
   month: number
   actualSavings: number
@@ -30,6 +38,7 @@ export interface PlanData {
   columns: FlowColumn[]
   anchors: MonthlyAnchor[]
   snapshots: PlanSnapshot[]
+  events: MilestoneEvent[]   // 单月一次性大额事件；脉冲，不携带延续
 }
 
 export interface MonthResult {
