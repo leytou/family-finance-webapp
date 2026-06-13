@@ -5,10 +5,11 @@ import AnnualTable from './components/AnnualTable.vue'
 import MonthlyTable from './components/MonthlyTable.vue'
 import ScenarioTabs from './components/ScenarioTabs.vue'
 import ComparisonView from './components/ComparisonView.vue'
+import ToolsMenu from './components/ToolsMenu.vue'
 import { calculate } from './composables/useCalculation'
 import { useStore } from './composables/useStore'
 
-const { data, reset, setStartMonth } = useStore()
+const { data, setStartMonth } = useStore()
 const results = computed(() => calculate(data.value))
 
 // 对比视图切换
@@ -28,12 +29,6 @@ function onStartMonthBlur(e: Event) {
       startMonthInvalid.value = false
       startMonthInvalidTimer = null
     }, 1500)
-  }
-}
-
-function handleReset() {
-  if (window.confirm('确定要重置当前方案？此操作不可撤销。')) {
-    reset()
   }
 }
 </script>
@@ -79,9 +74,7 @@ function handleReset() {
             placeholder="元"
           />
         </div>
-        <button class="px-3 py-1 border rounded text-sm hover:bg-gray-50" type="button" @click="handleReset">
-          重置
-        </button>
+        <ToolsMenu />
         <button
           class="px-3 py-1 border rounded text-sm"
           :class="showComparison ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'"
