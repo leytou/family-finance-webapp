@@ -3,6 +3,7 @@ export interface FlowColumn {
   name: string
   entries: Record<number, number>          // 稀疏存储，key=YYYYMM，只存用户手动编辑的值
   yearlyMonths?: Record<number, true>      // 标记哪些月是「年度重复项」(key=YYYYMM，存在即标记)；标记月不向前延续
+  enabled?: boolean                        // 缺省(undefined)/true=启用；false=禁用（不计入统计，数值仍灰显）
 }
 
 export interface MonthlyAnchor {
@@ -33,7 +34,7 @@ export interface PlanData {
 
 export interface MonthResult {
   month: number
-  columnValues: { id: string; name: string; amount: number; isEdited: boolean }[]
+  columnValues: { id: string; name: string; amount: number; isEdited: boolean; enabled?: boolean }[]
   totalFlow: number
   investReturn: number
   monthlyIncome: number
