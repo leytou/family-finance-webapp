@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import FormulaPopover from './FormulaPopover.vue'
+import { buildMonthFormula, type MonthFormulaField } from '../utils/formula'
 import ContextMenu from './ContextMenu.vue'
 import EventEditor from './EventEditor.vue'
+import EventDetailPopover from './EventDetailPopover.vue'
 import type { MonthResult, FlowColumn, MilestoneEvent } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
@@ -10,8 +12,6 @@ import { useStore } from '../composables/useStore'
 import { buildComparison } from '../composables/useCalculation'
 import { useClickOutside } from '../composables/useClickOutside'
 import { useColumnDrag } from '../composables/useColumnDrag'
-
-type FormulaField = 'investReturn' | 'monthlyBalance' | 'cumSavings'
 
 const props = defineProps<{
   results: MonthResult[]
@@ -41,9 +41,23 @@ function eventInfo(month: number) {
 const eventEditor = ref<{ month: number; x: number; y: number } | null>(null)
 function openEventEditor(month: number, event: MouseEvent) {
   eventEditor.value = { month, x: event.clientX, y: event.clientY }
+  // 打开编辑器时收起悬浮明细，避免两者叠加
+  eventPopover.value = null
 }
 function closeEventEditor() {
   eventEditor.value = null
+}
+
+// 专项悬浮明细弹窗：仅展示，无编辑能力
+const eventPopover = ref<{ month: number; x: number; y: number } | null>(null)
+function showEventDetail(month: number, event: MouseEvent) {
+  // 仅在有事件的月份才弹出明细
+  if (eventInfo(month).count > 0) {
+    eventPopover.value = { month, x: event.clientX + 10, y: event.clientY + 10 }
+  }
+}
+function hideEventDetail() {
+  eventPopover.value = null
 }
 
 // 动态列拖拽（列头按住拖动重排，范围限动态列内部）
@@ -131,15 +145,17 @@ function handleRemoveSnapshot() {
 
 // FormulaPopover 相关
 const popover = ref<{
-  result: MonthResult
-  field: FormulaField
+  title: string
+  lines: string[]
   x: number
   y: number
 } | null>(null)
 
-const formulaLabels: Record<FormulaField, string> = {
-  investReturn: '理财收益',
-  monthlyBalance: '本月结余',
+const formulaLabels: Record<MonthFormulaField, string> = {
+  investReturn: '理财',
+  monthlyIncome: '收入',
+  monthlyExpense: '支出',
+  monthlyBalance: '结余',
   cumSavings: '存款',
 }
 
@@ -172,16 +188,18 @@ function getColumnValue(result: MonthResult, columnId: string): { amount: number
 }
 
 // FormulaPopover 相关函数
-function showFormula(result: MonthResult, field: FormulaField, event: MouseEvent): void {
-  popover.value = {
-    result,
-    field,
-    x: event.clientX + 10,
-    y: event.clientY + 10,
-  }
+function showFormula(result: MonthResult, field: MonthFormulaField, event: MouseEvent): void {
+  const idx = props.results.findIndex(r => r.month === result.month)
+  const initialDeposit = store.data.value.systemParams.initialDeposit ?? 0
+  const prevCum = idx === 0 ? initialDeposit : props.results[idx - 1].cumSavings
+  const { title, lines } = buildMonthFormula(result, field, {
+    annualRate: store.data.value.systemParams.annualRate,
+    prevCum,
+  })
+  popover.value = { title, lines, x: event.clientX + 10, y: event.clientY + 10 }
 }
 
-function getFormulaAriaLabel(result: MonthResult, field: FormulaField): string {
+function getFormulaAriaLabel(result: MonthResult, field: MonthFormulaField): string {
   return `查看 ${formatMonth(result.month)} ${formulaLabels[field]}公式`
 }
 
@@ -567,7 +585,6 @@ function getValueClass(value: number): string {
         <tr
           v-for="result in results"
           :key="result.month"
-          class="hover:bg-green-50 even:bg-gray-500/[0.04]"
           :class="result.month % 100 === 12 ? 'border-b-2 border-gray-400' : 'border-b'"
         >
           <td class="px-1 py-0 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
@@ -618,19 +635,14 @@ function getValueClass(value: number): string {
           <!-- 专项单元格 -->
           <td
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer"
-            :class="[
-              eventInfo(result.month).count > 0 ? 'bg-amber-50' : '',
-              getValueClass(eventInfo(result.month).net),
-            ]"
+            :class="getValueClass(eventInfo(result.month).net)"
             :aria-label="`编辑 ${formatMonth(result.month)} 专项`"
             @click="openEventEditor(result.month, $event)"
+            @mouseenter="showEventDetail(result.month, $event)"
+            @mouseleave="hideEventDetail"
           >
             <template v-if="eventInfo(result.month).count > 0">
-              {{ formatCurrency(eventInfo(result.month).net) }}<span
-                v-if="eventInfo(result.month).count >= 2"
-                class="ml-0.5 text-blue-500"
-                aria-hidden="true"
-              >·{{ eventInfo(result.month).count }}</span>
+              {{ formatCurrency(eventInfo(result.month).net) }}
             </template>
           </td>
 
@@ -639,32 +651,22 @@ function getValueClass(value: number): string {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l border-gray-300"
             :class="getValueClass(result.investReturn)"
           >
-            <button
-              type="button"
-              class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
+            <span
+              class="block w-full"
               :aria-label="getFormulaAriaLabel(result, 'investReturn')"
-              style="font: inherit"
-              @click="showFormula(result, 'investReturn', $event)"
+              @mouseenter="showFormula(result, 'investReturn', $event)"
               @mouseleave="popover = null"
-            >
-              {{ formatCurrency(result.investReturn) }}
-            </button>
+            >{{ formatCurrency(result.investReturn) }}</span>
           </td>
 
           <!-- 本月收入列 -->
-          <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-          >
-            <button
-              type="button"
-              class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
-              :aria-label="getFormulaAriaLabel(result, 'monthlyBalance')"
-              style="font: inherit"
-              @click="showFormula(result, 'monthlyBalance', $event)"
+          <td class="px-1 py-0 text-right tabular-nums whitespace-nowrap">
+            <span
+              class="block w-full"
+              :aria-label="getFormulaAriaLabel(result, 'monthlyIncome')"
+              @mouseenter="showFormula(result, 'monthlyIncome', $event)"
               @mouseleave="popover = null"
-            >
-              {{ formatCurrency(result.monthlyIncome) }}
-            </button>
+            >{{ formatCurrency(result.monthlyIncome) }}</span>
           </td>
 
           <!-- 本月支出列 -->
@@ -672,16 +674,12 @@ function getValueClass(value: number): string {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="getValueClass(result.monthlyExpense)"
           >
-            <button
-              type="button"
-              class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
-              :aria-label="getFormulaAriaLabel(result, 'monthlyBalance')"
-              style="font: inherit"
-              @click="showFormula(result, 'monthlyBalance', $event)"
+            <span
+              class="block w-full"
+              :aria-label="getFormulaAriaLabel(result, 'monthlyExpense')"
+              @mouseenter="showFormula(result, 'monthlyExpense', $event)"
               @mouseleave="popover = null"
-            >
-              {{ formatCurrency(result.monthlyExpense) }}
-            </button>
+            >{{ formatCurrency(result.monthlyExpense) }}</span>
           </td>
 
           <!-- 本月结余列 -->
@@ -689,16 +687,12 @@ function getValueClass(value: number): string {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="getValueClass(result.monthlyBalance)"
           >
-            <button
-              type="button"
-              class="block w-full cursor-pointer border-0 bg-transparent p-0 text-right text-inherit"
+            <span
+              class="block w-full"
               :aria-label="getFormulaAriaLabel(result, 'monthlyBalance')"
-              style="font: inherit"
-              @click="showFormula(result, 'monthlyBalance', $event)"
+              @mouseenter="showFormula(result, 'monthlyBalance', $event)"
               @mouseleave="popover = null"
-            >
-              {{ formatCurrency(result.monthlyBalance) }}
-            </button>
+            >{{ formatCurrency(result.monthlyBalance) }}</span>
           </td>
 
           <!-- 累计列 -->
@@ -763,8 +757,8 @@ function getValueClass(value: number): string {
 
   <FormulaPopover
     v-if="popover"
-    :result="popover.result"
-    :field="popover.field"
+    :title="popover.title"
+    :lines="popover.lines"
     :x="popover.x"
     :y="popover.y"
     @close="popover = null"
@@ -786,6 +780,16 @@ function getValueClass(value: number): string {
     :y="eventEditor.y"
     @close="closeEventEditor"
   />
+
+  <EventDetailPopover
+    v-if="eventPopover"
+    :month="eventPopover.month"
+    :events="eventInfo(eventPopover.month).events"
+    :net="eventInfo(eventPopover.month).net"
+    :x="eventPopover.x"
+    :y="eventPopover.y"
+    @close="eventPopover = null"
+  />
 </template>
 
 <style scoped>
@@ -795,5 +799,17 @@ function getValueClass(value: number): string {
 }
 .drag-line-right {
   box-shadow: 2px 0 0 0 #3b82f6;
+}
+/* 隔行斑马纹：偶数行极淡灰 */
+tbody tr:nth-child(even) {
+  background-color: rgb(107 114 128 / 0.04);
+}
+/* 行 hover：整行变淡绿（green-50），特异性高于斑马纹故能覆盖 */
+tbody tr:hover {
+  background-color: #f0fdf4;
+}
+/* hover 行内单元格同步变绿，覆盖已编辑/锚点的蓝色高亮 */
+tbody tr:hover td {
+  background-color: #f0fdf4;
 }
 </style>

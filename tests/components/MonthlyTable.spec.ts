@@ -233,10 +233,9 @@ describe('MonthlyTable', () => {
     expect(cumCell.classes()).toContain('font-bold')
   })
 
-  it('公式按钮有正确的可访问标签', async () => {
+  it('公式单元格有正确的可访问标签', async () => {
     const useStore = await loadUseStore()
-    const store = useStore()
-
+    useStore()
     const results = [
       createResult({
         month: 202601,
@@ -247,62 +246,66 @@ describe('MonthlyTable', () => {
         cumSavings: 10100,
       }),
     ]
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const cells = wrapper.findAll('tbody tr')[0].findAll('td')
 
-    const wrapper = mount(MonthlyTable, {
-      props: { results },
-    })
+    // 理财单元格（hover 触发）
+    const investSpan = cells[cells.length - 5].find('span')
+    expect(investSpan.attributes('aria-label')).toBe('查看 2026-01 理财公式')
 
-    const rows = wrapper.findAll('tbody tr')[0]
-    const cells = rows.findAll('td')
+    // 收入单元格
+    const incomeSpan = cells[cells.length - 4].find('span')
+    expect(incomeSpan.attributes('aria-label')).toBe('查看 2026-01 收入公式')
 
-    // 理财按钮
-    const investButton = cells[cells.length - 5].find('button')
-    expect(investButton.attributes('aria-label')).toBe('查看 2026-01 理财收益公式')
+    // 支出单元格
+    const expenseSpan = cells[cells.length - 3].find('span')
+    expect(expenseSpan.attributes('aria-label')).toBe('查看 2026-01 支出公式')
 
-    // 结余按钮
-    const netButton = cells[cells.length - 2].find('button')
-    expect(netButton.attributes('aria-label')).toBe('查看 2026-01 本月结余公式')
-
-    // 余额单元格（hover 触发公式）
-    const cumSpan = cells[cells.length - 1].find('span')
-    expect(cumSpan.attributes('aria-label')).toBe('编辑 2026-01 月末存款')
+    // 结余单元格
+    const netSpan = cells[cells.length - 2].find('span')
+    expect(netSpan.attributes('aria-label')).toBe('查看 2026-01 结余公式')
   })
 
-  it('点击理财和结余按钮显示公式弹窗', async () => {
-    const useStore = await loadUseStore()
-    const store = useStore()
+  it('hover 理财/收入/支出/结余单元格显示公式弹窗', async () => {
+    // 组件内部静态导入 useStore；vi.resetModules() 后动态导入会得到不同单例，
+    // 故此处用静态 useSharedStore 以与组件读取同一 store（与右键菜单测试同理）。
+    const store = useSharedStore()
+    store.data.value.systemParams.initialDeposit = 50000
+    store.data.value.systemParams.annualRate = 0.03
 
     const results = [
       createResult({
         month: 202601,
-        investReturn: 100,
-        monthlyIncome: 10100,
-        monthlyExpense: 0,
-        monthlyBalance: 10100,
-        cumSavings: 10100,
+        columnValues: [
+          { id: 'c1', name: '月薪', amount: 10000, isEdited: true },
+          { id: 'c2', name: '日常', amount: -1500, isEdited: true },
+        ],
+        investReturn: 125,
+        monthlyIncome: 10000,
+        monthlyExpense: 1500,
+        monthlyBalance: 8625,
+        cumSavings: 58625,
       }),
     ]
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const cells = wrapper.findAll('tbody tr')[0].findAll('td')
 
-    const wrapper = mount(MonthlyTable, {
-      props: { results },
-    })
+    // hover 理财
+    await cells[cells.length - 5].find('span').trigger('mouseenter', { clientX: 100, clientY: 120 })
+    expect(wrapper.text()).toContain('理财')
+    expect(wrapper.text()).toContain('上月存款(50,000)')
 
-    const rows = wrapper.findAll('tbody tr')[0]
-    const cells = rows.findAll('td')
+    // hover 收入
+    await cells[cells.length - 4].find('span').trigger('mouseenter', { clientX: 110, clientY: 120 })
+    expect(wrapper.text()).toContain('收入 = 月薪(10,000) = 10,000')
 
-    // 点击理财按钮
-    const investButton = cells[cells.length - 5].find('button')
-    await investButton.trigger('click', { clientX: 100, clientY: 120 })
+    // hover 支出
+    await cells[cells.length - 3].find('span').trigger('mouseenter', { clientX: 120, clientY: 120 })
+    expect(wrapper.text()).toContain('支出 = 日常(1,500) = 1,500')
 
-    expect(wrapper.text()).toContain('理财收益')
-    expect(wrapper.text()).toContain('上月累计储蓄')
-
-    // 点击结余按钮
-    const netButton = cells[cells.length - 2].find('button')
-    await netButton.trigger('click', { clientX: 200, clientY: 220 })
-
-    expect(wrapper.text()).toContain('本月结余')
-    expect(wrapper.text()).toContain('收入')
+    // hover 结余
+    await cells[cells.length - 2].find('span').trigger('mouseenter', { clientX: 130, clientY: 120 })
+    expect(wrapper.text()).toContain('结余 = 收入(10,000) - 支出(1,500) + 理财(125) = 8,625')
   })
 
   it('hover 累计值显示公式弹窗', async () => {
@@ -361,7 +364,7 @@ describe('MonthlyTable', () => {
 
     await cumSpan.trigger('mouseenter', { clientX: 100, clientY: 120 })
 
-    expect(wrapper.text()).toContain('锚点月份')
+    expect(wrapper.text()).toContain('锚点值')
     expect(wrapper.text()).toContain('存款')
   })
 
@@ -821,7 +824,7 @@ describe('MonthlyTable', () => {
       expect(cell.text().trim()).toBe('')
     })
 
-    it('有事件月显示净额，≥2 笔显示 ·N 角标', async () => {
+    it('有事件月显示净额，不再显示 ·N 笔数角标', async () => {
       const store = useSharedStore()
       store.reset()
       store.data.value.systemParams.startMonth = 202601
@@ -832,7 +835,9 @@ describe('MonthlyTable', () => {
       const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601 })] } })
       const cell = wrapper.find('[aria-label="编辑 2026-01 专项"]')
       expect(cell.text()).toContain('-2,200,000')
-      expect(cell.text()).toContain('·2')
+      // 笔数角标已移除，明细改为悬浮显示
+      expect(cell.text()).not.toContain('·2')
+      expect(cell.text()).not.toContain('·')
     })
 
     it('单笔事件显示净额但无角标', async () => {
@@ -855,6 +860,45 @@ describe('MonthlyTable', () => {
       const editor = wrapper.findComponent({ name: 'EventEditor' })
       expect(editor.exists()).toBe(true)
       expect(editor.text()).toContain('专项')
+    })
+
+    it('hover 专项格显示明细弹窗，移出关闭', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.replaceMonthEvents(202601, [
+        { name: '买房', amount: -2000000 },
+        { name: '奖金', amount: 100000 },
+      ])
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601 })] } })
+      const cell = wrapper.find('[aria-label="编辑 2026-01 专项"]')
+
+      await cell.trigger('mouseenter', { clientX: 100, clientY: 120 })
+
+      const popover = wrapper.findComponent({ name: 'EventDetailPopover' })
+      expect(popover.exists()).toBe(true)
+      expect(popover.text()).toContain('买房')
+      expect(popover.text()).toContain('-2,000,000')
+      expect(popover.text()).toContain('奖金')
+      expect(popover.text()).toContain('100,000')
+      // 净额合计：-2,000,000 + 100,000
+      expect(popover.text()).toContain('-1,900,000')
+
+      // mouseleave 收起弹窗
+      await cell.trigger('mouseleave')
+      expect(wrapper.findComponent({ name: 'EventDetailPopover' }).exists()).toBe(false)
+    })
+
+    it('无事件月 hover 不显示明细弹窗', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601 })] } })
+      const cell = wrapper.find('[aria-label="编辑 2026-01 专项"]')
+
+      await cell.trigger('mouseenter', { clientX: 100, clientY: 120 })
+
+      expect(wrapper.findComponent({ name: 'EventDetailPopover' }).exists()).toBe(false)
     })
   })
 })
