@@ -76,7 +76,7 @@ onMounted(() => {
   >
     <div class="mb-2 font-semibold">{{ formatMonth(month) }} 专项</div>
 
-    <div v-if="rows.length === 0" class="mb-2 text-gray-400">暂无事件，点下方「添加」</div>
+    <div v-if="rows.length === 0" class="mb-2 text-neutral-400">暂无事件，点下方「添加」</div>
 
     <div v-for="(row, idx) in rows" :key="row.key" class="mb-1 flex items-center gap-1">
       <input
@@ -96,7 +96,7 @@ onMounted(() => {
       />
       <button
         type="button"
-        class="text-red-600 hover:text-red-800"
+        class="text-danger-600 hover:text-danger-800"
         aria-label="删除该事件"
         @click="removeRow(idx)"
       >×</button>
@@ -104,7 +104,7 @@ onMounted(() => {
 
     <button
       type="button"
-      class="mt-1 text-blue-600 hover:text-blue-800"
+      class="mt-1 text-brand-600 hover:text-brand-700"
       aria-label="添加事件"
       @click="addRow"
     >+ 添加</button>
@@ -112,7 +112,7 @@ onMounted(() => {
     <div class="mt-2 flex justify-end">
       <button
         type="button"
-        class="border rounded px-2 py-0.5 hover:bg-gray-50"
+        class="border rounded px-2 py-0.5 hover:bg-neutral-50"
         aria-label="完成"
         @click="commit"
       >完成</button>

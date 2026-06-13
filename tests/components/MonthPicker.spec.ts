@@ -53,7 +53,7 @@ describe('MonthPicker', () => {
 
     const cells = wrapper.findAll('[data-testid="month-cell"]')
     expect(cells[0]!.attributes('aria-current')).toBe('true') // 1 月为已选
-    expect(cells[0]!.classes()).toContain('bg-blue-100')
+    expect(cells[0]!.classes()).toContain('bg-brand-50')
     expect(cells[1]!.attributes('aria-current')).toBeUndefined()
   })
 

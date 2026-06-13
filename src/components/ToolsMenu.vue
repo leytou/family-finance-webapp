@@ -78,7 +78,7 @@ function handleReset() {
 <template>
   <div ref="menuRef" class="relative">
     <button
-      class="px-2 py-1 border rounded text-sm hover:bg-gray-50"
+      class="px-2 py-1 border rounded text-sm hover:bg-neutral-50"
       type="button"
       @click="toggleMenu"
     >
@@ -90,14 +90,14 @@ function handleReset() {
     >
       <button
         type="button"
-        class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-gray-100"
+        class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-neutral-100"
         @click="handleExport"
       >
         📤 导出数据
       </button>
       <button
         type="button"
-        class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-gray-100"
+        class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-neutral-100"
         @click="triggerImport"
       >
         📥 导入数据
@@ -105,7 +105,7 @@ function handleReset() {
       <div class="my-1 border-t" />
       <button
         type="button"
-        class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-gray-100"
+        class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-neutral-100"
         @click="handleReset"
       >
         🔄 重置数据
@@ -115,7 +115,7 @@ function handleReset() {
     <div
       v-if="importStatus"
       class="absolute right-0 top-full mt-1 px-3 py-1 rounded text-[11px] shadow-lg z-50 border"
-      :class="importStatus.success ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'"
+      :class="importStatus.success ? 'bg-success-50 text-success-700 border-success-200' : 'bg-danger-50 text-danger-700 border-danger-200'"
     >
       {{ importStatus.message }}
     </div>

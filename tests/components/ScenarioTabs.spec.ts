@@ -37,7 +37,7 @@ describe('ScenarioTabs', () => {
     expect(tabs[0].text()).toContain('买房方案')
     expect(tabs[1].text()).toContain('租房方案')
     // s2 是当前激活，第二个 tab 高亮
-    expect(tabs[1].classes()).toContain('bg-blue-100')
+    expect(tabs[1].classes()).toContain('bg-brand-50')
   })
 
   it('点击 tab 切换激活方案', async () => {

@@ -75,7 +75,7 @@ function handleRemove(id: string, name: string) {
       :key="scenario.id"
       data-test="scenario-tab"
       class="group flex items-center gap-1 px-3 py-1 border rounded text-sm cursor-pointer select-none"
-      :class="scenario.id === activeId ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'"
+      :class="scenario.id === activeId ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
       @click="handleSwitch(scenario.id)"
     >
       <!-- 重命名输入框 -->
@@ -106,7 +106,7 @@ function handleRemove(id: string, name: string) {
         v-if="scenarios.length > 1"
         type="button"
         data-test="remove-scenario"
-        class="text-red-600 opacity-0 group-hover:opacity-100 hover:text-red-800 text-xs ml-1"
+        class="text-danger-600 opacity-0 group-hover:opacity-100 hover:text-danger-800 text-xs ml-1"
         aria-label="删除方案"
         @click.stop="handleRemove(scenario.id, scenario.name)"
       >
@@ -118,7 +118,7 @@ function handleRemove(id: string, name: string) {
     <button
       type="button"
       data-test="add-scenario"
-      class="px-2 py-1 text-sm text-blue-600 hover:text-blue-800 border border-dashed rounded"
+      class="px-2 py-1 text-sm text-brand-600 hover:text-brand-700 border border-dashed rounded"
       title="新建方案"
       @click="handleAdd"
     >
@@ -127,7 +127,7 @@ function handleRemove(id: string, name: string) {
     <button
       type="button"
       data-test="duplicate-scenario"
-      class="px-2 py-1 text-sm text-blue-600 hover:text-blue-800 border border-dashed rounded"
+      class="px-2 py-1 text-sm text-brand-600 hover:text-brand-700 border border-dashed rounded"
       title="复制当前方案"
       @click="handleDuplicate"
     >

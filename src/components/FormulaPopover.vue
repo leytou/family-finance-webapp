@@ -16,6 +16,6 @@ const emit = defineEmits<{ close: [] }>()
     @mouseleave="emit('close')"
   >
     <div class="mb-2 font-semibold">{{ title }}</div>
-    <div v-for="(line, index) in lines" :key="index" class="text-gray-700">{{ line }}</div>
+    <div v-for="(line, index) in lines" :key="index" class="text-neutral-700">{{ line }}</div>
   </div>
 </template>
