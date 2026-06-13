@@ -119,7 +119,7 @@ describe('ComparisonView', () => {
     const diffCell = cells[2]
     expect(diffCell.text()).toContain('+')
     // 差额显示在内部 span 上
-    const diffSpan = diffCell.find('span.text-green-600')
+    const diffSpan = diffCell.find('span.text-positive-600')
     expect(diffSpan.exists()).toBe(true)
     expect(diffSpan.text()).toContain('+')
   })

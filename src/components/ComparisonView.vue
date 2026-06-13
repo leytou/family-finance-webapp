@@ -40,7 +40,7 @@ function formatDiff(value: number, baselineValue: number): { text: string; class
   const prefix = diff > 0 ? '+' : ''
   return {
     text: `(${prefix}${formatCurrency(diff)})`,
-    class: diff > 0 ? 'text-green-600' : 'text-red-600',
+    class: diff > 0 ? 'text-positive-600' : 'text-negative-600',
   }
 }
 
@@ -71,7 +71,7 @@ const comparisonRows: ComparisonRow[] = [
       <button
         type="button"
         data-test="close-comparison"
-        class="px-3 py-1 border rounded text-sm hover:bg-gray-50"
+        class="px-3 py-1 border rounded text-sm hover:bg-neutral-50"
         @click="emit('close')"
       >
         关闭
@@ -98,11 +98,11 @@ const comparisonRows: ComparisonRow[] = [
     <table v-if="canCompare" class="min-w-full border-collapse text-sm">
       <thead>
         <tr>
-          <th class="px-3 py-2 text-left border bg-gray-50 font-semibold">指标</th>
+          <th class="px-3 py-2 text-left border bg-neutral-50 font-semibold">指标</th>
           <th
             v-for="metrics in metricsList"
             :key="metrics.scenarioId"
-            class="px-3 py-2 text-right border bg-gray-50 font-semibold"
+            class="px-3 py-2 text-right border bg-neutral-50 font-semibold"
           >
             {{ metrics.scenarioName || '未命名' }}
           </th>
@@ -112,7 +112,7 @@ const comparisonRows: ComparisonRow[] = [
         <tr
           v-for="row in comparisonRows"
           :key="row.label"
-          class="hover:bg-gray-50"
+          class="hover:bg-neutral-50"
         >
           <td class="px-3 py-2 border whitespace-nowrap">{{ row.label }}</td>
           <td
@@ -133,7 +133,7 @@ const comparisonRows: ComparisonRow[] = [
       </tbody>
     </table>
 
-    <p v-else class="text-gray-500 text-sm">
+    <p v-else class="text-neutral-500 text-sm">
       请至少选择 2 个方案进行对比
     </p>
   </div>
