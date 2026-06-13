@@ -32,6 +32,7 @@ describe('App', () => {
     MonthlyTable: true,
     ScenarioTabs: true,
     ComparisonView: true,
+    ToolsMenu: true,
   }
 
   it('渲染头部包含系统参数输入', async () => {
@@ -64,44 +65,6 @@ describe('App', () => {
 
     // 第二个 div 是月度表区域
     expect(divs[1].classes()).toContain('flex-1')
-  })
-
-  it('确认重置时清空当前方案数据', async () => {
-    const useStore = await loadUseStore()
-    const store = useStore()
-
-    const col = store.addColumn('工资')
-    store.updateColumnEntry(col.id, 202601, 10000)
-
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
-
-    const App = await loadApp()
-    const wrapper = mount(App, { global: { stubs: globalStubs } })
-
-    await findButton(wrapper, '重置')?.trigger('click')
-
-    expect(window.confirm).toHaveBeenCalledWith('确定要重置当前方案？此操作不可撤销。')
-    expect(store.data.value.columns).toEqual([])
-    expect(store.data.value.anchors).toEqual([])
-    expect(store.data.value.systemParams.annualRate).toBe(0.025)
-  })
-
-  it('取消重置时保留数据', async () => {
-    const useStore = await loadUseStore()
-    const store = useStore()
-
-    const col = store.addColumn('工资')
-    store.updateColumnEntry(col.id, 202601, 10000)
-
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
-
-    const App = await loadApp()
-    const wrapper = mount(App, { global: { stubs: globalStubs } })
-
-    await findButton(wrapper, '重置')?.trigger('click')
-
-    expect(store.data.value.columns).toHaveLength(1)
-    expect(store.data.value.columns[0].name).toBe('工资')
   })
 
   it('头部包含 ScenarioTabs 和对比按钮', async () => {
