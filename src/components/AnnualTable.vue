@@ -49,8 +49,10 @@ const yearSummaries = computed<YearSummary[]>(() => {
       const firstResult = sortedMonths[0]
       const lastResult = sortedMonths[sortedMonths.length - 1]
 
-      // 聚合所有列的年度总额
-      const columnSummaries = sumColumnValues(sortedMonths.flatMap((result) => result.columnValues))
+      // 仅聚合启用列；缺省(undefined)视为启用，禁用列既不单独成行也不计入年度总额
+      const columnSummaries = sumColumnValues(
+        sortedMonths.flatMap((result) => result.columnValues).filter((cv) => cv.enabled !== false),
+      )
 
       // 计算总现金流（所有列金额之和）
       const totalFlow = columnSummaries.reduce((sum, col) => sum + col.total, 0)
