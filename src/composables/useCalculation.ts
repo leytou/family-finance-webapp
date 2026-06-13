@@ -165,3 +165,38 @@ export function buildComparison(
     }
   })
 }
+
+export interface YearlyPoint {
+  year: number
+  income: number      // 该自然年 monthlyIncome 求和
+  expense: number     // 该自然年 monthlyExpense 求和（正数；绘制时取负）
+  cumSavings: number  // 该自然年最后一月的 cumSavings（年末存款）
+}
+
+/**
+ * 按自然年聚合月度结果，供图表「按年」粒度使用。
+ * 口径与 AnnualTable 一致：Math.floor(month/100) 分组，年末取该年最后一月 cumSavings。
+ */
+export function aggregateByYear(results: MonthResult[]): YearlyPoint[] {
+  const sorted = [...results].sort((left, right) => left.month - right.month)
+  const groups = new Map<number, MonthResult[]>()
+
+  for (const result of sorted) {
+    const year = Math.floor(result.month / 100)
+    const arr = groups.get(year)
+    if (arr) {
+      arr.push(result)
+    } else {
+      groups.set(year, [result])
+    }
+  }
+
+  return Array.from(groups.entries())
+    .sort(([leftYear], [rightYear]) => leftYear - rightYear)
+    .map(([year, months]) => ({
+      year,
+      income: months.reduce((sum, r) => sum + r.monthlyIncome, 0),
+      expense: months.reduce((sum, r) => sum + r.monthlyExpense, 0),
+      cumSavings: months[months.length - 1].cumSavings,
+    }))
+}

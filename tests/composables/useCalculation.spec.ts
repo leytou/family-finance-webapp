@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculate, resolveColumnValue, buildComparison } from '../../src/composables/useCalculation'
+import { calculate, resolveColumnValue, buildComparison, aggregateByYear } from '../../src/composables/useCalculation'
 import type { PlanData, FlowColumn, MonthResult, PlanSnapshot } from '../../src/types'
 
 function makePlan(overrides: Partial<PlanData> = {}): PlanData {
@@ -13,6 +13,21 @@ function makePlan(overrides: Partial<PlanData> = {}): PlanData {
     anchors: [],
     snapshots: [],
     events: [],
+    ...overrides,
+  }
+}
+
+function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
+  return {
+    month: 202601,
+    columnValues: [],
+    totalFlow: 0,
+    investReturn: 0,
+    monthlyIncome: 0,
+    monthlyExpense: 0,
+    monthlyBalance: 0,
+    cumSavings: 0,
+    isAnchor: false,
     ...overrides,
   }
 }
@@ -772,21 +787,6 @@ describe('calculate 与专项事件', () => {
 })
 
 describe('buildComparison', () => {
-  function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
-    return {
-      month: 202601,
-      columnValues: [],
-      totalFlow: 0,
-      investReturn: 0,
-      monthlyIncome: 0,
-      monthlyExpense: 0,
-      monthlyBalance: 0,
-      cumSavings: 0,
-      isAnchor: false,
-      ...overrides,
-    }
-  }
-
   const results: MonthResult[] = [
     makeResult({ month: 202601, cumSavings: 5000, isAnchor: false }),
     makeResult({ month: 202602, cumSavings: 8500, isAnchor: true }),
@@ -828,5 +828,46 @@ describe('buildComparison', () => {
     const cmp = buildComparison(anchoredNoPredict, snapshot)
     expect(cmp[0].predicted).toBeNull()
     expect(cmp[0].diff).toBeNull()
+  })
+})
+
+describe('aggregateByYear', () => {
+  it('单年多月：收入支出求和，累计取该年最后一月', () => {
+    const results = [
+      makeResult({ month: 202601, monthlyIncome: 10000, monthlyExpense: 6000, cumSavings: 50000 }),
+      makeResult({ month: 202602, monthlyIncome: 10000, monthlyExpense: 6000, cumSavings: 55000 }),
+      makeResult({ month: 202612, monthlyIncome: 10000, monthlyExpense: 6000, cumSavings: 120000 }),
+    ]
+
+    expect(aggregateByYear(results)).toEqual([
+      { year: 2026, income: 30000, expense: 18000, cumSavings: 120000 },
+    ])
+  })
+
+  it('跨自然年：按年份分组，各自取末月累计', () => {
+    const results = [
+      makeResult({ month: 202611, monthlyIncome: 10000, monthlyExpense: 5000, cumSavings: 100000 }),
+      makeResult({ month: 202612, monthlyIncome: 10000, monthlyExpense: 5000, cumSavings: 110000 }),
+      makeResult({ month: 202701, monthlyIncome: 12000, monthlyExpense: 5000, cumSavings: 120000 }),
+      makeResult({ month: 202702, monthlyIncome: 12000, monthlyExpense: 5000, cumSavings: 130000 }),
+    ]
+
+    expect(aggregateByYear(results)).toEqual([
+      { year: 2026, income: 20000, expense: 10000, cumSavings: 110000 },
+      { year: 2027, income: 24000, expense: 10000, cumSavings: 130000 },
+    ])
+  })
+
+  it('乱序输入按年份升序输出', () => {
+    const results = [
+      makeResult({ month: 202701, monthlyIncome: 12000, monthlyExpense: 5000, cumSavings: 120000 }),
+      makeResult({ month: 202612, monthlyIncome: 10000, monthlyExpense: 5000, cumSavings: 110000 }),
+    ]
+
+    expect(aggregateByYear(results).map(p => p.year)).toEqual([2026, 2027])
+  })
+
+  it('空数组返回空数组', () => {
+    expect(aggregateByYear([])).toEqual([])
   })
 })
