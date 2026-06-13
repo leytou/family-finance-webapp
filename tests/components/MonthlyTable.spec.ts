@@ -632,6 +632,62 @@ describe('MonthlyTable', () => {
     expect(headers).not.toContain('差额')
   })
 
+  describe('启用/禁用切换', () => {
+    it('启用列头有 👁 按钮（aria-label=禁用此列），点击后切换为禁用', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.addColumn('旅游')
+
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+
+      const btn = wrapper.find('[aria-label="禁用此列"]')
+      expect(btn.exists()).toBe(true)
+
+      await btn.trigger('click')
+      await nextTick()
+
+      expect(store.data.value.columns[0].enabled).toBe(false)
+      // 切换后图标 aria-label 变为「启用此列」
+      expect(wrapper.find('[aria-label="启用此列"]').exists()).toBe(true)
+    })
+
+    it('禁用列：列名加删除线、数据单元格 opacity-40', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      const col = store.addColumn('旅游')
+      store.setColumnEnabled(col.id, false)
+
+      const results = calculate(store.data.value).slice(0, 1)
+      const wrapper = mount(MonthlyTable, { props: { results } })
+
+      // 列名 span 含 line-through
+      const headerTh = wrapper.findAll('thead th').find((th) => th.text().includes('旅游'))!
+      expect(headerTh.find('span.cursor-pointer').classes()).toContain('line-through')
+
+      // 第一行第一个现金流单元格（索引 1，0 是月份）含 opacity-40
+      const firstRowCells = wrapper.findAll('tbody tr')[0].findAll('td')
+      expect(firstRowCells[1].classes()).toContain('opacity-40')
+    })
+
+    it('启用列无删除线、单元格无 opacity-40', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.addColumn('旅游')
+
+      const results = calculate(store.data.value).slice(0, 1)
+      const wrapper = mount(MonthlyTable, { props: { results } })
+
+      const headerTh = wrapper.findAll('thead th').find((th) => th.text().includes('旅游'))!
+      expect(headerTh.find('span.cursor-pointer').classes()).not.toContain('line-through')
+
+      const firstRowCells = wrapper.findAll('tbody tr')[0].findAll('td')
+      expect(firstRowCells[1].classes()).not.toContain('opacity-40')
+    })
+  })
+
   describe('拖拽排序', () => {
     function fireDrag(el: Element, type: string, clientX = 0): void {
       // jsdom 的 DragEvent.dataTransfer 不可靠；handler 内对 dataTransfer 做了空值保护，

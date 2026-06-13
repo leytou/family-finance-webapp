@@ -918,4 +918,72 @@ describe('useStore', () => {
       expect(previousActive.plan.systemParams.startMonth).not.toBe(202709)    // 非激活方案不受影响
     })
   })
+
+  describe('setColumnEnabled', () => {
+    it('禁用列后 enabled=false，启用后恢复', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const col = store.addColumn('旅游')
+
+      store.setColumnEnabled(col.id, false)
+      expect(store.data.value.columns[0].enabled).toBe(false)
+
+      store.setColumnEnabled(col.id, true)
+      expect(store.data.value.columns[0].enabled).toBe(true)
+    })
+
+    it('addColumn 新列默认无 enabled 字段（视为启用）', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const col = store.addColumn('工资')
+      expect(store.data.value.columns[0].enabled).toBeUndefined()
+    })
+
+    it('不存在的 id 无操作', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setColumnEnabled('not-exist', false)
+      expect(store.data.value.columns).toEqual([])
+    })
+
+    it('保存后重新加载保留 enabled 状态', async () => {
+      let useStore = await loadUseStore()
+      const store1 = useStore()
+      const col = store1.addColumn('旅游')
+      store1.setColumnEnabled(col.id, false)
+      store1.save()
+
+      vi.resetModules()
+      useStore = await loadUseStore()
+      const store2 = useStore()
+      expect(store2.data.value.columns[0].enabled).toBe(false)
+    })
+
+    it('旧数据（无 enabled 字段）加载后视为启用', async () => {
+      localStorage.setItem(
+        'family-finance-plan',
+        JSON.stringify({
+          version: 1,
+          scenarios: [
+            {
+              id: 's1',
+              name: '默认方案',
+              plan: {
+                version: 2,
+                systemParams: { startMonth: 202601, annualRate: 0.025, initialDeposit: 0 },
+                columns: [{ id: 'c1', name: '工资', entries: { 202601: 10000 } }],
+                anchors: [],
+                snapshots: [],
+              },
+            },
+          ],
+          activeId: 's1',
+        }),
+      )
+      const useStore = await loadUseStore()
+      const store = useStore()
+      expect(store.data.value.columns[0].enabled).toBeUndefined()
+      expect(store.data.value.columns[0].name).toBe('工资')
+    })
+  })
 })

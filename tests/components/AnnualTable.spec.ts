@@ -249,4 +249,62 @@ describe('AnnualTable', () => {
     const startSavingsCell = wrapper.findAll('tbody tr')[0].findAll('td')[1]
     expect(startSavingsCell.classes()).toContain('italic')
   })
+
+  it('禁用列不出现在年度表、不计入年度总额', () => {
+    const wrapper = mount(AnnualTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            columnValues: [
+              { id: 'col1', name: '工资', amount: 10000, isEdited: true, enabled: true },
+              { id: 'col2', name: '旅游', amount: -3000, isEdited: true, enabled: false },
+            ],
+            totalFlow: 10000,
+            investReturn: 100,
+            monthlyIncome: 10100,
+            monthlyExpense: 0,
+            monthlyBalance: 10100,
+            cumSavings: 10100,
+          }),
+          createResult({
+            month: 202602,
+            columnValues: [
+              { id: 'col1', name: '工资', amount: 10000, isEdited: false, enabled: true },
+              { id: 'col2', name: '旅游', amount: -3000, isEdited: false, enabled: false },
+            ],
+            totalFlow: 10000,
+            investReturn: 120,
+            monthlyIncome: 10120,
+            monthlyExpense: 0,
+            monthlyBalance: 10120,
+            cumSavings: 20220,
+          }),
+        ],
+      },
+    })
+
+    const headers = wrapper.findAll('th').map((cell) => cell.text())
+    expect(headers).toEqual(['项目', '2026'])
+    // 工资行存在，年度合计 20000（两月各 10000）
+    expect(rowText(wrapper, '工资')).toEqual(['工资', '20,000'])
+    // 旅游行不存在
+    expect(() => rowText(wrapper, '旅游')).toThrow()
+    // 年度结余仅含启用列 + 理财：20000 + 220 = 20220
+    expect(rowText(wrapper, '年度结余')).toEqual(['年度结余', '20,220'])
+  })
+
+  it('无 enabled 字段的列按启用聚合（回归）', () => {
+    const wrapper = mount(AnnualTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            columnValues: [{ id: 'col1', name: '工资', amount: 10000, isEdited: true }],
+          }),
+        ],
+      },
+    })
+    expect(rowText(wrapper, '工资')).toEqual(['工资', '10,000'])
+  })
 })

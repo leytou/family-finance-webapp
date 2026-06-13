@@ -17,7 +17,7 @@ function makePlan(overrides: Partial<PlanData> = {}): PlanData {
 }
 
 describe('resolveColumnValue', () => {
-  it('直接编辑值标记 isEdited=true', () => {
+  it('直接编辑值标记 isEdited=true，默认 enabled=true', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '工资',
@@ -31,6 +31,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 10000,
       isEdited: true,
+      enabled: true,
     })
   })
 
@@ -48,6 +49,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 10000,
       isEdited: false,
+      enabled: true,
     })
   })
 
@@ -65,6 +67,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 0,
       isEdited: false,
+      enabled: true,
     })
   })
 
@@ -80,6 +83,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 10000,
       isEdited: false,
+      enabled: true,
     })
 
     expect(resolveColumnValue(column, 202603)).toEqual({
@@ -87,6 +91,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 0,
       isEdited: true,
+      enabled: true,
     })
 
     expect(resolveColumnValue(column, 202604)).toEqual({
@@ -94,6 +99,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 0,
       isEdited: false,
+      enabled: true,
     })
   })
 
@@ -109,6 +115,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 0,
       isEdited: false,
+      enabled: true,
     })
 
     expect(resolveColumnValue(column, 202605)).toEqual({
@@ -116,6 +123,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 0,
       isEdited: false,
+      enabled: true,
     })
 
     expect(resolveColumnValue(column, 202606)).toEqual({
@@ -123,6 +131,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 15000,
       isEdited: true,
+      enabled: true,
     })
 
     expect(resolveColumnValue(column, 202607)).toEqual({
@@ -130,6 +139,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 15000,
       isEdited: false,
+      enabled: true,
     })
   })
 
@@ -145,6 +155,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 5000,
       isEdited: false,
+      enabled: true,
     })
 
     expect(resolveColumnValue(column, 202604)).toEqual({
@@ -152,6 +163,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 10000,
       isEdited: false,
+      enabled: true,
     })
 
     expect(resolveColumnValue(column, 202606)).toEqual({
@@ -159,6 +171,7 @@ describe('resolveColumnValue', () => {
       name: '工资',
       amount: 15000,
       isEdited: false,
+      enabled: true,
     })
   })
 
@@ -172,15 +185,15 @@ describe('resolveColumnValue', () => {
 
     // 202612 自身：直接 entry
     expect(resolveColumnValue(column, 202612)).toEqual({
-      id: 'col1', name: '年终奖', amount: 50000, isEdited: true,
+      id: 'col1', name: '年终奖', amount: 50000, isEdited: true, enabled: true,
     })
     // 202701：跳过 yearly 的 202612，无源 → 0
     expect(resolveColumnValue(column, 202701)).toEqual({
-      id: 'col1', name: '年终奖', amount: 0, isEdited: false,
+      id: 'col1', name: '年终奖', amount: 0, isEdited: false, enabled: true,
     })
     // 202706：仍跳过 → 0
     expect(resolveColumnValue(column, 202706)).toEqual({
-      id: 'col1', name: '年终奖', amount: 0, isEdited: false,
+      id: 'col1', name: '年终奖', amount: 0, isEdited: false, enabled: true,
     })
   })
 
@@ -189,7 +202,7 @@ describe('resolveColumnValue', () => {
       id: 'col1', name: '工资', entries: { 202601: 10000 },
     }
     expect(resolveColumnValue(column, 202602)).toEqual({
-      id: 'col1', name: '工资', amount: 10000, isEdited: false,
+      id: 'col1', name: '工资', amount: 10000, isEdited: false, enabled: true,
     })
   })
 
@@ -206,6 +219,33 @@ describe('resolveColumnValue', () => {
     expect(resolveColumnValue(column, 202612).amount).toBe(50000)
     // 202701：跳过 yearly 202612，回退到非 yearly 202601 → 1000
     expect(resolveColumnValue(column, 202701).amount).toBe(1000)
+  })
+
+  it('enabled:false 的禁用列仍返回解析值，但 enabled=false', () => {
+    const column: FlowColumn = {
+      id: 'col1',
+      name: '旅游',
+      entries: { 202601: 5000 },
+      enabled: false,
+    }
+
+    // 直接编辑值：amount 照常返回，仅 enabled 标记为 false
+    expect(resolveColumnValue(column, 202601)).toEqual({
+      id: 'col1',
+      name: '旅游',
+      amount: 5000,
+      isEdited: true,
+      enabled: false,
+    })
+
+    // 延续值同理
+    expect(resolveColumnValue(column, 202602)).toEqual({
+      id: 'col1',
+      name: '旅游',
+      amount: 5000,
+      isEdited: false,
+      enabled: false,
+    })
   })
 })
 
@@ -587,6 +627,58 @@ describe('calculate', () => {
 
     expect(results[0].investReturn).toBe(0)
     expect(results[0].cumSavings).toBe(0)
+  })
+
+  it('禁用列仍出现在 columnValues 但不计入汇总', () => {
+    const results = calculate(
+      makePlan({
+        columns: [
+          { id: 'col1', name: '工资', entries: { 202601: 10000 } },
+          { id: 'col2', name: '旅游', entries: { 202601: -3000 }, enabled: false },
+        ],
+      }),
+    )
+
+    // 禁用列的值仍保留在 columnValues（供灰显），且 enabled=false
+    expect(results[0].columnValues).toHaveLength(2)
+    expect(results[0].columnValues[1]).toMatchObject({ id: 'col2', amount: -3000, enabled: false })
+
+    // 但 totalFlow 只含启用列：10000（不含 -3000）
+    expect(results[0].totalFlow).toBe(10000)
+    expect(results[0].monthlyIncome).toBe(10000)
+    expect(results[0].monthlyExpense).toBe(0)   // -3000 属禁用列，不计入支出
+    expect(results[0].monthlyBalance).toBe(10000)
+    expect(results[0].cumSavings).toBe(10000)
+  })
+
+  it('全部列禁用时汇总为 0，累计仅含初始存款与理财收益', () => {
+    const results = calculate(
+      makePlan({
+        systemParams: { startMonth: 202601, annualRate: 0.12, initialDeposit: 100000 },
+        columns: [
+          { id: 'col1', name: '工资', entries: { 202601: 10000 }, enabled: false },
+        ],
+      }),
+    )
+
+    expect(results[0].totalFlow).toBe(0)
+    expect(results[0].monthlyIncome).toBe(0)
+    expect(results[0].monthlyExpense).toBe(0)
+    // 初始存款 100000 参与理财：100000 * 0.12 / 12 = 1000；月末 = 101000
+    expect(results[0].investReturn).toBe(1000)
+    expect(results[0].cumSavings).toBe(101000)
+  })
+
+  it('未显式设置 enabled 的列按启用计入（回归）', () => {
+    const results = calculate(
+      makePlan({
+        columns: [
+          { id: 'col1', name: '工资', entries: { 202601: 10000 } },
+        ],
+      }),
+    )
+    expect(results[0].totalFlow).toBe(10000)
+    expect(results[0].columnValues[0].enabled).toBe(true)
   })
 })
 

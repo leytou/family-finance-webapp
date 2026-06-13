@@ -7,12 +7,14 @@ const PROJECTION_MONTHS = 60
  * 解析某列在指定月份的显示值
  * @param column 现金流列
  * @param month 当前月（YYYYMM格式）
- * @returns 列值信息
+ * @returns 列值信息（含 enabled 标记，供统计过滤与年表过滤）
  */
 export function resolveColumnValue(
   column: FlowColumn,
   month: number,
-): { id: string; name: string; amount: number; isEdited: boolean } {
+): { id: string; name: string; amount: number; isEdited: boolean; enabled: boolean } {
+  const enabled = column.enabled !== false   // undefined / true → 启用；仅 false → 禁用
+
   // 规则1: 若该月存在编辑值，直接返回
   // 注意：entries 的键在 JavaScript 中是字符串，所以需要用 String(month) 检查
   const monthKey = String(month)
@@ -22,6 +24,7 @@ export function resolveColumnValue(
       name: column.name,
       amount: column.entries[month],
       isEdited: true,
+      enabled,
     }
   }
 
@@ -45,6 +48,7 @@ export function resolveColumnValue(
       name: column.name,
       amount: inheritedValue,
       isEdited: false,
+      enabled,
     }
   }
 
@@ -54,6 +58,7 @@ export function resolveColumnValue(
     name: column.name,
     amount: 0,
     isEdited: false,
+    enabled,
   }
 }
 
@@ -73,18 +78,21 @@ export function calculate(plan: PlanData): MonthResult[] {
       ? (Number(plan.systemParams.initialDeposit) || 0)
       : results[index - 1].cumSavings
 
-    // 解析各列在该月的值
+    // 解析各列在该月的值（含禁用列，供月表灰显）
     const columnValues = plan.columns.map(col => resolveColumnValue(col, month))
 
-    // 汇总现金流
-    const totalFlow = columnValues.reduce((sum, col) => sum + col.amount, 0)
+    // 仅启用列参与统计；缺省(undefined)视为启用
+    const activeValues = columnValues.filter(col => col.enabled !== false)
+
+    // 汇总现金流（仅启用列）
+    const totalFlow = activeValues.reduce((sum, col) => sum + col.amount, 0)
 
     // 计算投资收益
     const investReturn = (prevCum * plan.systemParams.annualRate) / 12
 
-    // 计算本月收入（正数现金流合计）和本月支出（负数现金流绝对值合计）
-    const monthlyIncome = columnValues.reduce((sum, col) => col.amount > 0 ? sum + col.amount : sum, 0)
-    const monthlyExpense = columnValues.reduce((sum, col) => col.amount < 0 ? sum + Math.abs(col.amount) : sum, 0)
+    // 计算本月收入（正数现金流合计）和本月支出（负数现金流绝对值合计），仅启用列
+    const monthlyIncome = activeValues.reduce((sum, col) => col.amount > 0 ? sum + col.amount : sum, 0)
+    const monthlyExpense = activeValues.reduce((sum, col) => col.amount < 0 ? sum + Math.abs(col.amount) : sum, 0)
 
     // 计算本月结余
     const monthlyBalance = totalFlow + investReturn
