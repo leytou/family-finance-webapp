@@ -194,6 +194,12 @@ export function useStore() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace.value))
   }
 
+  /** 从 localStorage 重新加载 workspace，用于导入后刷新内存状态 */
+  function reloadWorkspace() {
+    const reloaded = loadWorkspace()
+    workspace.value = reloaded
+  }
+
   // 获取当前激活方案的 plan 的辅助函数
   function getActivePlan(): PlanData {
     const scenario = workspace.value.scenarios.find(s => s.id === workspace.value.activeId)
@@ -398,6 +404,7 @@ export function useStore() {
     data,
     workspace,
     save,
+    reloadWorkspace,
     setStartMonth,
     addColumn,
     removeColumn,
