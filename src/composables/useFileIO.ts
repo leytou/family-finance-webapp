@@ -1,4 +1,5 @@
 import type { Workspace } from '../types'
+import { useStore } from './useStore'
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -25,16 +26,14 @@ interface ImportResult {
 export function useFileIO() {
   function exportData(): ExportResult {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) {
-        return { success: false, error: '无数据可导出' }
-      }
+      // 从内存中的 workspace ref 读取，确保拿到最新数据
+      const { workspace } = useStore()
+      const workspaceData = JSON.parse(JSON.stringify(workspace.value))
 
-      const workspace: Workspace = JSON.parse(raw)
       const payload: ExportPayload = {
         exportVersion: 1,
         exportTime: new Date().toISOString(),
-        data: workspace,
+        data: workspaceData,
       }
 
       const json = JSON.stringify(payload, null, 2)

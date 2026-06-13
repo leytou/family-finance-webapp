@@ -62,6 +62,24 @@ describe('useFileIO', () => {
       appendChildSpy.mockRestore()
       removeChildSpy.mockRestore()
     })
+
+    it('初次加载无 localStorage 数据时也能导出', async () => {
+      // 不写入 localStorage，useStore 会创建默认 workspace
+      const useStore = await loadUseStore()
+      useStore() // 触发默认 workspace 创建
+
+      const appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation(() => document.createElement('a'))
+      const removeChildSpy = vi.spyOn(document.body, 'removeChild').mockImplementation(() => document.createElement('a'))
+
+      const useFileIO = await loadUseFileIO()
+      const { exportData } = useFileIO()
+      const result = exportData()
+
+      expect(result.success).toBe(true)
+
+      appendChildSpy.mockRestore()
+      removeChildSpy.mockRestore()
+    })
   })
 
   describe('importData', () => {
