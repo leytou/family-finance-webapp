@@ -2,7 +2,7 @@
 import { computed, nextTick, ref } from 'vue'
 import FormulaPopover from './FormulaPopover.vue'
 import ContextMenu from './ContextMenu.vue'
-import type { MonthResult } from '../types'
+import type { MonthResult, FlowColumn } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 import { useStore } from '../composables/useStore'
@@ -183,6 +183,15 @@ function confirmRemoveColumn(columnId: string, columnName: string) {
   if (confirm(`确定要删除列"${columnName}"吗？`)) {
     store.removeColumn(columnId)
   }
+}
+
+// 列启用/禁用：缺省(undefined)/true 视为启用，仅 false 为禁用
+function isColumnEnabled(column: FlowColumn): boolean {
+  return column.enabled !== false
+}
+
+function toggleColumnEnabled(column: FlowColumn): void {
+  store.setColumnEnabled(column.id, !isColumnEnabled(column))
 }
 
 function handleAddColumn() {
@@ -471,9 +480,18 @@ function getValueClass(value: number): string {
               @blur="confirmRename"
             />
             <!-- 列头显示 -->
-            <span v-else class="block w-full">
+            <span v-else class="flex items-center justify-end w-full">
+              <!-- 启用/禁用切换（hover 显示，与右侧 × 一致） -->
+              <button
+                type="button"
+                class="mr-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-700"
+                :aria-label="isColumnEnabled(column) ? '禁用此列' : '启用此列'"
+                @click="toggleColumnEnabled(column)"
+              >👁</button>
+              <!-- 列名：禁用时加删除线 + 灰色 -->
               <span
                 class="cursor-pointer"
+                :class="{ 'line-through text-gray-400': !isColumnEnabled(column) }"
                 aria-label="双击重命名"
                 @dblclick="startRename(column.id, column.name)"
               >
@@ -531,7 +549,8 @@ function getValueClass(value: number): string {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative"
             :class="[
               getValueClass(getColumnValue(result, column.id).amount),
-              { 'bg-blue-100': getColumnValue(result, column.id).isEdited }
+              { 'bg-blue-100': getColumnValue(result, column.id).isEdited },
+              { 'opacity-40': !isColumnEnabled(column) }
             ]"
             @contextmenu.prevent="openContextMenu(column.id, result.month, $event)"
           >
