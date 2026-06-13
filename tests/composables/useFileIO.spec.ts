@@ -45,7 +45,9 @@ describe('useFileIO', () => {
 
     it('导出文件名包含当前日期 YYYYMMDD', async () => {
       const useStore = await loadUseStore()
-      useStore()
+      const store = useStore()
+      store.addColumn('工资')
+      store.save()
 
       const appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation(() => document.createElement('a'))
       const removeChildSpy = vi.spyOn(document.body, 'removeChild').mockImplementation(() => document.createElement('a'))
