@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculate, resolveColumnValue, buildComparison, aggregateByYear } from '../../src/composables/useCalculation'
+import { calculate, resolveColumnValue, hasColumnValue, buildComparison, aggregateByYear } from '../../src/composables/useCalculation'
 import type { PlanData, FlowColumn, MonthResult, PlanSnapshot } from '../../src/types'
 
 function makePlan(overrides: Partial<PlanData> = {}): PlanData {
@@ -262,6 +262,38 @@ describe('resolveColumnValue', () => {
       isEdited: false,
       enabled: false,
     })
+  })
+})
+
+describe('hasColumnValue', () => {
+  it('该月有直接编辑值 → true', () => {
+    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202601: 100 } }
+    expect(hasColumnValue(column, 202601)).toBe(true)
+  })
+
+  it('该月向前延续到非零 entry → true', () => {
+    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202601: 100 } }
+    expect(hasColumnValue(column, 202603)).toBe(true)
+  })
+
+  it('该月向前延续到 0 entry → true（0 也是有效输入）', () => {
+    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202601: 0 } }
+    expect(hasColumnValue(column, 202603)).toBe(true)
+  })
+
+  it('完全无任何 entry → false', () => {
+    const column: FlowColumn = { id: 'c1', name: 'x', entries: {} }
+    expect(hasColumnValue(column, 202601)).toBe(false)
+  })
+
+  it('仅有 yearly 标记月、其后非同月 → false（yearly 不作延续源）', () => {
+    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202612: 500 }, yearlyMonths: { 202612: true } }
+    expect(hasColumnValue(column, 202701)).toBe(false)
+  })
+
+  it('yearly 月本身 → true', () => {
+    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202612: 500 }, yearlyMonths: { 202612: true } }
+    expect(hasColumnValue(column, 202612)).toBe(true)
   })
 })
 

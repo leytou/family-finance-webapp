@@ -66,6 +66,23 @@ export function resolveColumnValue(
 }
 
 /**
+ * 判断某列在指定月是否有「用户输入值」（直接编辑或向前延续，含 0）。
+ * 区别于 resolveColumnValue 的「规则3 无任何 entry 返回 0」：本函数在那种情况下返回 false。
+ * 供月冲默认联动判定（未手填月冲时回退到房贷月供）。
+ */
+export function hasColumnValue(column: FlowColumn, month: number): boolean {
+  // 直接编辑值
+  if (String(month) in column.entries) return true
+
+  // 向前查找最近的非 yearly entry（与 resolveColumnValue 规则2 一致）
+  const isYearlyKey = (k: number) => Boolean(column.yearlyMonths?.[k])
+  const entryKeys = Object.keys(column.entries)
+    .map(Number)
+    .filter(key => key < month && !isYearlyKey(key))
+  return entryKeys.length > 0
+}
+
+/**
  * 计算所有月份的储蓄结果
  * @param plan 计划数据
  * @returns 月度结果数组
