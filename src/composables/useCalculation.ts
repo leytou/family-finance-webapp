@@ -78,18 +78,21 @@ export function calculate(plan: PlanData): MonthResult[] {
       ? (Number(plan.systemParams.initialDeposit) || 0)
       : results[index - 1].cumSavings
 
-    // 解析各列在该月的值
+    // 解析各列在该月的值（含禁用列，供月表灰显）
     const columnValues = plan.columns.map(col => resolveColumnValue(col, month))
 
-    // 汇总现金流
-    const totalFlow = columnValues.reduce((sum, col) => sum + col.amount, 0)
+    // 仅启用列参与统计；缺省(undefined)视为启用
+    const activeValues = columnValues.filter(col => col.enabled !== false)
+
+    // 汇总现金流（仅启用列）
+    const totalFlow = activeValues.reduce((sum, col) => sum + col.amount, 0)
 
     // 计算投资收益
     const investReturn = (prevCum * plan.systemParams.annualRate) / 12
 
-    // 计算本月收入（正数现金流合计）和本月支出（负数现金流绝对值合计）
-    const monthlyIncome = columnValues.reduce((sum, col) => col.amount > 0 ? sum + col.amount : sum, 0)
-    const monthlyExpense = columnValues.reduce((sum, col) => col.amount < 0 ? sum + Math.abs(col.amount) : sum, 0)
+    // 计算本月收入（正数现金流合计）和本月支出（负数现金流绝对值合计），仅启用列
+    const monthlyIncome = activeValues.reduce((sum, col) => col.amount > 0 ? sum + col.amount : sum, 0)
+    const monthlyExpense = activeValues.reduce((sum, col) => col.amount < 0 ? sum + Math.abs(col.amount) : sum, 0)
 
     // 计算本月结余
     const monthlyBalance = totalFlow + investReturn

@@ -628,6 +628,58 @@ describe('calculate', () => {
     expect(results[0].investReturn).toBe(0)
     expect(results[0].cumSavings).toBe(0)
   })
+
+  it('禁用列仍出现在 columnValues 但不计入汇总', () => {
+    const results = calculate(
+      makePlan({
+        columns: [
+          { id: 'col1', name: '工资', entries: { 202601: 10000 } },
+          { id: 'col2', name: '旅游', entries: { 202601: -3000 }, enabled: false },
+        ],
+      }),
+    )
+
+    // 禁用列的值仍保留在 columnValues（供灰显），且 enabled=false
+    expect(results[0].columnValues).toHaveLength(2)
+    expect(results[0].columnValues[1]).toMatchObject({ id: 'col2', amount: -3000, enabled: false })
+
+    // 但 totalFlow 只含启用列：10000（不含 -3000）
+    expect(results[0].totalFlow).toBe(10000)
+    expect(results[0].monthlyIncome).toBe(10000)
+    expect(results[0].monthlyExpense).toBe(0)   // -3000 属禁用列，不计入支出
+    expect(results[0].monthlyBalance).toBe(10000)
+    expect(results[0].cumSavings).toBe(10000)
+  })
+
+  it('全部列禁用时汇总为 0，累计仅含初始存款与理财收益', () => {
+    const results = calculate(
+      makePlan({
+        systemParams: { startMonth: 202601, annualRate: 0.12, initialDeposit: 100000 },
+        columns: [
+          { id: 'col1', name: '工资', entries: { 202601: 10000 }, enabled: false },
+        ],
+      }),
+    )
+
+    expect(results[0].totalFlow).toBe(0)
+    expect(results[0].monthlyIncome).toBe(0)
+    expect(results[0].monthlyExpense).toBe(0)
+    // 初始存款 100000 参与理财：100000 * 0.12 / 12 = 1000；月末 = 101000
+    expect(results[0].investReturn).toBe(1000)
+    expect(results[0].cumSavings).toBe(101000)
+  })
+
+  it('未显式设置 enabled 的列按启用计入（回归）', () => {
+    const results = calculate(
+      makePlan({
+        columns: [
+          { id: 'col1', name: '工资', entries: { 202601: 10000 } },
+        ],
+      }),
+    )
+    expect(results[0].totalFlow).toBe(10000)
+    expect(results[0].columnValues[0].enabled).toBe(true)
+  })
 })
 
 describe('buildComparison', () => {
