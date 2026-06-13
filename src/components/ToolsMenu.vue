@@ -2,10 +2,12 @@
 import { ref } from 'vue'
 import { useClickOutside } from '../composables/useClickOutside'
 import { useFileIO } from '../composables/useFileIO'
+import { useHistory } from '../composables/useHistory'
 import { useStore } from '../composables/useStore'
 
-const { reset } = useStore()
+const { workspace, reloadWorkspace, reset } = useStore()
 const { exportData, importData } = useFileIO()
+const { resetHistory } = useHistory()
 
 const open = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
@@ -49,9 +51,11 @@ async function handleFileChange(e: Event) {
 
   const result = await importData(file)
   if (result.success) {
-    // 导入成功，刷新内存中的 workspace
-    const { reloadWorkspace } = useStore()
+    // 导入成功，刷新内存中的 workspace（此时 workspace.value 已替换为新数据）
     reloadWorkspace()
+    // 重置撤销历史：以新导入数据作为基线，清空过去/未来栈，
+    // 并清掉 reloadWorkspace 触发的捕获定时器，避免 Ctrl+Z 撤销整个导入
+    resetHistory(JSON.stringify(workspace.value))
     importStatus.value = { success: true, message: '导入成功' }
   } else {
     importStatus.value = { success: false, message: result.error ?? '导入失败' }

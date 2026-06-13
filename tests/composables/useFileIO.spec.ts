@@ -205,5 +205,63 @@ describe('useFileIO', () => {
       expect(saved.version).toBe(1)
       expect(saved.scenarios).toHaveLength(1)
     })
+
+    // 接线测试：模拟 ToolsMenu 导入成功路径（importData → reloadWorkspace → resetHistory），
+    // 验证导入后撤销栈被重置（canUndo 为 false），即 Ctrl+Z 不会撤销整个导入。
+    it('导入成功并调用 resetHistory 后撤销栈被重置（canUndo 为 false）', async () => {
+      const { nextTick } = await import('vue')
+
+      // 1) 先准备一份「有可撤销历史」的内存态：加载 store/history，做一次编辑并让捕获落盘
+      const useStore = await loadUseStore()
+      const useHistory = (await import('../../src/composables/useHistory')).useHistory
+      const store = useStore()
+      const history = useHistory()
+
+      // 用假定时器推进捕获防抖；结束前恢复，避免影响 importData 内的 FileReader
+      vi.useFakeTimers()
+      try {
+        store.addColumn('工资')
+        await nextTick()
+        await vi.advanceTimersByTimeAsync(500)
+      } finally {
+        vi.useRealTimers()
+      }
+      // 前提：此时已存在可撤销历史
+      expect(history.canUndo.value).toBe(true)
+
+      // 2) 构造合法导出文件（基于当前内存 workspace 落盘的快照）
+      store.save()
+      const workspaceRaw = localStorage.getItem('family-finance-plan')!
+      const exportPayload = {
+        exportVersion: 1,
+        exportTime: new Date().toISOString(),
+        data: JSON.parse(workspaceRaw),
+      }
+      const file = new File([JSON.stringify(exportPayload)], 'export.json', {
+        type: 'application/json',
+      })
+
+      // 3) 执行导入成功路径：importData 写入 localStorage
+      const useFileIO = await loadUseFileIO()
+      const { importData } = useFileIO()
+      const result = await importData(file)
+      expect(result.success).toBe(true)
+
+      // 4) 模拟 ToolsMenu：reloadWorkspace 后同步调 resetHistory(JSON.stringify(workspace.value))
+      //    —— 此时 workspace.value 已是新数据；resetHistory 清掉捕获定时器并把 lastSnapshot 设为导入态
+      store.reloadWorkspace()
+      history.resetHistory(JSON.stringify(store.workspace.value))
+
+      // 5) 即使再推进捕获定时器，也不应重新产生可撤销历史
+      vi.useFakeTimers()
+      try {
+        await nextTick()
+        await vi.advanceTimersByTimeAsync(500)
+        expect(history.canUndo.value).toBe(false)
+        expect(history.canRedo.value).toBe(false)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
   })
 })
