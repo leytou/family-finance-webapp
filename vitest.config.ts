@@ -9,6 +9,7 @@ export default mergeConfig(
       environment: 'jsdom',
       globals: true,
       passWithNoTests: true,
+      exclude: ['**/.claude/worktrees/**', '**/node_modules/**'],
     },
   }),
 )
