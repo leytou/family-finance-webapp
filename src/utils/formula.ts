@@ -81,11 +81,11 @@ export function buildMonthFormula(
   return { title, lines: [line] }
 }
 
-// buildYearFormula 在 Task 3 实现；此处先占位导出，避免下游 import 报错
 export type YearFormulaField = 'startSavings' | 'investReturn' | 'yearBalance' | 'endSavings' | 'events'
 
 export interface YearFormulaContext {
   isFirstYear: boolean
+  firstMonthIsAnchor: boolean   // 首年首月是否锚点（仅 startSavings 首年分支使用）
   initialDeposit: number
   prevYearEndSavings: number
   events: { name: string; amount: number }[]
@@ -109,9 +109,13 @@ export function buildYearFormula(
   let line: string
   switch (field) {
     case 'startSavings':
-      line = ctx.isFirstYear
-        ? `年初存款 = 初始存款(${formatCurrency(ctx.initialDeposit)})`
-        : `年初存款 = 上年年末存款(${formatCurrency(ctx.prevYearEndSavings)})`
+      if (ctx.isFirstYear) {
+        line = ctx.firstMonthIsAnchor
+          ? `年初存款 = 锚点值(${formatCurrency(summary.startSavings)})`
+          : `年初存款 = 初始存款(${formatCurrency(ctx.initialDeposit)})`
+      } else {
+        line = `年初存款 = 上年年末存款(${formatCurrency(ctx.prevYearEndSavings)})`
+      }
       break
     case 'investReturn':
       line = `理财收益 = 全年各月理财收益合计 = ${formatCurrency(summary.investReturn)}`

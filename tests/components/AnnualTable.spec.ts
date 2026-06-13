@@ -417,4 +417,39 @@ describe('AnnualTable', () => {
     expect(popover.text()).toContain('2026 - 专项')
     expect(popover.text()).toContain('专项 = -买房(500,000) + 卖房(300,000) = -200,000')
   })
+
+  it('首月锚点时 hover 年初存款显示锚点值（与单元格一致）', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+
+    const wrapper = mount(AnnualTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            columnValues: [{ id: 'c1', name: '工资', amount: 10000, isEdited: true }],
+            totalFlow: 10000,
+            investReturn: 0,
+            monthlyIncome: 10000,
+            monthlyExpense: 0,
+            monthlyBalance: 10000,
+            cumSavings: 150000,
+            isAnchor: true,
+          }),
+        ],
+      },
+    })
+
+    // 单元格年初存款 = 锚点 cumSavings = 150,000
+    const startRow = wrapper.findAll('tbody tr').find(r => r.find('td').text() === '年初存款')!
+    expect(startRow.findAll('td')[1].text()).toContain('150,000')
+
+    // hover 显示锚点值（非初始存款）
+    await startRow.findAll('td')[1].find('span').trigger('mouseenter', { clientX: 100, clientY: 120 })
+    const popover = wrapper.findComponent({ name: 'FormulaPopover' })
+    expect(popover.exists()).toBe(true)
+    expect(popover.text()).toContain('年初存款 = 锚点值(150,000)')
+    expect(popover.text()).not.toContain('初始存款')
+  })
 })
