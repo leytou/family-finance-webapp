@@ -14,6 +14,29 @@ export interface MilestoneEvent {
   amount: number    // 元；正=收入（如奖金/卖房），负=支出（如买房）
 }
 
+// 单月一次性公积金提取（买房首付等）：从公积金账户转出到可支配储蓄
+export interface FundWithdrawal {
+  id: string
+  name: string        // 如「买房提取」
+  month: number       // YYYYMM
+  amount: number      // 元，正数
+}
+
+// 公积金账户余额锚点（校验用，同 MonthlyAnchor 语义）
+export interface FundAnchor {
+  month: number
+  actualBalance: number
+}
+
+// 公积金配置（PlanData.fund，可选；缺失=无公积金）
+export interface FundConfig {
+  mortgage: FlowColumn        // 房贷月供（专区固定列，进可支配支出 totalFlow）
+  contribution: FlowColumn    // 公积金缴存（稀疏+yearly，进公积金账户）
+  monthlyOffset: FlowColumn   // 公积金月冲（稀疏+yearly；未手填时默认取 mortgage 同月值）
+  withdrawals: FundWithdrawal[]   // 单月提取
+  anchors: FundAnchor[]           // 公积金余额锚点
+}
+
 export interface MonthlyAnchor {
   month: number
   actualSavings: number
@@ -30,6 +53,9 @@ export interface SystemParams {
   startMonth: number
   annualRate: number
   initialDeposit?: number   // 初始存款（元），作为累计计算的起点本金；缺失视为 0
+  fundRate: number            // 公积金年利率，默认 0.015
+  fundInterestMonth: number   // 公积金结息月 1-12，默认 7
+  fundInitialBalance?: number // 初始公积金余额（元），缺失视为 0
 }
 
 export interface PlanData {
@@ -39,6 +65,7 @@ export interface PlanData {
   anchors: MonthlyAnchor[]
   snapshots: PlanSnapshot[]
   events: MilestoneEvent[]   // 单月一次性大额事件；脉冲，不携带延续
+  fund?: FundConfig          // 公积金配置；缺失=无公积金，向后兼容
 }
 
 export interface MonthResult {
@@ -51,6 +78,15 @@ export interface MonthResult {
   monthlyBalance: number
   cumSavings: number
   isAnchor: boolean
+  // —— 公积金账户（无 fund 时均为 0/false）——
+  fundBalance: number       // 月末公积金账户余额
+  fundInterest: number      // 当月入账结息（仅结息月非 0）
+  fundContribution: number  // 当月缴存额（展示用）
+  fundOffset: number        // 当月月冲额（实际扣取，已截断）
+  fundWithdrawal: number    // 当月提取额（实际扣取，已截断）
+  fundOutflow: number       // 当月转出到可支配合计 = fundOffset + fundWithdrawal
+  isFundAnchor: boolean     // 该月公积金余额是否被锚点覆盖
+  totalAssets: number       // = cumSavings + fundBalance
 }
 
 export interface Scenario {
