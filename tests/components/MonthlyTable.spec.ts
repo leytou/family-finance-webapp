@@ -170,16 +170,16 @@ describe('MonthlyTable', () => {
     // 锚点不再高亮整行，而是高亮累计列单元格
     const firstRowCells = rows[0].findAll('td')
     const cumCell = firstRowCells[firstRowCells.length - 1] // 最后一列是累计列
-    expect(cumCell.classes()).toContain('bg-blue-100')
+    expect(cumCell.classes()).toContain('bg-brand-50')
 
     // 第二行不是锚点，累计列不应高亮
     const secondRowCells = rows[1].findAll('td')
     const secondCumCell = secondRowCells[secondRowCells.length - 1]
-    expect(secondCumCell.classes()).not.toContain('bg-blue-100')
+    expect(secondCumCell.classes()).not.toContain('bg-brand-50')
 
     // 行级不应再有蓝色背景
-    expect(rows[0].classes()).not.toContain('bg-blue-50')
-    expect(rows[1].classes()).not.toContain('bg-blue-50')
+    expect(rows[0].classes()).not.toContain('bg-brand-50')
+    expect(rows[1].classes()).not.toContain('bg-brand-50')
   })
 
   it('isEdited 单元格有浅蓝底色', async () => {
@@ -386,7 +386,7 @@ describe('MonthlyTable', () => {
     const thead = wrapper.get('thead')
     expect(thead.classes()).toContain('sticky')
     expect(thead.classes()).toContain('top-0')
-    expect(thead.classes()).toContain('bg-gray-50')
+    expect(thead.classes()).toContain('bg-neutral-50')
   })
 
   it('右键现金流单元格弹出菜单', async () => {

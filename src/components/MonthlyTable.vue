@@ -95,9 +95,9 @@ function getComparison(month: number) {
 
 function getDiffClass(diff: number | null): string {
   if (diff === null) return ''
-  if (diff > 0) return 'text-green-600'
-  if (diff < 0) return 'text-red-600'
-  return 'text-gray-500'
+  if (diff > 0) return 'text-positive-600'   // 实际>预计：存得更多（中式正向=红）
+  if (diff < 0) return 'text-negative-600'   // 实际<预计：存得更少（中式负向=绿）
+  return 'text-neutral-500'
 }
 
 // 快照重命名状态
@@ -446,8 +446,8 @@ function getValueClass(value: number): string {
 <template>
   <div class="h-full flex flex-col">
     <!-- 快照对比工具条 -->
-    <div class="flex-none flex items-center gap-2 px-2 py-1 border-b bg-gray-50 text-[12px]">
-      <span class="text-gray-500">计划对比</span>
+    <div class="flex-none flex items-center gap-2 px-2 py-1 border-b bg-neutral-50 text-[12px]">
+      <span class="text-neutral-500">计划对比</span>
       <!-- 命名编辑态 -->
       <input
         v-if="renamingSnapshotId !== null"
@@ -474,8 +474,8 @@ function getValueClass(value: number): string {
       </select>
       <!-- 选中快照后的重命名/删除 -->
       <template v-if="selectedSnapshot && renamingSnapshotId === null">
-        <button type="button" class="text-blue-600 hover:text-blue-800" aria-label="重命名快照" @click="startSnapshotRename">重命名</button>
-        <button type="button" class="text-red-600 hover:text-red-800" aria-label="删除快照" @click="handleRemoveSnapshot">删除</button>
+        <button type="button" class="text-brand-600 hover:text-brand-700" aria-label="重命名快照" @click="startSnapshotRename">重命名</button>
+        <button type="button" class="text-danger-600 hover:text-danger-800" aria-label="删除快照" @click="handleRemoveSnapshot">删除</button>
       </template>
       <button
         type="button"
@@ -490,7 +490,7 @@ function getValueClass(value: number): string {
     <!-- 原表格容器 -->
     <div class="flex-1 overflow-auto border rounded bg-white">
     <table class="min-w-full border-collapse text-[11px] leading-tight">
-      <thead class="sticky top-0 z-1 bg-gray-50">
+      <thead class="sticky top-0 z-1 bg-neutral-50">
         <tr class="border-b">
           <th class="px-1 py-0 text-left font-semibold whitespace-nowrap">月份</th>
 
@@ -529,14 +529,14 @@ function getValueClass(value: number): string {
               <!-- 启用/禁用切换（hover 显示，与右侧 × 一致） -->
               <button
                 type="button"
-                class="mr-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-gray-700"
+                class="mr-1 text-neutral-400 opacity-0 group-hover:opacity-100 hover:text-neutral-600"
                 :aria-label="isColumnEnabled(column) ? '禁用此列' : '启用此列'"
                 @click="toggleColumnEnabled(column)"
               >👁</button>
               <!-- 列名：禁用时加删除线 + 灰色 -->
               <span
                 class="cursor-pointer"
-                :class="{ 'line-through text-gray-400': !isColumnEnabled(column) }"
+                :class="{ 'line-through text-neutral-400': !isColumnEnabled(column) }"
                 aria-label="双击重命名"
                 @dblclick="startRename(column.id, column.name)"
               >
@@ -545,7 +545,7 @@ function getValueClass(value: number): string {
               <!-- 删除按钮 (hover 显示) -->
               <button
                 type="button"
-                class="ml-1 text-red-600 opacity-0 group-hover:opacity-100 hover:text-red-800"
+                class="ml-1 text-danger-600 opacity-0 group-hover:opacity-100 hover:text-danger-800"
                 aria-label="删除列"
                 @click="confirmRemoveColumn(column.id, column.name)"
               >
@@ -558,7 +558,7 @@ function getValueClass(value: number): string {
           <th class="px-1 py-0 text-center whitespace-nowrap">
             <button
               type="button"
-              class="text-blue-600 hover:text-blue-800 font-bold text-lg leading-none"
+              class="text-brand-600 hover:text-brand-700 font-bold text-lg leading-none"
               aria-label="添加新列"
               @click="handleAddColumn"
             >
@@ -570,7 +570,7 @@ function getValueClass(value: number): string {
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">专项</th>
 
           <!-- 固定列 -->
-          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap border-l border-gray-300">理财</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap border-l border-neutral-300">理财</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">收入</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">支出</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">结余</th>
@@ -585,7 +585,7 @@ function getValueClass(value: number): string {
         <tr
           v-for="result in results"
           :key="result.month"
-          :class="result.month % 100 === 12 ? 'border-b-2 border-gray-400' : 'border-b'"
+          :class="result.month % 100 === 12 ? 'border-b-2 border-neutral-400' : 'border-b'"
         >
           <td class="px-1 py-0 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
 
@@ -596,7 +596,7 @@ function getValueClass(value: number): string {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative"
             :class="[
               getValueClass(getColumnValue(result, column.id).amount),
-              { 'bg-blue-100': getColumnValue(result, column.id).isEdited },
+              { 'bg-brand-50': getColumnValue(result, column.id).isEdited },
               { 'opacity-40': !isColumnEnabled(column) }
             ]"
             @contextmenu.prevent="openContextMenu(column.id, result.month, $event)"
@@ -623,7 +623,7 @@ function getValueClass(value: number): string {
             >
               {{ formatCurrency(getColumnValue(result, column.id).amount) }}<span
                 v-if="column.yearlyMonths?.[result.month]"
-                class="ml-0.5 text-blue-500"
+                class="ml-0.5 text-brand-500"
                 aria-hidden="true"
               >↻</span>
             </span>
@@ -648,7 +648,7 @@ function getValueClass(value: number): string {
 
           <!-- 理财列 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l border-gray-300"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l border-neutral-300"
             :class="getValueClass(result.investReturn)"
           >
             <span
@@ -700,7 +700,7 @@ function getValueClass(value: number): string {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap font-bold relative"
             :class="[
               getValueClass(result.cumSavings),
-              { 'bg-blue-100': result.isAnchor }
+              { 'bg-brand-50': result.isAnchor }
             ]"
             @contextmenu.prevent="openContextMenu(BALANCE_COLUMN_ID, result.month, $event)"
           >
@@ -732,12 +732,12 @@ function getValueClass(value: number): string {
           <!-- 对比列：当时预计 -->
           <td
             v-if="selectedSnapshot"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap text-gray-600"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap text-neutral-600"
           >
             <span v-if="getComparison(result.month).predicted !== null">
               {{ formatCurrency(getComparison(result.month).predicted as number) }}
             </span>
-            <span v-else class="text-gray-300">—</span>
+            <span v-else class="text-neutral-300">—</span>
           </td>
           <!-- 对比列：差额 -->
           <td
@@ -793,23 +793,23 @@ function getValueClass(value: number): string {
 </template>
 
 <style scoped>
-/* 拖拽插入线：用 box-shadow 不占布局空间，避免列宽跳动 */
+/* 拖拽插入线：用 box-shadow 不占布局空间，避免列宽跳动；主色 indigo-600 */
 .drag-line-left {
-  box-shadow: -2px 0 0 0 #3b82f6;
+  box-shadow: -2px 0 0 0 #4f46e5;
 }
 .drag-line-right {
-  box-shadow: 2px 0 0 0 #3b82f6;
+  box-shadow: 2px 0 0 0 #4f46e5;
 }
-/* 隔行斑马纹：偶数行极淡灰 */
+/* 隔行斑马纹：偶数行极淡灰（slate-500 4%） */
 tbody tr:nth-child(even) {
-  background-color: rgb(107 114 128 / 0.04);
+  background-color: rgb(100 116 139 / 0.04);
 }
-/* 行 hover：整行变淡绿（green-50），特异性高于斑马纹故能覆盖 */
+/* 行 hover：整行变中性浅灰（slate-100），特异性高于斑马纹故能覆盖 */
 tbody tr:hover {
-  background-color: #f0fdf4;
+  background-color: #f1f5f9;
 }
-/* hover 行内单元格同步变绿，覆盖已编辑/锚点的蓝色高亮 */
+/* hover 行内单元格同步变中性浅灰，覆盖已编辑/锚点的高亮 */
 tbody tr:hover td {
-  background-color: #f0fdf4;
+  background-color: #f1f5f9;
 }
 </style>
