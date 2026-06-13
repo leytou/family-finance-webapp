@@ -54,7 +54,7 @@ onUnmounted(() => {
         <button
           type="button"
           class="px-3 py-1"
-          :class="granularity === 'month' ? 'bg-blue-100' : 'hover:bg-gray-50'"
+          :class="granularity === 'month' ? 'bg-brand-50' : 'hover:bg-neutral-50'"
           @click="granularity = 'month'"
         >
           按月
@@ -62,7 +62,7 @@ onUnmounted(() => {
         <button
           type="button"
           class="px-3 py-1 border-l"
-          :class="granularity === 'year' ? 'bg-blue-100' : 'hover:bg-gray-50'"
+          :class="granularity === 'year' ? 'bg-brand-50' : 'hover:bg-neutral-50'"
           @click="granularity = 'year'"
         >
           按年

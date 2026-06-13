@@ -25,15 +25,18 @@ export interface ChartOption {
   tooltip: { trigger: string }
   legend: { data: string[] }
   grid: { left: string; right: string; bottom: string; containLabel: boolean }
-  xAxis: { type: string; data: string[] }
-  yAxis: { type: string; alignTicks: boolean }[]
+  xAxis: { type: string; data: string[]; axisLine?: { lineStyle: { color: string } } }
+  yAxis: { type: string; alignTicks: boolean; splitLine?: { lineStyle: { color: string } } }[]
   series: ChartSeries[]
 }
 
-// 配色：收入绿 / 支出红 / 累计储蓄蓝
-const COLOR_INCOME = '#16a34a'
-const COLOR_EXPENSE = '#dc2626'
-const COLOR_CUM = '#2563eb'
+// 配色（中式：收入红 / 支出绿 / 累计储蓄靛蓝），与表格语义同源
+const COLOR_INCOME = '#dc2626'
+const COLOR_EXPENSE = '#15803d'
+const COLOR_CUM = '#4f46e5'
+// 中性轴/网格（slate-300 / slate-200），与表格中性一致
+const COLOR_AXIS = '#cbd5e1'
+const COLOR_GRID = '#e2e8f0'
 
 /** YYYYMM → 紧凑 YY/MM（如 26/01），用于按月视图 x 轴标签。 */
 export function formatAxisLabel(month: number): string {
@@ -71,10 +74,10 @@ export function buildChartOption(data: ChartData): ChartOption {
     tooltip: { trigger: 'axis' },
     legend: { data: ['收入', '支出', '累计储蓄'] },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'category', data: data.categories },
+    xAxis: { type: 'category', data: data.categories, axisLine: { lineStyle: { color: COLOR_AXIS } } },
     yAxis: [
-      { type: 'value', alignTicks: true },
-      { type: 'value', alignTicks: true },
+      { type: 'value', alignTicks: true, splitLine: { lineStyle: { color: COLOR_GRID } } },
+      { type: 'value', alignTicks: true, splitLine: { lineStyle: { color: COLOR_GRID } } },
     ],
     series: [
       { name: '收入', type: 'bar', yAxisIndex: 0, data: data.income, itemStyle: { color: COLOR_INCOME } },
