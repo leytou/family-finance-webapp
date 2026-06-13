@@ -44,8 +44,8 @@ describe('App', () => {
     expect(header.exists()).toBe(true)
     expect(header.text()).toContain('家庭财务规划')
 
-    const startMonthInput = wrapper.find('input[placeholder="YYYYMM"]')
-    expect(startMonthInput.exists()).toBe(true)
+    // 起始月份已改为 MonthPicker 触发器（按钮），不再是 placeholder=YYYYMM 的 input
+    expect(wrapper.find('button[aria-haspopup="dialog"]').exists()).toBe(true)
 
     const annualRateInput = wrapper.findAll('input').find(input => input.attributes('step') === '0.001')
     expect(annualRateInput?.exists()).toBe(true)
@@ -96,10 +96,11 @@ describe('App', () => {
     const useStore = await loadUseStore()
     const store = useStore()
 
-    const startMonthInput = wrapper.find('input[placeholder="YYYYMM"]')
-    await startMonthInput.setValue(202602)
-    await startMonthInput.trigger('blur')
-    expect(store.data.value.systemParams.startMonth).toBe(202602)
+    // 通过 MonthPicker 选 2 月：展开 → 点 2 月格
+    await wrapper.find('button[aria-haspopup="dialog"]').trigger('click')
+    await wrapper.findAll('[data-testid="month-cell"]')[1]!.trigger('click')
+    // 不写死年份（依赖运行时当前年），只校验月份部分被改成 2
+    expect(store.data.value.systemParams.startMonth % 100).toBe(2)
 
     const annualRateInput = wrapper.findAll('input').find(input => input.attributes('step') === '0.001')
     await annualRateInput?.setValue('3.5')
@@ -131,36 +132,6 @@ describe('App', () => {
 
     await initialDepositInput.setValue('50000')
     expect(store.data.value.systemParams.initialDeposit).toBe(50000)
-  })
-
-  it('起始月份输入越界月份 blur 后进位写入', async () => {
-    const App = await loadApp()
-    const wrapper = mount(App, { global: { stubs: globalStubs } })
-
-    const useStore = await loadUseStore()
-    const store = useStore()
-
-    const startMonthInput = wrapper.find('input[placeholder="YYYYMM"]')
-    await startMonthInput.setValue(202613)   // 13 月 → 进位为次年 1 月
-    await startMonthInput.trigger('blur')
-
-    expect(store.data.value.systemParams.startMonth).toBe(202701)
-  })
-
-  it('起始月份输入非法值 blur 后回退不写入', async () => {
-    const App = await loadApp()
-    const wrapper = mount(App, { global: { stubs: globalStubs } })
-
-    const useStore = await loadUseStore()
-    const store = useStore()
-    const before = store.data.value.systemParams.startMonth
-
-    const startMonthInput = wrapper.find('input[placeholder="YYYYMM"]')
-    await startMonthInput.setValue(2026)   // 位数不足 → 非法
-    await startMonthInput.trigger('blur')
-
-    expect(store.data.value.systemParams.startMonth).toBe(before)
-    expect(startMonthInput.element.value).toBe(String(before))
   })
 
   it('撤销/重做按钮初始禁用，Ctrl+Z 撤销、Ctrl+Shift+Z 重做', async () => {
