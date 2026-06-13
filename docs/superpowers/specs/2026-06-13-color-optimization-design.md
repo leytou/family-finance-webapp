@@ -33,14 +33,14 @@
 | 主色·交互 | `brand` → `indigo` | `#4f46e5`(600) / `#eef2ff`(50) / `#c7d2fe`(200) | 链接、激活/选中、累计折线、锚点行、拖拽线 |
 | 正向·红 | `positive` → `red` | `#dc2626`(600) | 收入、净储蓄增长、对比更优 |
 | 负向·绿 | `negative` → `green` | `#15803d`(700) | 支出、净储蓄下降、对比更劣 |
-| 中性·slate | `neutral` → `slate` | 底 `#fff`；文字 `#0f172a`/`#475569`/`#94a3b8`；分区底 `#f8fafc`；边框 `#e2e8f0`；hover `#f1f5f9` | 全局底、文字、边框、表头、hover、斑马纹 |
+| 中性·slate | `neutral` → `slate` | 底 `#fff`；文字 `#0f172a`/`#475569`/`#94a3b8`；分区底 `#f8fafc`；边框 `#e2e8f0` | 全局底、文字、边框、表头、斑马纹 |
 
 ### 3.2 关键语义规则
 
 - **中式全局**：`positive`=红、`negative`=绿，贯穿收支项与增减/优劣 diff。
 - **操作反馈色不反转**：`ToolsMenu` 的导入成功/失败（success/error）属 UI 操作反馈，**保留国际惯例**（成功=绿 ✓、失败=红 ✗），不跟财务中式语义混淆——"导入成功却显红"会误导。
 - **锚点行**：并入主色淡底（`brand-50`），不单独占色。
-- **行 hover**：从绿色 `#f0fdf4` 改为中性 `slate-100`（`#f1f5f9`），避免与"支出绿"语义打架。
+- **行 hover**：保持淡绿 `#f0fdf4`（green-50），带温感（走查反馈：纯中性灰偏冷）。hover 属审美反馈而非财务语义，淡绿背景不与深色支出文字混淆。
 - **金额单元格不着色**：`getValueClass` 仅给负数加斜体、不着色，金额保持中性深色；红绿只用于「快照对比差额」「对比视图 diff」「图表」与「操作反馈」。
 
 ## 4. 落地策略
@@ -73,7 +73,7 @@
 
 `MonthlyTable.vue` / `AnnualTable.vue` 的 `<style scoped>`：
 
-- 行 hover `#f0fdf4` → `#f1f5f9`
+- 行 hover：保持 `#f0fdf4`（淡绿，走查反馈）
 - 拖拽线 `#3b82f6` → `#4f46e5`
 
 ## 5. 组件落点清单
@@ -84,7 +84,7 @@
 | `App.vue` | 顶层 bg/text；按钮激活 `blue-*`→`brand`；hover `gray`→`neutral` |
 | `ScenarioTabs.vue` | 激活 `blue`→`brand`；链接 `blue`→`brand`；删除红保留（负向动作） |
 | `MonthlyTable.vue` | `diffClass` 反转（正红负绿）；锚点 `blue-100`→`brand-50`；链接/标记 `blue`→`brand`；scoped hover/拖拽线；红绿语义反转 |
-| `AnnualTable.vue` | scoped hover `#f0fdf4`→`slate-100` |
+| `AnnualTable.vue` | scoped hover 保持 `#f0fdf4`（淡绿） |
 | `ComparisonView.vue` | diff>0→`positive`(red)、<0→`negative`(green)；`gray`→`neutral` |
 | `FinanceChart.vue` | 粒度激活 `blue`→`brand` |
 | `utils/financeChart.ts` | `COLOR_INCOME/EXPENSE/CUM` + 轴线 |
@@ -106,7 +106,7 @@
 
 ## 8. 验收标准
 
-1. utility class 层无残留 `green-600`/`red-600`/`blue-*`/`gray-*` 等直写语义色（已收敛为 `brand/positive/negative/neutral` 别名）；中性色统一 `slate`。注：scoped `<style>` 与 ECharts option 无法用 class，写与别名同源的十六进制（如 `#4f46e5`、`#f1f5f9`）。
+1. utility class 层无残留 `green-600`/`red-600`/`blue-*`/`gray-*` 等直写语义色（已收敛为 `brand/positive/negative/neutral` 别名）；中性色统一 `slate`。注：scoped `<style>` 与 ECharts option 无法用 class，写与别名同源的十六进制（如 `#4f46e5`、`#f0fdf4`）。
 2. 收入=红、支出=绿，净储蓄增长=红、下降=绿，对比更优=红、更劣=绿（中式全局）。
 3. 导入成功=绿、失败=红（操作反馈保留）。
 4. 图表柱/线与表格语义色一致（同一十六进制来源）。

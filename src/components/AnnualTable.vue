@@ -255,12 +255,12 @@ function getColumnTotal(summary: YearSummary, name: string): number {
 tbody tr:nth-child(even):not(:last-child) {
   background-color: rgb(100 116 139 / 0.04);
 }
-/* 行 hover：整行变中性浅灰（slate-100），覆盖斑马纹与汇总行灰底 */
+/* 行 hover：整行变淡绿（green-50），覆盖斑马纹与汇总行灰底 */
 tbody tr:hover {
-  background-color: #f1f5f9;
+  background-color: #f0fdf4;
 }
-/* hover 行内单元格同步变中性浅灰，覆盖单元格背景 */
+/* hover 行内单元格同步变淡绿，覆盖单元格背景 */
 tbody tr:hover td {
-  background-color: #f1f5f9;
+  background-color: #f0fdf4;
 }
 </style>
