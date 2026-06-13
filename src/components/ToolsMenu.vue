@@ -65,7 +65,7 @@ async function handleFileChange(e: Event) {
 
 function handleReset() {
   open.value = false
-  if (window.confirm('确定要重置当前方案？此操作不可撤销。')) {
+  if (window.confirm('确定要重置当前方案？')) {
     reset()
   }
 }

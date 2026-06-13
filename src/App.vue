@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import AnnualTable from './components/AnnualTable.vue'
 import MonthlyTable from './components/MonthlyTable.vue'
@@ -8,8 +8,41 @@ import ComparisonView from './components/ComparisonView.vue'
 import ToolsMenu from './components/ToolsMenu.vue'
 import { calculate } from './composables/useCalculation'
 import { useStore } from './composables/useStore'
+import { useHistory } from './composables/useHistory'
 
 const { data, setStartMonth } = useStore()
+const { undo, redo, canUndo, canRedo } = useHistory()
+
+// 失焦当前输入框（触发进行中编辑的失焦提交），再执行撤销/重做
+function blurActive() {
+  ;(document.activeElement as HTMLElement | null)?.blur()
+}
+
+function doUndo() {
+  blurActive()
+  undo()
+}
+
+function doRedo() {
+  blurActive()
+  redo()
+}
+
+function onKeydown(e: KeyboardEvent) {
+  const mod = e.ctrlKey || e.metaKey
+  if (!mod) return
+  const key = e.key.toLowerCase()
+  if (key === 'z' && !e.shiftKey) {
+    e.preventDefault()
+    doUndo()
+  } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+    e.preventDefault()
+    doRedo()
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 const results = computed(() => calculate(data.value))
 
 // 对比视图切换
@@ -75,6 +108,28 @@ function onStartMonthBlur(e: Event) {
           />
         </div>
         <ToolsMenu />
+        <button
+          data-testid="undo-btn"
+          class="px-3 py-1 border rounded text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          :class="canUndo ? 'hover:bg-gray-50' : ''"
+          type="button"
+          :disabled="!canUndo"
+          title="撤销 (Ctrl+Z)"
+          @click="doUndo"
+        >
+          <span aria-hidden="true">↶</span>撤销
+        </button>
+        <button
+          data-testid="redo-btn"
+          class="px-3 py-1 border rounded text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          :class="canRedo ? 'hover:bg-gray-50' : ''"
+          type="button"
+          :disabled="!canRedo"
+          title="重做 (Ctrl+Shift+Z)"
+          @click="doRedo"
+        >
+          <span aria-hidden="true">↷</span>重做
+        </button>
         <button
           class="px-3 py-1 border rounded text-sm"
           :class="showComparison ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'"

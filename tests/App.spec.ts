@@ -1,5 +1,6 @@
 import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 
 enableAutoUnmount(afterEach)
 
@@ -160,5 +161,51 @@ describe('App', () => {
 
     expect(store.data.value.systemParams.startMonth).toBe(before)
     expect(startMonthInput.element.value).toBe(String(before))
+  })
+
+  it('撤销/重做按钮初始禁用，Ctrl+Z 撤销、Ctrl+Shift+Z 重做', async () => {
+    vi.useFakeTimers()
+    const App = await loadApp()
+    const useStore = await loadUseStore()
+    const store = useStore()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    const undoBtn = wrapper.get('[data-testid="undo-btn"]')
+    const redoBtn = wrapper.get('[data-testid="redo-btn"]')
+
+    // 初始无历史：均禁用
+    expect(undoBtn.attributes('disabled')).toBeDefined()
+    expect(redoBtn.attributes('disabled')).toBeDefined()
+
+    // 产生一次编辑并等捕获落盘（500ms 防抖）
+    store.addColumn('工资')
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(500)
+    await nextTick()
+
+    // 撤销按钮启用
+    expect(wrapper.get('[data-testid="undo-btn"]').attributes('disabled')).toBeUndefined()
+
+    // Ctrl+Z 触发撤销 → 列被移除；redo 按钮随之启用（canRedo 转为 true）
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }))
+    await nextTick()
+    await nextTick()
+
+    expect(store.data.value.columns).toHaveLength(0)
+    expect(wrapper.get('[data-testid="redo-btn"]').attributes('disabled')).toBeUndefined()
+
+    // Ctrl+Shift+Z 触发重做 → 被撤销的编辑恢复（覆盖 redo 快捷键分支）
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true }))
+    await nextTick()
+    await nextTick()
+
+    expect(store.data.value.columns).toHaveLength(1)
+
+    // 按钮点击路径触发撤销 → 列再次移除（覆盖 @click="doUndo"，与键盘共享同一 doUndo）
+    await wrapper.get('[data-testid="undo-btn"]').trigger('click')
+    await nextTick()
+    await nextTick()
+
+    expect(store.data.value.columns).toHaveLength(0)
   })
 })
