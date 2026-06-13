@@ -123,7 +123,7 @@ describe('AnnualTable', () => {
     expect(rowText(wrapper, '年末存款')).toEqual(['年末存款', '22,220', '38,390'])
 
     const endSavingsRow = wrapper.findAll('tbody tr').find((row) => row.find('td').text() === '年末存款')
-    expect(endSavingsRow?.classes()).toContain('bg-gray-50')
+    expect(endSavingsRow?.classes()).toContain('bg-neutral-50')
     expect(endSavingsRow?.classes()).toContain('font-bold')
   })
 
@@ -202,7 +202,7 @@ describe('AnnualTable', () => {
     expect(wrapper.get('table').classes()).toEqual(
       expect.arrayContaining(['text-[11px]', 'leading-tight'])
     )
-    expect(wrapper.get('thead').classes()).toEqual(expect.arrayContaining(['sticky', 'top-0', 'bg-gray-50']))
+    expect(wrapper.get('thead').classes()).toEqual(expect.arrayContaining(['sticky', 'top-0', 'bg-neutral-50']))
     expect(wrapper.get('th').classes()).toEqual(expect.arrayContaining(['px-1', 'py-0']))
 
     const yearValueCell = wrapper.findAll('tbody tr')[0].findAll('td')[1]

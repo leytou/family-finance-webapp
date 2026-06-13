@@ -141,7 +141,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
 <template>
   <div class="h-full overflow-auto border rounded bg-white">
     <table class="min-w-full border-collapse text-[11px] leading-tight">
-      <thead class="sticky top-0 z-1 bg-gray-50">
+      <thead class="sticky top-0 z-1 bg-neutral-50">
         <tr class="border-b">
           <th class="px-1 py-0 text-left font-semibold whitespace-nowrap">项目</th>
           <th
@@ -222,7 +222,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           </td>
         </tr>
 
-        <tr class="border-b bg-gray-50 font-bold">
+        <tr class="border-b bg-neutral-50 font-bold">
           <td class="px-1 py-0 whitespace-nowrap">年末存款</td>
           <td
             v-for="summary in yearSummaries"
@@ -253,14 +253,14 @@ function getColumnTotal(summary: YearSummary, name: string): number {
 <style scoped>
 /* 隔行斑马纹：偶数行极淡灰，排除年末存款汇总行 */
 tbody tr:nth-child(even):not(:last-child) {
-  background-color: rgb(107 114 128 / 0.04);
+  background-color: rgb(100 116 139 / 0.04);
 }
-/* 行 hover：整行变淡绿（green-50），覆盖斑马纹与汇总行灰底 */
+/* 行 hover：整行变中性浅灰（slate-100），覆盖斑马纹与汇总行灰底 */
 tbody tr:hover {
-  background-color: #f0fdf4;
+  background-color: #f1f5f9;
 }
-/* hover 行内单元格同步变绿，覆盖单元格背景 */
+/* hover 行内单元格同步变中性浅灰，覆盖单元格背景 */
 tbody tr:hover td {
-  background-color: #f0fdf4;
+  background-color: #f1f5f9;
 }
 </style>
