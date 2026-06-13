@@ -34,7 +34,7 @@
   → FileReader 读取 JSON 内容
   → 数据校验（JSON 格式、结构完整性、版本兼容）
   → 校验通过 → 确认对话框（提示将替换当前所有数据）
-  → 用户确认 → 写入 localStorage → 刷新页面状态
+  → 用户确认 → 写入 localStorage → 调用 useStore.loadWorkspace() 刷新内存状态
   → 校验失败 → 显示错误提示
 ```
 
@@ -111,6 +111,8 @@
 
 ### useFileIO.ts API 设计
 
+useFileIO 依赖 useStore 的 `loadWorkspace` 方法来刷新内存状态。导入写入 localStorage 后，调用 `loadWorkspace` 重新加载。
+
 ```typescript
 interface ExportResult {
   success: boolean
@@ -123,10 +125,10 @@ interface ImportResult {
 }
 
 function useFileIO() {
-  // 导出：生成 JSON 并触发下载
+  // 导出：从 localStorage 读取 workspace，包装为导出格式并触发下载
   function exportData(): ExportResult
 
-  // 导入：校验并导入文件内容
+  // 导入：校验文件 → 写入 localStorage → 调用 loadWorkspace 刷新内存状态
   async function importData(file: File): Promise<ImportResult>
 
   return { exportData, importData }
