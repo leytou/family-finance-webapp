@@ -68,4 +68,58 @@ describe('useHistory', () => {
 
     await expect(history.undo()).resolves.toBeUndefined()
   })
+
+  it('redo 恢复已撤销的值', async () => {
+    const { useStore, useHistory } = await loadModules()
+    const store = useStore()
+    const history = useHistory()
+
+    store.data.value.systemParams.annualRate = 0.05
+    await flushCapture()
+    await history.undo()
+    await nextTick()
+
+    expect(history.canRedo.value).toBe(true)
+
+    await history.redo()
+    await nextTick()
+
+    expect(store.data.value.systemParams.annualRate).toBe(0.05)
+  })
+
+  it('新编辑后重做栈被清空', async () => {
+    const { useStore, useHistory } = await loadModules()
+    const store = useStore()
+    const history = useHistory()
+
+    store.data.value.systemParams.annualRate = 0.05
+    await flushCapture()
+    await history.undo()
+    await nextTick()
+
+    store.addColumn('新列')
+    await flushCapture()
+
+    expect(history.canRedo.value).toBe(false)
+  })
+
+  it('resetHistory 清空撤销/重做栈', async () => {
+    const { useStore, useHistory } = await loadModules()
+    const store = useStore()
+    const history = useHistory()
+
+    store.addColumn('工资')
+    await flushCapture()
+    await history.undo()
+    await nextTick()
+
+    // undo 后：past 空、future 有
+    expect(history.canUndo.value).toBe(false)
+    expect(history.canRedo.value).toBe(true)
+
+    history.resetHistory(JSON.stringify(store.workspace.value))
+
+    expect(history.canUndo.value).toBe(false)
+    expect(history.canRedo.value).toBe(false)
+  })
 })

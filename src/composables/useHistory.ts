@@ -50,6 +50,26 @@ async function undo(): Promise<void> {
   restore(prev)
 }
 
+async function redo(): Promise<void> {
+  await nextTick()
+  if (future.value.length === 0) return
+  const next = future.value.pop()!
+  past.value.push(lastSnapshot)
+  lastSnapshot = next     // 设为目标态，与 undo 对称
+  restore(next)
+}
+
+// 导入数据后的钩子：整体替换工作区后，把历史从新数据起步（past/future 清空）
+function resetHistory(workspaceJson: string): void {
+  if (captureTimer) {
+    clearTimeout(captureTimer)
+    captureTimer = null
+  }
+  past.value = []
+  future.value = []
+  lastSnapshot = workspaceJson
+}
+
 export function useHistory() {
   const { workspace } = useStore()
 
@@ -73,5 +93,5 @@ export function useHistory() {
   const canUndo: ComputedRef<boolean> = computed(() => past.value.length > 0)
   const canRedo: ComputedRef<boolean> = computed(() => future.value.length > 0)
 
-  return { undo, canUndo, canRedo }
+  return { undo, redo, canUndo, canRedo, resetHistory }
 }
