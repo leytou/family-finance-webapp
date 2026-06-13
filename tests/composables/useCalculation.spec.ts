@@ -12,6 +12,7 @@ function makePlan(overrides: Partial<PlanData> = {}): PlanData {
     columns: [],
     anchors: [],
     snapshots: [],
+    events: [],
     ...overrides,
   }
 }
@@ -679,6 +680,94 @@ describe('calculate', () => {
     )
     expect(results[0].totalFlow).toBe(10000)
     expect(results[0].columnValues[0].enabled).toBe(true)
+  })
+})
+
+describe('calculate 与专项事件', () => {
+  it('单月单笔负数事件：净额计入支出与累计，columnValues 含专项虚拟值', () => {
+    const results = calculate(
+      makePlan({
+        events: [{ id: 'e1', name: '买房', month: 202601, amount: -2000000 }],
+      }),
+    )
+
+    expect(results[0]).toMatchObject({
+      monthlyExpense: 2000000,
+      monthlyIncome: 0,
+      totalFlow: -2000000,
+      monthlyBalance: -2000000,
+      cumSavings: -2000000,
+    })
+    expect(results[0].columnValues).toContainEqual(
+      expect.objectContaining({
+        id: '__events__',
+        name: '专项',
+        amount: -2000000,
+        isEdited: false,
+        enabled: true,
+      }),
+    )
+  })
+
+  it('单月单笔正数事件：计入收入', () => {
+    const results = calculate(
+      makePlan({
+        events: [{ id: 'e1', name: '奖金', month: 202601, amount: 50000 }],
+      }),
+    )
+    expect(results[0].monthlyIncome).toBe(50000)
+    expect(results[0].totalFlow).toBe(50000)
+    expect(results[0].monthlyExpense).toBe(0)
+  })
+
+  it('单月多笔事件：净额为各笔之和', () => {
+    const results = calculate(
+      makePlan({
+        events: [
+          { id: 'e1', name: '买房', month: 202601, amount: -2000000 },
+          { id: 'e2', name: '换车', month: 202601, amount: -200000 },
+        ],
+      }),
+    )
+    expect(results[0].columnValues.find((cv) => cv.name === '专项')?.amount).toBe(-2200000)
+    expect(results[0].totalFlow).toBe(-2200000)
+    expect(results[0].monthlyExpense).toBe(2200000)
+  })
+
+  it('无事件月不注入专项虚拟值', () => {
+    const results = calculate(
+      makePlan({
+        events: [{ id: 'e1', name: '买房', month: 202602, amount: -2000000 }],
+      }),
+    )
+    // 202601 无事件
+    expect(results[0].columnValues.find((cv) => cv.name === '专项')).toBeUndefined()
+    expect(results[0].totalFlow).toBe(0)
+    // 202602 有事件
+    expect(results[1].columnValues.find((cv) => cv.name === '专项')?.amount).toBe(-2000000)
+  })
+
+  it('事件不影响普通列携带延续', () => {
+    const results = calculate(
+      makePlan({
+        columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000 } }],
+        events: [{ id: 'e1', name: '买房', month: 202602, amount: -500000 }],
+      }),
+    )
+    // 202602：工资延续 10000 + 事件 -500000 = -490000
+    expect(results[1].columnValues.find((cv) => cv.id === 'col1')?.amount).toBe(10000)
+    expect(results[1].totalFlow).toBe(-490000)
+  })
+
+  it('事件参与累计储蓄递推', () => {
+    const results = calculate(
+      makePlan({
+        events: [{ id: 'e1', name: '买房', month: 202602, amount: -100000 }],
+      }),
+    )
+    expect(results[0].cumSavings).toBe(0)
+    expect(results[1].cumSavings).toBe(-100000)
+    expect(results[2].cumSavings).toBe(-100000)
   })
 })
 

@@ -986,4 +986,125 @@ describe('useStore', () => {
       expect(store.data.value.columns[0].name).toBe('工资')
     })
   })
+
+  it('默认方案的 plan 含空 events 数组', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.events).toEqual([])
+  })
+
+  it('加载缺少 events 字段的存量数据时补 [] 且不清空其它数据', async () => {
+    localStorage.setItem(
+      'family-finance-plan',
+      JSON.stringify({
+        version: 1,
+        activeId: 'sc1',
+        scenarios: [
+          {
+            id: 'sc1',
+            name: '默认方案',
+            plan: {
+              version: 2,
+              systemParams: { startMonth: 202601, annualRate: 0.025 },
+              columns: [],
+              anchors: [{ month: 202601, actualSavings: 100000 }],
+              // 故意不含 events
+            },
+          },
+        ],
+      }),
+    )
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.events).toEqual([])
+    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+  })
+
+  it('localStorage 中 events 含非法项时视为无效并回退默认', async () => {
+    localStorage.setItem(
+      'family-finance-plan',
+      JSON.stringify({
+        version: 1,
+        activeId: 'sc1',
+        scenarios: [
+          {
+            id: 'sc1',
+            name: '默认方案',
+            plan: {
+              version: 2,
+              systemParams: { startMonth: 202601, annualRate: 0.025 },
+              columns: [],
+              anchors: [],
+              events: [{ id: 'e1', name: '买房' }],   // 缺 month / amount
+            },
+          },
+        ],
+      }),
+    )
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.events).toEqual([])
+  })
+
+  describe('replaceMonthEvents', () => {
+    it('向空月新增事件', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+      expect(store.data.value.events).toHaveLength(1)
+      expect(store.data.value.events[0]).toMatchObject({
+        name: '买房',
+        month: 202601,
+        amount: -2000000,
+      })
+      expect(store.data.value.events[0].id).toBeDefined()
+    })
+
+    it('替换该月全部事件（旧值被覆盖）', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+      store.replaceMonthEvents(202601, [
+        { name: '换车', amount: -200000 },
+        { name: '生育', amount: -50000 },
+      ])
+      expect(store.data.value.events).toHaveLength(2)
+      expect(store.data.value.events.map((e) => e.name)).toEqual(['换车', '生育'])
+    })
+
+    it('只影响目标月，不动其它月', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+      store.replaceMonthEvents(202602, [{ name: '换车', amount: -200000 }])
+      store.replaceMonthEvents(202601, [{ name: '生育', amount: -50000 }])
+      const counts = store.data.value.events.reduce((map, e) => {
+        map.set(e.month, (map.get(e.month) ?? 0) + 1)
+        return map
+      }, new Map<number, number>())
+      expect(counts.get(202601)).toBe(1)
+      expect(counts.get(202602)).toBe(1)
+    })
+
+    it('半空行（名称空或金额非有限）被丢弃', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202601, [
+        { name: '买房', amount: -2000000 },
+        { name: '', amount: -100 },
+        { name: '无效', amount: NaN },
+        { name: '   ', amount: 500 },
+      ])
+      expect(store.data.value.events).toHaveLength(1)
+      expect(store.data.value.events[0].name).toBe('买房')
+    })
+
+    it('传空数组清空该月全部事件', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+      store.replaceMonthEvents(202601, [])
+      expect(store.data.value.events).toEqual([])
+    })
+  })
 })

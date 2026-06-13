@@ -3,6 +3,9 @@ import { addMonths } from '../utils/month'
 
 const PROJECTION_MONTHS = 60
 
+// 虚拟「专项」列值在 columnValues 中的固定 id（事件求和注入；非真实 FlowColumn）
+const EVENT_COLUMN_ID = '__events__'
+
 /**
  * 解析某列在指定月份的显示值
  * @param column 现金流列
@@ -80,6 +83,20 @@ export function calculate(plan: PlanData): MonthResult[] {
 
     // 解析各列在该月的值（含禁用列，供月表灰显）
     const columnValues = plan.columns.map(col => resolveColumnValue(col, month))
+
+    // 注入虚拟「专项」列值：该月所有事件求和（仅事件月产生，空月不注入）
+    // 事件是脉冲，不经 resolveColumnValue，故不受携带延续影响
+    const monthEvents = plan.events.filter(e => e.month === month)
+    if (monthEvents.length > 0) {
+      const eventsNet = monthEvents.reduce((sum, e) => sum + e.amount, 0)
+      columnValues.push({
+        id: EVENT_COLUMN_ID,
+        name: '专项',
+        amount: eventsNet,
+        isEdited: false,
+        enabled: true,
+      })
+    }
 
     // 仅启用列参与统计；缺省(undefined)视为启用
     const activeValues = columnValues.filter(col => col.enabled !== false)
