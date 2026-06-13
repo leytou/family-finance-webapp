@@ -10,6 +10,7 @@ function createTestPlan(overrides: Partial<PlanData> = {}): PlanData {
     columns: [],
     anchors: [],
     snapshots: [],
+    events: [],
     ...overrides,
   }
 }
