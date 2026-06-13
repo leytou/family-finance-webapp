@@ -63,7 +63,7 @@ const startMonth = computed({
 </script>
 
 <template>
-  <div class="h-screen flex flex-col px-8">
+  <div class="h-screen flex flex-col px-8 bg-white text-neutral-900">
     <header class="h-12 flex items-center justify-between px-4 border-b">
       <div class="flex items-center gap-3">
         <h1 class="text-lg font-bold whitespace-nowrap">家庭财务规划</h1>
@@ -99,7 +99,7 @@ const startMonth = computed({
         <button
           data-testid="undo-btn"
           class="px-3 py-1 border rounded text-sm disabled:cursor-not-allowed disabled:opacity-40"
-          :class="canUndo ? 'hover:bg-gray-50' : ''"
+          :class="canUndo ? 'hover:bg-neutral-50' : ''"
           type="button"
           :disabled="!canUndo"
           title="撤销 (Ctrl+Z)"
@@ -110,7 +110,7 @@ const startMonth = computed({
         <button
           data-testid="redo-btn"
           class="px-3 py-1 border rounded text-sm disabled:cursor-not-allowed disabled:opacity-40"
-          :class="canRedo ? 'hover:bg-gray-50' : ''"
+          :class="canRedo ? 'hover:bg-neutral-50' : ''"
           type="button"
           :disabled="!canRedo"
           title="重做 (Ctrl+Shift+Z)"
@@ -120,7 +120,7 @@ const startMonth = computed({
         </button>
         <button
           class="px-3 py-1 border rounded text-sm"
-          :class="activeView === 'chart' ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'"
+          :class="activeView === 'chart' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
           type="button"
           @click="showView('chart')"
         >
@@ -128,7 +128,7 @@ const startMonth = computed({
         </button>
         <button
           class="px-3 py-1 border rounded text-sm"
-          :class="activeView === 'comparison' ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'"
+          :class="activeView === 'comparison' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
           type="button"
           @click="showView('comparison')"
         >
