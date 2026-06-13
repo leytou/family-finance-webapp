@@ -64,3 +64,18 @@ export interface Workspace {
   scenarios: Scenario[]
   activeId: string    // 当前激活（查看/编辑）的方案 id
 }
+
+export interface ColumnSummary {
+  name: string
+  total: number
+}
+
+export interface YearSummary {
+  year: number
+  startSavings: number
+  columnSummaries: ColumnSummary[]
+  totalFlow: number
+  investReturn: number
+  yearBalance: number
+  endSavings: number
+}

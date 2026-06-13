@@ -1,23 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { MonthResult } from '../types'
+import type { MonthResult, YearSummary, ColumnSummary } from '../types'
 import { formatCurrency } from '../utils/format'
-
-interface ColumnSummary {
-  name: string
-  total: number
-}
-
-interface YearSummary {
-  year: number
-  startSavings: number
-  columnSummaries: ColumnSummary[]
-  totalFlow: number
-  investReturn: number
-  yearBalance: number
-  endSavings: number
-}
 
 const props = defineProps<{
   results: MonthResult[]
@@ -126,7 +111,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
         </tr>
       </thead>
       <tbody>
-        <tr class="border-b hover:bg-green-50 even:bg-gray-500/[0.04]">
+        <tr class="border-b">
           <td class="px-1 py-0 whitespace-nowrap">年初存款</td>
           <td
             v-for="summary in yearSummaries"
@@ -138,7 +123,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           </td>
         </tr>
 
-        <tr v-for="name in allColumnNames" :key="`col-${name}`" class="border-b hover:bg-green-50 even:bg-gray-500/[0.04]">
+        <tr v-for="name in allColumnNames" :key="`col-${name}`" class="border-b">
           <td class="px-1 py-0 whitespace-nowrap">{{ name }}</td>
           <td
             v-for="summary in yearSummaries"
@@ -152,7 +137,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           </td>
         </tr>
 
-        <tr class="border-b hover:bg-green-50 even:bg-gray-500/[0.04]">
+        <tr class="border-b">
           <td class="px-1 py-0 whitespace-nowrap">理财收益</td>
           <td
             v-for="summary in yearSummaries"
@@ -164,7 +149,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           </td>
         </tr>
 
-        <tr class="border-b font-semibold hover:bg-green-50 even:bg-gray-500/[0.04]">
+        <tr class="border-b font-semibold">
           <td class="px-1 py-0 whitespace-nowrap">年度结余</td>
           <td
             v-for="summary in yearSummaries"
@@ -191,3 +176,18 @@ function getColumnTotal(summary: YearSummary, name: string): number {
     </table>
   </div>
 </template>
+
+<style scoped>
+/* 隔行斑马纹：偶数行极淡灰，排除年末存款汇总行 */
+tbody tr:nth-child(even):not(:last-child) {
+  background-color: rgb(107 114 128 / 0.04);
+}
+/* 行 hover：整行变淡绿（green-50），覆盖斑马纹与汇总行灰底 */
+tbody tr:hover {
+  background-color: #f0fdf4;
+}
+/* hover 行内单元格同步变绿，覆盖单元格背景 */
+tbody tr:hover td {
+  background-color: #f0fdf4;
+}
+</style>
