@@ -91,10 +91,48 @@ export interface YearFormulaContext {
   events: { name: string; amount: number }[]
 }
 
+const YEAR_LABELS: Record<YearFormulaField, string> = {
+  startSavings: '年初存款',
+  investReturn: '理财收益',
+  yearBalance: '年度结余',
+  endSavings: '年末存款',
+  events: '专项',
+}
+
 export function buildYearFormula(
-  _summary: YearSummary,
-  _field: YearFormulaField,
-  _ctx: YearFormulaContext,
+  summary: YearSummary,
+  field: YearFormulaField,
+  ctx: YearFormulaContext,
 ): { title: string; lines: string[] } {
-  throw new Error('buildYearFormula: 尚未实现（Task 3）')
+  const title = `${summary.year} - ${YEAR_LABELS[field]}`
+
+  let line: string
+  switch (field) {
+    case 'startSavings':
+      line = ctx.isFirstYear
+        ? `年初存款 = 初始存款(${formatCurrency(ctx.initialDeposit)})`
+        : `年初存款 = 上年年末存款(${formatCurrency(ctx.prevYearEndSavings)})`
+      break
+    case 'investReturn':
+      line = `理财收益 = 全年各月理财收益合计 = ${formatCurrency(summary.investReturn)}`
+      break
+    case 'yearBalance': {
+      const items = summary.columnSummaries.map(c => ({ name: c.name, amount: c.total }))
+      items.push({ name: '理财收益', amount: summary.investReturn })
+      line = `年度结余 = ${formatItems(items)} = ${formatCurrency(summary.yearBalance)}`
+      break
+    }
+    case 'endSavings':
+      line = `年末存款 = 年初存款(${formatCurrency(summary.startSavings)}) + 年度结余(${formatCurrency(summary.yearBalance)}) = ${formatCurrency(summary.endSavings)}`
+      break
+    case 'events': {
+      const net = ctx.events.reduce((sum, e) => sum + e.amount, 0)
+      line = ctx.events.length === 0
+        ? `专项 = ${formatCurrency(net)}`
+        : `专项 = ${formatItems(ctx.events)} = ${formatCurrency(net)}`
+      break
+    }
+  }
+
+  return { title, lines: [line] }
 }
