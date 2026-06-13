@@ -1,12 +1,44 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
+import FormulaPopover from './FormulaPopover.vue'
 import type { MonthResult, YearSummary, ColumnSummary } from '../types'
 import { formatCurrency } from '../utils/format'
+import { buildYearFormula, type YearFormulaField, type YearFormulaContext } from '../utils/formula'
+import { useStore } from '../composables/useStore'
 
 const props = defineProps<{
   results: MonthResult[]
 }>()
+
+const store = useStore()
+
+// 专项事件按年聚合（供专项行 hover 公式使用）
+const eventsByYear = computed(() => {
+  const map = new Map<number, { name: string; amount: number }[]>()
+  for (const e of store.data.value.events) {
+    const year = Math.floor(e.month / 100)
+    const arr = map.get(year) ?? []
+    arr.push({ name: e.name, amount: e.amount })
+    map.set(year, arr)
+  }
+  return map
+})
+
+// hover 公式弹窗状态
+const popover = ref<{ title: string; lines: string[]; x: number; y: number } | null>(null)
+
+function showYearFormula(summary: YearSummary, field: YearFormulaField, event: MouseEvent): void {
+  const idx = yearSummaries.value.findIndex(s => s.year === summary.year)
+  const ctx: YearFormulaContext = {
+    isFirstYear: idx === 0,
+    initialDeposit: store.data.value.systemParams.initialDeposit ?? 0,
+    prevYearEndSavings: idx > 0 ? yearSummaries.value[idx - 1].endSavings : 0,
+    events: eventsByYear.value.get(summary.year) ?? [],
+  }
+  const { title, lines } = buildYearFormula(summary, field, ctx)
+  popover.value = { title, lines, x: event.clientX + 10, y: event.clientY + 10 }
+}
 
 const yearSummaries = computed<YearSummary[]>(() => {
   const sortedResults = [...props.results].sort((left, right) => left.month - right.month)
@@ -119,7 +151,11 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.startSavings < 0 }"
           >
-            {{ formatCurrency(summary.startSavings) }}
+            <span
+              class="block w-full"
+              @mouseenter="showYearFormula(summary, 'startSavings', $event)"
+              @mouseleave="popover = null"
+            >{{ formatCurrency(summary.startSavings) }}</span>
           </td>
         </tr>
 
@@ -133,7 +169,13 @@ function getColumnTotal(summary: YearSummary, name: string): number {
               'italic': getColumnTotal(summary, name) < 0
             }"
           >
-            {{ formatCurrency(getColumnTotal(summary, name)) }}
+            <span
+              v-if="name === '专项'"
+              class="block w-full"
+              @mouseenter="showYearFormula(summary, 'events', $event)"
+              @mouseleave="popover = null"
+            >{{ formatCurrency(getColumnTotal(summary, name)) }}</span>
+            <template v-else>{{ formatCurrency(getColumnTotal(summary, name)) }}</template>
           </td>
         </tr>
 
@@ -145,7 +187,11 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.investReturn < 0 }"
           >
-            {{ formatCurrency(summary.investReturn) }}
+            <span
+              class="block w-full"
+              @mouseenter="showYearFormula(summary, 'investReturn', $event)"
+              @mouseleave="popover = null"
+            >{{ formatCurrency(summary.investReturn) }}</span>
           </td>
         </tr>
 
@@ -157,7 +203,11 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.yearBalance < 0 }"
           >
-            {{ formatCurrency(summary.yearBalance) }}
+            <span
+              class="block w-full"
+              @mouseenter="showYearFormula(summary, 'yearBalance', $event)"
+              @mouseleave="popover = null"
+            >{{ formatCurrency(summary.yearBalance) }}</span>
           </td>
         </tr>
 
@@ -169,11 +219,23 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.endSavings < 0 }"
           >
-            {{ formatCurrency(summary.endSavings) }}
+            <span
+              class="block w-full"
+              @mouseenter="showYearFormula(summary, 'endSavings', $event)"
+              @mouseleave="popover = null"
+            >{{ formatCurrency(summary.endSavings) }}</span>
           </td>
         </tr>
       </tbody>
     </table>
+    <FormulaPopover
+      v-if="popover"
+      :title="popover.title"
+      :lines="popover.lines"
+      :x="popover.x"
+      :y="popover.y"
+      @close="popover = null"
+    />
   </div>
 </template>
 

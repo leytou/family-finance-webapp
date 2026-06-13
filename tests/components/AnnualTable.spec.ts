@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import AnnualTable from '../../src/components/AnnualTable.vue'
+import { useStore as useSharedStore } from '../../src/composables/useStore'
 import type { MonthResult } from '../../src/types'
 
 function createResult(overrides: Partial<MonthResult> = {}): MonthResult {
@@ -333,5 +334,87 @@ describe('AnnualTable', () => {
     })
     // 年度合计 = -2,000,000 + -200,000 = -2,200,000
     expect(rowText(wrapper, '专项')).toEqual(['专项', '-2,200,000'])
+  })
+
+  it('hover 年度结余单元格显示构成公式', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+
+    const wrapper = mount(AnnualTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            columnValues: [
+              { id: 'c1', name: '工资', amount: 10000, isEdited: true },
+              { id: 'c2', name: '育儿', amount: -1500, isEdited: true },
+            ],
+            totalFlow: 8500,
+            investReturn: 100,
+            monthlyIncome: 10000,
+            monthlyExpense: 1500,
+            monthlyBalance: 8600,
+            cumSavings: 8600,
+          }),
+          createResult({
+            month: 202602,
+            columnValues: [
+              { id: 'c1', name: '工资', amount: 10000, isEdited: false },
+              { id: 'c2', name: '育儿', amount: -1500, isEdited: false },
+            ],
+            totalFlow: 8500,
+            investReturn: 100,
+            monthlyIncome: 10000,
+            monthlyExpense: 1500,
+            monthlyBalance: 8600,
+            cumSavings: 17200,
+          }),
+        ],
+      },
+    })
+
+    const balanceRow = wrapper.findAll('tbody tr').find(r => r.find('td').text() === '年度结余')!
+    const valueCell = balanceRow.findAll('td')[1]
+    await valueCell.find('span').trigger('mouseenter', { clientX: 100, clientY: 120 })
+
+    const popover = wrapper.findComponent({ name: 'FormulaPopover' })
+    expect(popover.exists()).toBe(true)
+    expect(popover.text()).toContain('2026 - 年度结余')
+    expect(popover.text()).toContain('年度结余 = 工资(20,000) - 育儿(3,000) + 理财收益(200) = 17,200')
+
+    await valueCell.find('span').trigger('mouseleave')
+    expect(wrapper.findComponent({ name: 'FormulaPopover' }).exists()).toBe(false)
+  })
+
+  it('hover 专项行显示各事件之和公式', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    store.replaceMonthEvents(202601, [
+      { name: '买房', amount: -500000 },
+      { name: '卖房', amount: 300000 },
+    ])
+    // results 需含虚拟专项列，使年度表渲染出「专项」行
+    const results = [
+      createResult({
+        month: 202601,
+        columnValues: [{ id: '__events__', name: '专项', amount: -200000, isEdited: false, enabled: true }],
+        totalFlow: -200000,
+        monthlyExpense: 200000,
+        monthlyBalance: -200000,
+        cumSavings: -200000,
+      }),
+    ]
+
+    const wrapper = mount(AnnualTable, { props: { results } })
+    const eventRow = wrapper.findAll('tbody tr').find(r => r.find('td').text() === '专项')!
+    const valueCell = eventRow.findAll('td')[1]
+    await valueCell.find('span').trigger('mouseenter', { clientX: 100, clientY: 120 })
+
+    const popover = wrapper.findComponent({ name: 'FormulaPopover' })
+    expect(popover.exists()).toBe(true)
+    expect(popover.text()).toContain('2026 - 专项')
+    expect(popover.text()).toContain('专项 = -买房(500,000) + 卖房(300,000) = -200,000')
   })
 })
