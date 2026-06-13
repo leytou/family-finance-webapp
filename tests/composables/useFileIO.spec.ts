@@ -63,4 +63,129 @@ describe('useFileIO', () => {
       removeChildSpy.mockRestore()
     })
   })
+
+  describe('importData', () => {
+    it('有效导出文件可成功导入并写入 localStorage', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.addColumn('工资')
+      store.data.value.systemParams.annualRate = 0.05
+      store.save()
+
+      const workspaceRaw = localStorage.getItem('family-finance-plan')!
+      const exportPayload = {
+        exportVersion: 1,
+        exportTime: new Date().toISOString(),
+        data: JSON.parse(workspaceRaw),
+      }
+
+      localStorage.clear()
+      vi.resetModules()
+
+      const file = new File(
+        [JSON.stringify(exportPayload)],
+        'export.json',
+        { type: 'application/json' },
+      )
+
+      const useFileIO = await loadUseFileIO()
+      const { importData } = useFileIO()
+      const result = await importData(file)
+
+      expect(result.success).toBe(true)
+
+      const saved = JSON.parse(localStorage.getItem('family-finance-plan')!)
+      expect(saved.version).toBe(1)
+      expect(saved.scenarios[0].plan.columns).toHaveLength(1)
+      expect(saved.scenarios[0].plan.columns[0].name).toBe('工资')
+      expect(saved.scenarios[0].plan.systemParams.annualRate).toBe(0.05)
+    })
+
+    it('拒绝非 JSON 文件（内容不是合法 JSON）', async () => {
+      const file = new File(['not json content'], 'bad.txt', { type: 'text/plain' })
+
+      const useFileIO = await loadUseFileIO()
+      const { importData } = useFileIO()
+      const result = await importData(file)
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('无法解析')
+    })
+
+    it('拒绝缺少 exportVersion 的 JSON', async () => {
+      const file = new File(
+        [JSON.stringify({ data: { version: 1, scenarios: [], activeId: 'x' } })],
+        'bad.json',
+        { type: 'application/json' },
+      )
+
+      const useFileIO = await loadUseFileIO()
+      const { importData } = useFileIO()
+      const result = await importData(file)
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('格式不正确')
+    })
+
+    it('拒绝缺少 data 字段的 JSON', async () => {
+      const file = new File(
+        [JSON.stringify({ exportVersion: 1 })],
+        'bad.json',
+        { type: 'application/json' },
+      )
+
+      const useFileIO = await loadUseFileIO()
+      const { importData } = useFileIO()
+      const result = await importData(file)
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('格式不正确')
+    })
+
+    it('拒绝 data 内部 Workspace 结构不完整的文件', async () => {
+      const file = new File(
+        [JSON.stringify({ exportVersion: 1, exportTime: '...', data: { version: 1 } })],
+        'bad.json',
+        { type: 'application/json' },
+      )
+
+      const useFileIO = await loadUseFileIO()
+      const { importData } = useFileIO()
+      const result = await importData(file)
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('数据结构')
+    })
+
+    it('接受合法的最小化 workspace', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.save()
+
+      const workspaceRaw = localStorage.getItem('family-finance-plan')!
+      const exportPayload = {
+        exportVersion: 1,
+        exportTime: new Date().toISOString(),
+        data: JSON.parse(workspaceRaw),
+      }
+
+      localStorage.clear()
+      vi.resetModules()
+
+      const file = new File(
+        [JSON.stringify(exportPayload)],
+        'export.json',
+        { type: 'application/json' },
+      )
+
+      const useFileIO = await loadUseFileIO()
+      const { importData } = useFileIO()
+      const result = await importData(file)
+
+      expect(result.success).toBe(true)
+      const saved = JSON.parse(localStorage.getItem('family-finance-plan')!)
+      expect(saved.version).toBe(1)
+      expect(saved.scenarios).toHaveLength(1)
+    })
+  })
 })
