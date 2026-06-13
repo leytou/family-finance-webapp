@@ -801,4 +801,60 @@ describe('MonthlyTable', () => {
       expect(dynamicHeaders(wrapper)[0]!.classes()).not.toContain('opacity-50')
     })
   })
+
+  describe('专项事件列', () => {
+    it('表头包含"专项"固定列', async () => {
+      const useStore = await loadUseStore()
+      useStore()
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+      const headers = wrapper.findAll('th').map((c) => c.text())
+      expect(headers).toContain('专项')
+    })
+
+    it('无事件月专项格为空白', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601 })] } })
+      const cell = wrapper.find('[aria-label="编辑 2026-01 专项"]')
+      expect(cell.exists()).toBe(true)
+      expect(cell.text().trim()).toBe('')
+    })
+
+    it('有事件月显示净额，≥2 笔显示 ·N 角标', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.replaceMonthEvents(202601, [
+        { name: '买房', amount: -2000000 },
+        { name: '换车', amount: -200000 },
+      ])
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601 })] } })
+      const cell = wrapper.find('[aria-label="编辑 2026-01 专项"]')
+      expect(cell.text()).toContain('-2,200,000')
+      expect(cell.text()).toContain('·2')
+    })
+
+    it('单笔事件显示净额但无角标', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601 })] } })
+      const cell = wrapper.find('[aria-label="编辑 2026-01 专项"]')
+      expect(cell.text()).toContain('-2,000,000')
+      expect(cell.text()).not.toContain('·')
+    })
+
+    it('点击专项格打开事件编辑器', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601 })] } })
+      await wrapper.find('[aria-label="编辑 2026-01 专项"]').trigger('click', { clientX: 50, clientY: 60 })
+      const editor = wrapper.findComponent({ name: 'EventEditor' })
+      expect(editor.exists()).toBe(true)
+      expect(editor.text()).toContain('专项')
+    })
+  })
 })

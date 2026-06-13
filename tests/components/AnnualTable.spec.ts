@@ -307,4 +307,31 @@ describe('AnnualTable', () => {
     })
     expect(rowText(wrapper, '工资')).toEqual(['工资', '10,000'])
   })
+
+  it('聚合「专项」虚拟列值为年度合计行（零代码改动）', () => {
+    const wrapper = mount(AnnualTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            columnValues: [{ id: '__events__', name: '专项', amount: -2000000, isEdited: false, enabled: true }],
+            totalFlow: -2000000,
+            monthlyExpense: 2000000,
+            monthlyBalance: -2000000,
+            cumSavings: -2000000,
+          }),
+          createResult({
+            month: 202602,
+            columnValues: [{ id: '__events__', name: '专项', amount: -200000, isEdited: false, enabled: true }],
+            totalFlow: -200000,
+            monthlyExpense: 200000,
+            monthlyBalance: -200000,
+            cumSavings: -2200000,
+          }),
+        ],
+      },
+    })
+    // 年度合计 = -2,000,000 + -200,000 = -2,200,000
+    expect(rowText(wrapper, '专项')).toEqual(['专项', '-2,200,000'])
+  })
 })

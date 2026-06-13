@@ -2,7 +2,8 @@
 import { computed, nextTick, ref } from 'vue'
 import FormulaPopover from './FormulaPopover.vue'
 import ContextMenu from './ContextMenu.vue'
-import type { MonthResult, FlowColumn } from '../types'
+import EventEditor from './EventEditor.vue'
+import type { MonthResult, FlowColumn, MilestoneEvent } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 import { useStore } from '../composables/useStore'
@@ -18,6 +19,32 @@ const props = defineProps<{
 
 const store = useStore()
 const columns = computed(() => store.data.value.columns)
+
+// 专项事件：按月聚合（净额、笔数、明细）。单元格直接读此 map，不依赖 columnValues
+const ZERO_EVENT_INFO = { net: 0, count: 0, events: [] as MilestoneEvent[] }
+const eventsByMonth = computed(() => {
+  const map = new Map<number, { net: number; count: number; events: MilestoneEvent[] }>()
+  for (const e of store.data.value.events) {
+    const cur = map.get(e.month) ?? { net: 0, count: 0, events: [] }
+    cur.net += e.amount
+    cur.count += 1
+    cur.events.push(e)
+    map.set(e.month, cur)
+  }
+  return map
+})
+function eventInfo(month: number) {
+  return eventsByMonth.value.get(month) ?? ZERO_EVENT_INFO
+}
+
+// 事件编辑器状态
+const eventEditor = ref<{ month: number; x: number; y: number } | null>(null)
+function openEventEditor(month: number, event: MouseEvent) {
+  eventEditor.value = { month, x: event.clientX, y: event.clientY }
+}
+function closeEventEditor() {
+  eventEditor.value = null
+}
 
 // 动态列拖拽（列头按住拖动重排，范围限动态列内部）
 const {
@@ -521,6 +548,9 @@ function getValueClass(value: number): string {
             </button>
           </th>
 
+          <!-- 专项固定列 -->
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">专项</th>
+
           <!-- 固定列 -->
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap border-l border-gray-300">理财</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">收入</th>
@@ -584,6 +614,25 @@ function getValueClass(value: number): string {
 
           <!-- 添加列占位 -->
           <td class="px-1 py-0"></td>
+
+          <!-- 专项单元格 -->
+          <td
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer"
+            :class="[
+              eventInfo(result.month).count > 0 ? 'bg-amber-50' : '',
+              getValueClass(eventInfo(result.month).net),
+            ]"
+            :aria-label="`编辑 ${formatMonth(result.month)} 专项`"
+            @click="openEventEditor(result.month, $event)"
+          >
+            <template v-if="eventInfo(result.month).count > 0">
+              {{ formatCurrency(eventInfo(result.month).net) }}<span
+                v-if="eventInfo(result.month).count >= 2"
+                class="ml-0.5 text-blue-500"
+                aria-hidden="true"
+              >·{{ eventInfo(result.month).count }}</span>
+            </template>
+          </td>
 
           <!-- 理财列 -->
           <td
@@ -727,6 +776,15 @@ function getValueClass(value: number): string {
     :y="contextMenu.y"
     :items="contextMenuItems"
     @close="contextMenu = null"
+  />
+
+  <EventEditor
+    v-if="eventEditor"
+    :month="eventEditor.month"
+    :events="eventInfo(eventEditor.month).events"
+    :x="eventEditor.x"
+    :y="eventEditor.y"
+    @close="closeEventEditor"
   />
 </template>
 
