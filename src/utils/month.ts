@@ -54,3 +54,13 @@ export function isValidYyyyMm(value: number): boolean {
 export function normalizeMonth(value: number): number | null {
   return isValidYyyyMm(value) ? addMonths(value, 0) : null
 }
+
+/**
+ * YYYYMM → 「2026年1月」中文友好格式（紧凑显示与面板头部共用）。
+ * 与 formatMonth（YYYY-MM）并存：快照名等仍用 formatMonth。
+ */
+export function formatMonthZh(yyyymm: number): string {
+  const year = Math.floor(yyyymm / 100)
+  const month = yyyymm % 100
+  return `${year}年${month}月`
+}

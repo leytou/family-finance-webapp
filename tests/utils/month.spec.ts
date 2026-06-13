@@ -4,6 +4,7 @@ import {
   addMonths,
   compareMonth,
   formatMonth,
+  formatMonthZh,
   getCurrentMonth,
   isInRange,
   isValidYyyyMm,
@@ -74,6 +75,18 @@ describe('month utils', () => {
   describe('formatMonth', () => {
     it('formats YYYYMM as YYYY-MM', () => {
       expect(formatMonth(202606)).toBe('2026-06')
+    })
+  })
+
+  describe('formatMonthZh', () => {
+    it('YYYYMM → 「年月」中文格式', () => {
+      expect(formatMonthZh(202601)).toBe('2026年1月')
+      expect(formatMonthZh(202612)).toBe('2026年12月')
+    })
+
+    it('边界年份', () => {
+      expect(formatMonthZh(100001)).toBe('1000年1月')
+      expect(formatMonthZh(999912)).toBe('9999年12月')
     })
   })
 
