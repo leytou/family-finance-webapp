@@ -34,6 +34,7 @@ describe('App', () => {
     ScenarioTabs: true,
     ComparisonView: true,
     ToolsMenu: true,
+    FinanceChart: true,
   }
 
   it('渲染头部包含系统参数输入', async () => {
@@ -87,6 +88,18 @@ describe('App', () => {
 
     // 显示对比视图
     expect(wrapper.findComponent({ name: 'ComparisonView' }).exists()).toBe(true)
+  })
+
+  it('点击图表按钮切换到图表视图', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    expect(wrapper.findComponent({ name: 'AnnualTable' }).exists()).toBe(true)
+
+    await findButton(wrapper, '图表')?.trigger('click')
+
+    expect(wrapper.findComponent({ name: 'AnnualTable' }).exists()).toBe(false)
+    expect(wrapper.findComponent({ name: 'FinanceChart' }).exists()).toBe(true)
   })
 
   it('系统参数输入正确绑定', async () => {

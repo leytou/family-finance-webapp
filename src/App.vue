@@ -7,6 +7,7 @@ import ScenarioTabs from './components/ScenarioTabs.vue'
 import ComparisonView from './components/ComparisonView.vue'
 import ToolsMenu from './components/ToolsMenu.vue'
 import MonthPicker from './components/MonthPicker.vue'
+import FinanceChart from './components/FinanceChart.vue'
 import { calculate } from './composables/useCalculation'
 import { useStore } from './composables/useStore'
 import { useHistory } from './composables/useHistory'
@@ -46,8 +47,13 @@ onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 const results = computed(() => calculate(data.value))
 
-// 对比视图切换
-const showComparison = ref(false)
+// 视图切换：table（默认） / chart（财务趋势图） / comparison（多方案对比），三态互斥
+type ActiveView = 'table' | 'chart' | 'comparison'
+const activeView = ref<ActiveView>('table')
+
+function showView(view: ActiveView) {
+  activeView.value = activeView.value === view ? 'table' : view
+}
 
 // 起始月份：双向绑定桥接到 store 受控入口 setStartMonth（选出的值恒合法，原样写入）
 const startMonth = computed({
@@ -114,18 +120,31 @@ const startMonth = computed({
         </button>
         <button
           class="px-3 py-1 border rounded text-sm"
-          :class="showComparison ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'"
+          :class="activeView === 'chart' ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'"
           type="button"
-          @click="showComparison = !showComparison"
+          @click="showView('chart')"
+        >
+          图表
+        </button>
+        <button
+          class="px-3 py-1 border rounded text-sm"
+          :class="activeView === 'comparison' ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'"
+          type="button"
+          @click="showView('comparison')"
         >
           对比
         </button>
       </div>
     </header>
     <main class="flex-1 flex flex-col overflow-hidden">
-      <template v-if="showComparison">
+      <template v-if="activeView === 'comparison'">
         <div class="flex-1 overflow-auto">
-          <ComparisonView @close="showComparison = false" />
+          <ComparisonView @close="activeView = 'table'" />
+        </div>
+      </template>
+      <template v-else-if="activeView === 'chart'">
+        <div class="flex-1">
+          <FinanceChart :results="results" />
         </div>
       </template>
       <template v-else>
