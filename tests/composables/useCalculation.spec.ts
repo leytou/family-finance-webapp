@@ -8,6 +8,8 @@ function makePlan(overrides: Partial<PlanData> = {}): PlanData {
     systemParams: {
       startMonth: 202601,
       annualRate: 0,
+      fundRate: 0,
+      fundInterestMonth: 7,
     },
     columns: [],
     anchors: [],
@@ -28,6 +30,14 @@ function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
     monthlyBalance: 0,
     cumSavings: 0,
     isAnchor: false,
+    fundBalance: 0,
+    fundInterest: 0,
+    fundContribution: 0,
+    fundOffset: 0,
+    fundWithdrawal: 0,
+    fundOutflow: 0,
+    isFundAnchor: false,
+    totalAssets: 0,
     ...overrides,
   }
 }
@@ -763,6 +773,165 @@ describe('calculate', () => {
     )
     expect(results[0].totalFlow).toBe(10000)
     expect(results[0].columnValues[0].enabled).toBe(true)
+  })
+
+  it('无 fund 时公积金字段全为 0，totalAssets === cumSavings', () => {
+    const results = calculate(makePlan({
+      columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000 } }],
+    }))
+    const r = results[0]
+    expect(r.fundBalance).toBe(0)
+    expect(r.fundOutflow).toBe(0)
+    expect(r.totalAssets).toBe(r.cumSavings)
+    expect(r.isFundAnchor).toBe(false)
+  })
+
+  it('totalAssets === cumSavings + fundBalance（不变量，含 fund 场景）', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0.015, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: {} },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 1000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [],
+        anchors: [],
+      },
+    }))
+    for (const r of results) {
+      expect(r.totalAssets).toBe(r.cumSavings + r.fundBalance)
+    }
+  })
+
+  it('公积金缴存逐月累积到 fundBalance', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: {} },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 1000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [],
+        anchors: [],
+      },
+    }))
+    expect(results[0].fundBalance).toBe(1000)
+    expect(results[0].fundContribution).toBe(1000)
+    expect(results[1].fundBalance).toBe(2000)
+    expect(results[2].fundBalance).toBe(3000)
+  })
+
+  it('按年结息：结息月并入余额并计入 fundInterest，非结息月为 0', () => {
+    const results = calculate(makePlan({
+      // fundRate=0.12 便于手算：每月应计 = 余额*0.01
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0.12, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: {} },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 10000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [],
+        anchors: [],
+      },
+    }))
+    for (let i = 0; i < 6; i++) {
+      expect(results[i].fundInterest).toBe(0)
+    }
+    // 结息月(7月,index=6)：前6月应计(10000..60000各*0.01=2100) + 7月自身(70000*0.01=700) = 2800；余额 70000+2800=72800
+    expect(results[6].fundInterest).toBe(2800)
+    expect(results[6].fundBalance).toBe(72800)
+    expect(results[7].fundInterest).toBe(0)
+  })
+
+  it('月冲默认联动房贷月供：公积金全额抵扣，可支配净效果为 0', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 5000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} }, // 未填，默认取房贷月供 5000
+        withdrawals: [],
+        anchors: [],
+      },
+    }))
+    const r = results[0]
+    expect(r.fundContribution).toBe(5000)
+    expect(r.fundOffset).toBe(5000)
+    expect(r.fundBalance).toBe(0)
+    expect(r.monthlyExpense).toBe(5000)
+    expect(r.fundOutflow).toBe(5000)
+    expect(r.cumSavings).toBe(0)
+  })
+
+  it('月冲超余额截断：差额由可支配承担', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 2000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [],
+        anchors: [],
+      },
+    }))
+    const r = results[0]
+    expect(r.fundOffset).toBe(2000)
+    expect(r.fundBalance).toBe(0)
+    expect(r.cumSavings).toBe(-3000)
+  })
+
+  it('提取从公积金出、转入可支配，总资产不变', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: {} },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 100000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [{ id: 'w1', name: '买房提取', month: 202602, amount: 30000 }],
+        anchors: [],
+      },
+    }))
+    // 首月：缴存 100000，无提取 → fundBalance=100000，可支配 0
+    expect(results[0].fundBalance).toBe(100000)
+    expect(results[0].cumSavings).toBe(0)
+    expect(results[0].totalAssets).toBe(100000)
+    // 次月：期初 100000 + 缴存 100000 = 200000，提取 30000 → fundBalance=170000；
+    //       提取款转入可支配 → cumSavings=30000；总资产=170000+30000=200000
+    expect(results[1].fundWithdrawal).toBe(30000)
+    expect(results[1].fundBalance).toBe(170000)
+    expect(results[1].fundOutflow).toBe(30000)
+    expect(results[1].cumSavings).toBe(30000)
+    expect(results[1].totalAssets).toBe(200000)
+  })
+
+  it('提取超余额截断到余额', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: {} },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 10000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [{ id: 'w1', name: '超额提取', month: 202602, amount: 999999 }],
+        anchors: [],
+      },
+    }))
+    // 次月期初 10000 + 缴存 10000 = 20000；提取截断到 20000
+    expect(results[1].fundWithdrawal).toBe(20000)
+    expect(results[1].fundBalance).toBe(0)
+    expect(results[1].cumSavings).toBe(20000)
+  })
+
+  it('公积金余额锚点覆盖 fundBalance', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: {} },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 1000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [],
+        anchors: [{ month: 202603, actualBalance: 500000 }],
+      },
+    }))
+    expect(results[1].fundBalance).toBe(2000)
+    expect(results[2]).toMatchObject({ month: 202603, fundBalance: 500000, isFundAnchor: true })
+    expect(results[3].fundBalance).toBe(501000)
   })
 })
 

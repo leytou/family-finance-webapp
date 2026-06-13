@@ -85,35 +85,110 @@ export function hasColumnValue(column: FlowColumn, month: number): boolean {
 /**
  * 解析月冲在指定月的「目标值」：月冲有用户输入（直接编辑或延续）则用之，
  * 否则默认取房贷月供（mortgage）同月解析值（自动全额抵扣房贷）。
+ * 注意：月冲目标值是「拟抵扣金额」，取绝对值——房贷月供在可支配账户按支出记账为负数，
+ * 但月冲抵扣额本身是一个正数量（processFund 用 min 截断到余额）。
  */
 export function resolveFundOffset(fund: FundConfig, month: number): number {
   if (hasColumnValue(fund.monthlyOffset, month)) {
-    return resolveColumnValue(fund.monthlyOffset, month).amount
+    return Math.abs(resolveColumnValue(fund.monthlyOffset, month).amount)
   }
-  return resolveColumnValue(fund.mortgage, month).amount
+  return Math.abs(resolveColumnValue(fund.mortgage, month).amount)
+}
+
+/** processFund 单月公积金处理结果 */
+export interface FundMonthResult {
+  fundBalance: number
+  fundInterest: number
+  fundContribution: number
+  fundOffset: number
+  fundWithdrawal: number
+  fundOutflow: number
+  isFundAnchor: boolean
+  nextAccrual: number   // 传给下月的应计利息
 }
 
 /**
- * 计算所有月份的储蓄结果
+ * 处理单月公积金账户：缴存 → 提取 → 月冲 → 结息 → 锚点覆盖。
+ */
+export function processFund(
+  fund: FundConfig,
+  month: number,
+  prevBalance: number,
+  accrual: number,
+  fundRate: number,
+  fundInterestMonth: number,
+): FundMonthResult {
+  let balance = prevBalance
+
+  // 缴存
+  const contribution = resolveColumnValue(fund.contribution, month).amount
+  balance += contribution
+
+  // 提取（逐笔截断）
+  let withdrawalOut = 0
+  for (const w of fund.withdrawals.filter(w => w.month === month)) {
+    const take = Math.min(w.amount, balance)
+    balance -= take
+    withdrawalOut += take
+  }
+
+  // 月冲（默认联动房贷月供，截断到余额）
+  const offsetTarget = resolveFundOffset(fund, month)
+  const offsetOut = Math.min(offsetTarget, balance)
+  balance -= offsetOut
+
+  const fundOutflow = withdrawalOut + offsetOut
+
+  // 结息：按月计提，结息月并入
+  let fundInterest = 0
+  let nextAccrual = accrual + (balance * fundRate) / 12
+  if (month % 100 === fundInterestMonth) {
+    balance += nextAccrual
+    fundInterest = nextAccrual
+    nextAccrual = 0
+  }
+
+  // 锚点覆盖
+  const anchor = fund.anchors.find(a => a.month === month)
+  const isFundAnchor = Boolean(anchor)
+  if (anchor) balance = anchor.actualBalance
+
+  return {
+    fundBalance: balance,
+    fundInterest,
+    fundContribution: contribution,
+    fundOffset: offsetOut,
+    fundWithdrawal: withdrawalOut,
+    fundOutflow,
+    isFundAnchor,
+    nextAccrual,
+  }
+}
+
+/**
+ * 计算所有月份的储蓄结果（双账户：可支配储蓄 + 公积金账户）
  * @param plan 计划数据
  * @returns 月度结果数组
  */
 export function calculate(plan: PlanData): MonthResult[] {
   const results: MonthResult[] = []
+  const fund = plan.fund
+  const fundRate = plan.systemParams.fundRate ?? 0
+  const fundInterestMonth = plan.systemParams.fundInterestMonth ?? 7
+  const fundInitialBalance = Number(plan.systemParams.fundInitialBalance) || 0
+  let fundAccrual = 0 // 公积金应计利息，跨月维护
 
   for (let index = 0; index < PROJECTION_MONTHS; index++) {
     const month = addMonths(plan.systemParams.startMonth, index)
 
-    // 首月 prevCum = 初始存款（起点本金，参与投资收益）；未设置或非法时视为 0
+    // —— 可支配部分 ——
     const prevCum = index === 0
       ? (Number(plan.systemParams.initialDeposit) || 0)
       : results[index - 1].cumSavings
 
-    // 解析各列在该月的值（含禁用列，供月表灰显）
     const columnValues = plan.columns.map(col => resolveColumnValue(col, month))
 
-    // 注入虚拟「专项」列值：该月所有事件求和（仅事件月产生，空月不注入）
-    // 事件是脉冲，不经 resolveColumnValue，故不受携带延续影响
+    // 注入虚拟「专项」列值
     const monthEvents = plan.events.filter(e => e.month === month)
     if (monthEvents.length > 0) {
       const eventsNet = monthEvents.reduce((sum, e) => sum + e.amount, 0)
@@ -126,27 +201,38 @@ export function calculate(plan: PlanData): MonthResult[] {
       })
     }
 
-    // 仅启用列参与统计；缺省(undefined)视为启用
+    // 房贷月供纳入可支配统计（不出现在 columnValues，专区单独渲染）
+    const mortgageValue = fund ? resolveColumnValue(fund.mortgage, month).amount : 0
+
     const activeValues = columnValues.filter(col => col.enabled !== false)
-
-    // 汇总现金流（仅启用列）
-    const totalFlow = activeValues.reduce((sum, col) => sum + col.amount, 0)
-
-    // 计算投资收益
+    const totalFlow = activeValues.reduce((sum, col) => sum + col.amount, 0) + mortgageValue
     const investReturn = (prevCum * plan.systemParams.annualRate) / 12
-
-    // 计算本月收入（正数现金流合计）和本月支出（负数现金流绝对值合计），仅启用列
     const monthlyIncome = activeValues.reduce((sum, col) => col.amount > 0 ? sum + col.amount : sum, 0)
+      + (mortgageValue > 0 ? mortgageValue : 0)
     const monthlyExpense = activeValues.reduce((sum, col) => col.amount < 0 ? sum + Math.abs(col.amount) : sum, 0)
+      + (mortgageValue < 0 ? Math.abs(mortgageValue) : 0)
 
-    // 计算本月结余
-    const monthlyBalance = totalFlow + investReturn
+    // —— 公积金部分 ——
+    let fundBalance = 0, fundInterest = 0, fundContribution = 0
+    let fundOffset = 0, fundWithdrawal = 0, fundOutflow = 0, isFundAnchor = false
+    if (fund) {
+      const prevFundBalance = index === 0 ? fundInitialBalance : results[index - 1].fundBalance
+      const fr = processFund(fund, month, prevFundBalance, fundAccrual, fundRate, fundInterestMonth)
+      fundAccrual = fr.nextAccrual
+      fundBalance = fr.fundBalance
+      fundInterest = fr.fundInterest
+      fundContribution = fr.fundContribution
+      fundOffset = fr.fundOffset
+      fundWithdrawal = fr.fundWithdrawal
+      fundOutflow = fr.fundOutflow
+      isFundAnchor = fr.isFundAnchor
+    }
 
-    // 查找锚点
+    // —— 汇总（公积金转出抵扣可支配）——
+    const monthlyBalance = totalFlow + investReturn + fundOutflow
     const anchor = plan.anchors.find(item => item.month === month)
-
-    // 计算月末存款
     const cumSavings = anchor ? anchor.actualSavings : prevCum + monthlyBalance
+    const totalAssets = cumSavings + fundBalance
 
     results.push({
       month,
@@ -158,6 +244,14 @@ export function calculate(plan: PlanData): MonthResult[] {
       monthlyBalance,
       cumSavings,
       isAnchor: Boolean(anchor),
+      fundBalance,
+      fundInterest,
+      fundContribution,
+      fundOffset,
+      fundWithdrawal,
+      fundOutflow,
+      isFundAnchor,
+      totalAssets,
     })
   }
 
