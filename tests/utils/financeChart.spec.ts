@@ -102,4 +102,15 @@ describe('buildChartOption', () => {
     expect(cum.areaStyle?.color).toBeDefined()
     expect(cum.lineStyle?.width).toBe(2.5)
   })
+
+  it('收支柱为正值并列双柱，顶部圆角', () => {
+    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
+    const option = buildChartOption(data)
+    const income = option.series[0]
+    const expense = option.series[1]
+
+    expect(income.itemStyle?.borderRadius).toEqual([2, 2, 0, 0])
+    expect(expense.itemStyle?.borderRadius).toEqual([2, 2, 0, 0])
+    expect(income.barCategoryGap).toBe('40%')
+  })
 })

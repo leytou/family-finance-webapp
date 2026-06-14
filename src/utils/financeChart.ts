@@ -90,8 +90,16 @@ export function buildChartOption(data: ChartData): ChartOption {
       { type: 'value', alignTicks: true, splitLine: { lineStyle: { color: COLOR_GRID } } },
     ],
     series: [
-      { name: '收入', type: 'bar', yAxisIndex: 0, data: data.income, itemStyle: { color: COLOR_INCOME } },
-      { name: '支出', type: 'bar', yAxisIndex: 0, data: data.expense, itemStyle: { color: COLOR_EXPENSE } },
+      {
+        name: '收入', type: 'bar', yAxisIndex: 0, data: data.income,
+        itemStyle: { color: COLOR_INCOME, borderRadius: [2, 2, 0, 0] },
+        barCategoryGap: '40%',
+      },
+      {
+        name: '支出', type: 'bar', yAxisIndex: 0, data: data.expense,
+        itemStyle: { color: COLOR_EXPENSE, borderRadius: [2, 2, 0, 0] },
+        barCategoryGap: '40%',
+      },
       {
         name: '累计储蓄', type: 'line', yAxisIndex: 1, data: data.cumSavings,
         smooth: true, showSymbol: false,
