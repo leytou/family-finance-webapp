@@ -516,7 +516,9 @@ export function useStore() {
   }
 
   function setFundInterestMonth(m: number): void {
-    getActivePlan().systemParams.fundInterestMonth = m
+    // 结息月约束 1-12：越界 clamp 到合法区间；非有限数（NaN 等）忽略
+    if (!Number.isFinite(m)) return
+    getActivePlan().systemParams.fundInterestMonth = Math.min(12, Math.max(1, Math.round(m)))
   }
 
   function setFundInitialBalance(v: number): void {

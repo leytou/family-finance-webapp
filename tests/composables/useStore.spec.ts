@@ -1368,6 +1368,24 @@ describe('fund 操作函数', () => {
     expect(store.data.value.systemParams.fundRate).toBe(0.02)
   })
 
+  it('setFundInterestMonth clamp 到 1-12，非有限数忽略', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.setFundInterestMonth(7)
+    expect(store.data.value.systemParams.fundInterestMonth).toBe(7)
+    // 越界 clamp
+    store.setFundInterestMonth(99)
+    expect(store.data.value.systemParams.fundInterestMonth).toBe(12)
+    store.setFundInterestMonth(0)
+    expect(store.data.value.systemParams.fundInterestMonth).toBe(1)
+    // 小数四舍五入
+    store.setFundInterestMonth(6.7)
+    expect(store.data.value.systemParams.fundInterestMonth).toBe(7)
+    // NaN 忽略（保持原值 7）
+    store.setFundInterestMonth(NaN)
+    expect(store.data.value.systemParams.fundInterestMonth).toBe(7)
+  })
+
   it('syncFundYearly 把该月值复制到当前月及下方所有同月，并标记 yearly', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
