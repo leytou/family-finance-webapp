@@ -1,8 +1,9 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AnnualTable from '../../src/components/AnnualTable.vue'
 import { useStore as useSharedStore } from '../../src/composables/useStore'
+import { calculate } from '../../src/composables/useCalculation'
 import type { MonthResult } from '../../src/types'
 
 function createResult(overrides: Partial<MonthResult> = {}): MonthResult {
@@ -451,5 +452,51 @@ describe('AnnualTable', () => {
     expect(popover.exists()).toBe(true)
     expect(popover.text()).toContain('年初存款 = 锚点值(150,000)')
     expect(popover.text()).not.toContain('初始存款')
+  })
+})
+
+describe('AnnualTable · 公积金/总资产', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.resetModules()
+  })
+
+  it('未启用 fund 时不渲染公积金/总资产行', async () => {
+    const useStore = (await import('../../src/composables/useStore')).useStore
+    useStore()
+    const AnnualTable = (await import('../../src/components/AnnualTable.vue')).default
+    const results = calculate(useStore().data.value)
+    const wrapper = mount(AnnualTable, { props: { results } })
+    const rowLabels = wrapper.findAll('tbody td:first-child').map(td => td.text())
+    expect(rowLabels).not.toContain('公积金')
+    expect(rowLabels).not.toContain('总资产')
+  })
+
+  it('启用 fund 后渲染公积金与总资产行（年末值）', async () => {
+    const useStore = (await import('../../src/composables/useStore')).useStore
+    const store = useStore()
+    store.enableFund()
+    store.updateFundEntry('contribution', store.data.value.systemParams.startMonth, 1000)
+    const results = calculate(store.data.value)
+
+    const AnnualTable = (await import('../../src/components/AnnualTable.vue')).default
+    const wrapper = mount(AnnualTable, { props: { results } })
+    const rowLabels = wrapper.findAll('tbody td:first-child').map(td => td.text())
+    expect(rowLabels).toContain('公积金')
+    expect(rowLabels).toContain('总资产')
+  })
+
+  it('aggregateByYear 含 totalAssets/fundBalance 年末值', async () => {
+    const { aggregateByYear } = await import('../../src/composables/useCalculation')
+    const useStore = (await import('../../src/composables/useStore')).useStore
+    const store = useStore()
+    store.enableFund()
+    store.updateFundEntry('contribution', store.data.value.systemParams.startMonth, 1000)
+    const results = calculate(store.data.value)
+    const years = aggregateByYear(results)
+    for (const y of years) {
+      expect(typeof y.totalAssets).toBe('number')
+      expect(typeof y.fundBalance).toBe('number')
+    }
   })
 })

@@ -115,4 +115,6 @@ export interface YearSummary {
   investReturn: number
   yearBalance: number
   endSavings: number
+  fundBalance?: number   // 年末公积金余额（fund 启用时）
+  totalAssets?: number   // 年末总资产（fund 启用时）
 }

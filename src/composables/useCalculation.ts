@@ -296,6 +296,8 @@ export interface YearlyPoint {
   income: number      // 该自然年 monthlyIncome 求和
   expense: number     // 该自然年 monthlyExpense 求和（正数）
   cumSavings: number  // 该自然年最后一月的 cumSavings（年末存款）
+  totalAssets: number // 该自然年最后一月的 totalAssets（年末总资产）
+  fundBalance: number // 该自然年最后一月的 fundBalance（年末公积金）
 }
 
 /**
@@ -323,5 +325,7 @@ export function aggregateByYear(results: MonthResult[]): YearlyPoint[] {
       income: months.reduce((sum, r) => sum + r.monthlyIncome, 0),
       expense: months.reduce((sum, r) => sum + r.monthlyExpense, 0),
       cumSavings: months[months.length - 1].cumSavings,
+      totalAssets: months[months.length - 1].totalAssets,
+      fundBalance: months[months.length - 1].fundBalance,
     }))
 }

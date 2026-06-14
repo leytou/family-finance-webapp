@@ -1112,7 +1112,7 @@ describe('aggregateByYear', () => {
     ]
 
     expect(aggregateByYear(results)).toEqual([
-      { year: 2026, income: 30000, expense: 18000, cumSavings: 120000 },
+      { year: 2026, income: 30000, expense: 18000, cumSavings: 120000, totalAssets: 0, fundBalance: 0 },
     ])
   })
 
@@ -1125,8 +1125,8 @@ describe('aggregateByYear', () => {
     ]
 
     expect(aggregateByYear(results)).toEqual([
-      { year: 2026, income: 20000, expense: 10000, cumSavings: 110000 },
-      { year: 2027, income: 24000, expense: 10000, cumSavings: 130000 },
+      { year: 2026, income: 20000, expense: 10000, cumSavings: 110000, totalAssets: 0, fundBalance: 0 },
+      { year: 2027, income: 24000, expense: 10000, cumSavings: 130000, totalAssets: 0, fundBalance: 0 },
     ])
   })
 

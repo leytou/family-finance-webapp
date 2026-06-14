@@ -13,6 +13,8 @@ const props = defineProps<{
 
 const store = useStore()
 
+const fund = computed(() => store.data.value.fund)
+
 // 专项事件按年聚合（供专项行 hover 公式使用）
 const eventsByYear = computed(() => {
   const map = new Map<number, { name: string; amount: number }[]>()
@@ -46,6 +48,8 @@ function showYearFormula(summary: YearSummary, field: YearFormulaField, event: M
     initialDeposit: store.data.value.systemParams.initialDeposit ?? 0,
     prevYearEndSavings: idx > 0 ? yearSummaries.value[idx - 1].endSavings : 0,
     events: eventsByYear.value.get(summary.year) ?? [],
+    yearEndFundBalance: summary.fundBalance ?? 0,
+    yearEndTotalAssets: summary.totalAssets ?? 0,
   }
   const { title, lines } = buildYearFormula(summary, field, ctx)
   popover.value = { title, lines, x: event.clientX + 10, y: event.clientY + 10 }
@@ -96,6 +100,8 @@ const yearSummaries = computed<YearSummary[]>(() => {
         investReturn,
         yearBalance: totalFlow + investReturn,
         endSavings: lastResult.cumSavings,
+        fundBalance: lastResult.fundBalance,
+        totalAssets: lastResult.totalAssets,
       }
     })
 })
@@ -237,6 +243,37 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             >{{ formatCurrency(summary.endSavings) }}</span>
           </td>
         </tr>
+
+        <template v-if="fund">
+          <tr class="border-b">
+            <td class="px-1 py-0 whitespace-nowrap">公积金</td>
+            <td
+              v-for="summary in yearSummaries"
+              :key="`fund-${summary.year}`"
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            >
+              <span
+                class="block w-full"
+                @mouseenter="showYearFormula(summary, 'fundBalance', $event)"
+                @mouseleave="popover = null"
+              >{{ formatCurrency(summary.fundBalance ?? 0) }}</span>
+            </td>
+          </tr>
+          <tr class="border-b bg-neutral-50 font-bold">
+            <td class="px-1 py-0 whitespace-nowrap">总资产</td>
+            <td
+              v-for="summary in yearSummaries"
+              :key="`total-${summary.year}`"
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            >
+              <span
+                class="block w-full"
+                @mouseenter="showYearFormula(summary, 'totalAssets', $event)"
+                @mouseleave="popover = null"
+              >{{ formatCurrency(summary.totalAssets ?? 0) }}</span>
+            </td>
+          </tr>
+        </template>
       </tbody>
     </table>
     <FormulaPopover
