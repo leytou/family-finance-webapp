@@ -192,3 +192,100 @@ describe('buildYearFormula', () => {
     expect(lines).toEqual(['专项 = -买房(500,000) + 卖房(300,000) = -200,000'])
   })
 })
+
+describe('buildMonthFormula · 公积金字段', () => {
+  function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
+    return {
+      month: 202602, columnValues: [], totalFlow: 0, investReturn: 0,
+      monthlyIncome: 0, monthlyExpense: 0, monthlyBalance: 0, cumSavings: 5000,
+      isAnchor: false,
+      fundBalance: 3000, fundInterest: 0, fundContribution: 2000,
+      fundOffset: 1000, fundWithdrawal: 1000, fundOutflow: 2000,
+      isFundAnchor: false, totalAssets: 8000,
+      ...overrides,
+    }
+  }
+
+  it('月冲公式（自动联动房贷月供）', () => {
+    const r = makeResult({ fundOffset: 5000 })
+    const { lines } = buildMonthFormula(r, 'fundOffset', {
+      annualRate: 0.03, prevCum: 0,
+      prevFundBalance: 0, fundContribution: 0, fundWithdrawal: 0,
+      fundOffset: 5000, fundInterest: 0, fundBalance: 0,
+      fundRate: 0.015, mortgageAbs: 5000, offsetAutoLinked: true,
+    })
+    expect(lines[0]).toContain('房贷月供(5,000)')
+    expect(lines[0]).toContain('自动联动')
+  })
+
+  it('月冲公式（手填覆盖）', () => {
+    const r = makeResult({ fundOffset: 3000 })
+    const { lines } = buildMonthFormula(r, 'fundOffset', {
+      annualRate: 0.03, prevCum: 0,
+      prevFundBalance: 0, fundContribution: 0, fundWithdrawal: 0,
+      fundOffset: 3000, fundInterest: 0, fundBalance: 0,
+      fundRate: 0.015, mortgageAbs: 5000, offsetAutoLinked: false,
+    })
+    expect(lines[0]).toContain('手填值(3,000)')
+  })
+
+  it('公积金余额公式', () => {
+    const r = makeResult({ month: 202602, fundBalance: 2000 })
+    const { lines } = buildMonthFormula(r, 'fundBalance', {
+      annualRate: 0.03, prevCum: 0,
+      prevFundBalance: 2000, fundContribution: 2000, fundWithdrawal: 1000,
+      fundOffset: 1000, fundInterest: 0, fundBalance: 2000,
+      fundRate: 0.015, mortgageAbs: 0, offsetAutoLinked: false,
+    })
+    expect(lines[0]).toContain('上月余额(2,000)')
+    expect(lines[0]).toContain('缴存(2,000)')
+    expect(lines[0]).toContain('提取(1,000)')
+    expect(lines[0]).toContain('月冲(1,000)')
+    expect(lines[0]).toContain('= 2,000')
+  })
+
+  it('总资产公式', () => {
+    const r = makeResult({ cumSavings: 5000, fundBalance: 3000, totalAssets: 8000 })
+    const { lines } = buildMonthFormula(r, 'totalAssets', {
+      annualRate: 0.03, prevCum: 0,
+    })
+    expect(lines[0]).toContain('存款(5,000)')
+    expect(lines[0]).toContain('公积金(3,000)')
+    expect(lines[0]).toContain('= 8,000')
+  })
+
+  it('结息公式（结息月）', () => {
+    const r = makeResult({ fundInterest: 2800 })
+    const { lines } = buildMonthFormula(r, 'fundInterest', {
+      annualRate: 0.03, prevCum: 0, fundRate: 0.015,
+    })
+    expect(lines[0]).toContain('应计利息(2,800)')
+    expect(lines[0]).toContain('1.5%')
+  })
+})
+
+describe('buildYearFormula · 公积金字段', () => {
+  it('年末公积金公式', () => {
+    const summary: YearSummary = {
+      year: 2026, startSavings: 0, columnSummaries: [], totalFlow: 0,
+      investReturn: 0, yearBalance: 0, endSavings: 5000,
+    }
+    const { lines } = buildYearFormula(summary, 'fundBalance', {
+      isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 0,
+      prevYearEndSavings: 0, events: [],
+    } as any)
+    expect(lines[0]).toContain('年末公积金')
+  })
+
+  it('年末总资产公式', () => {
+    const summary: YearSummary = {
+      year: 2026, startSavings: 0, columnSummaries: [], totalFlow: 0,
+      investReturn: 0, yearBalance: 0, endSavings: 5000,
+    }
+    const { lines } = buildYearFormula(summary, 'totalAssets', {
+      isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 0,
+      prevYearEndSavings: 0, events: [],
+    } as any)
+    expect(lines[0]).toContain('年末总资产')
+  })
+})

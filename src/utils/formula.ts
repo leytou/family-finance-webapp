@@ -4,12 +4,25 @@ import { formatMonth } from './month'
 
 export type MonthFormulaField =
   | 'investReturn' | 'monthlyIncome' | 'monthlyExpense' | 'monthlyBalance' | 'cumSavings'
+  | 'fundOffset' | 'fundBalance' | 'fundInterest' | 'totalAssets'
 
 export interface MonthFormulaContext {
   /** 年利率，小数（0.03 表示 3%） */
   annualRate: number
   /** 上月累计储蓄；首月取初始存款 */
   prevCum: number
+  // —— 公积金公式上下文（仅 fund 字段 hover 时使用）——
+  prevFundBalance?: number
+  fundContribution?: number
+  fundWithdrawal?: number
+  fundOffset?: number
+  fundInterest?: number
+  fundBalance?: number
+  fundRate?: number
+  /** 房贷月供绝对值（月冲自动联动展示用） */
+  mortgageAbs?: number
+  /** 月冲是否自动联动房贷月供（false=手填） */
+  offsetAutoLinked?: boolean
 }
 
 const MONTH_LABELS: Record<MonthFormulaField, string> = {
@@ -18,6 +31,10 @@ const MONTH_LABELS: Record<MonthFormulaField, string> = {
   monthlyExpense: '支出',
   monthlyBalance: '结余',
   cumSavings: '存款',
+  fundOffset: '月冲',
+  fundBalance: '公积金',
+  fundInterest: '结息',
+  totalAssets: '总资产',
 }
 
 /**
@@ -76,12 +93,38 @@ export function buildMonthFormula(
         ? `存款 = 锚点值(${formatCurrency(result.cumSavings)})`
         : `存款 = 上月存款(${formatCurrency(ctx.prevCum)}) + 当月结余(${formatCurrency(result.monthlyBalance)}) = ${formatCurrency(result.cumSavings)}`
       break
+    case 'fundOffset': {
+      const v = formatCurrency(result.fundOffset)
+      line = ctx.offsetAutoLinked
+        ? `月冲 = 房贷月供(${formatCurrency(ctx.mortgageAbs ?? 0)}) [自动联动] = ${v}`
+        : `月冲 = 手填值(${v}) = ${v}`
+      break
+    }
+    case 'fundBalance': {
+      const a = formatCurrency(ctx.prevFundBalance ?? 0)
+      const b = formatCurrency(ctx.fundContribution ?? 0)
+      const c = formatCurrency(ctx.fundWithdrawal ?? 0)
+      const d = formatCurrency(ctx.fundOffset ?? 0)
+      const e = formatCurrency(ctx.fundInterest ?? 0)
+      const f = formatCurrency(result.fundBalance)
+      line = `公积金 = 上月余额(${a}) + 缴存(${b}) - 提取(${c}) - 月冲(${d}) + 结息(${e}) = ${f}`
+      break
+    }
+    case 'fundInterest': {
+      const ratePct = +((ctx.fundRate ?? 0) * 100).toFixed(1)
+      line = `结息 = 应计利息(${formatCurrency(result.fundInterest)}) [年利率 ${ratePct}%]`
+      break
+    }
+    case 'totalAssets': {
+      line = `总资产 = 存款(${formatCurrency(result.cumSavings)}) + 公积金(${formatCurrency(result.fundBalance)}) = ${formatCurrency(result.totalAssets)}`
+      break
+    }
   }
 
   return { title, lines: [line] }
 }
 
-export type YearFormulaField = 'startSavings' | 'investReturn' | 'yearBalance' | 'endSavings' | 'events'
+export type YearFormulaField = 'startSavings' | 'investReturn' | 'yearBalance' | 'endSavings' | 'events' | 'fundBalance' | 'totalAssets'
 
 export interface YearFormulaContext {
   isFirstYear: boolean
@@ -89,6 +132,10 @@ export interface YearFormulaContext {
   initialDeposit: number
   prevYearEndSavings: number
   events: { name: string; amount: number }[]
+  /** 年末公积金余额（fundBalance 公式用） */
+  yearEndFundBalance?: number
+  /** 年末总资产（totalAssets 公式用） */
+  yearEndTotalAssets?: number
 }
 
 const YEAR_LABELS: Record<YearFormulaField, string> = {
@@ -97,6 +144,8 @@ const YEAR_LABELS: Record<YearFormulaField, string> = {
   yearBalance: '年度结余',
   endSavings: '年末存款',
   events: '专项',
+  fundBalance: '年末公积金',
+  totalAssets: '年末总资产',
 }
 
 export function buildYearFormula(
@@ -136,6 +185,12 @@ export function buildYearFormula(
         : `专项 = ${formatItems(ctx.events)} = ${formatCurrency(net)}`
       break
     }
+    case 'fundBalance':
+      line = `年末公积金 = ${formatCurrency(ctx.yearEndFundBalance ?? 0)}`
+      break
+    case 'totalAssets':
+      line = `年末总资产 = ${formatCurrency(ctx.yearEndTotalAssets ?? 0)}`
+      break
   }
 
   return { title, lines: [line] }
