@@ -297,7 +297,7 @@ describe('MonthlyTable', () => {
 
     // hover 收入
     await cells[cells.length - 4].find('span').trigger('mouseenter', { clientX: 110, clientY: 120 })
-    expect(wrapper.text()).toContain('收入 = 月薪(10,000) = 10,000')
+    expect(wrapper.text()).toContain('收入 = 月薪(10,000) + 理财(125) = 10,000')
 
     // hover 支出
     await cells[cells.length - 3].find('span').trigger('mouseenter', { clientX: 120, clientY: 120 })
@@ -305,7 +305,7 @@ describe('MonthlyTable', () => {
 
     // hover 结余
     await cells[cells.length - 2].find('span').trigger('mouseenter', { clientX: 130, clientY: 120 })
-    expect(wrapper.text()).toContain('结余 = 收入(10,000) - 支出(1,500) + 理财(125) = 8,625')
+    expect(wrapper.text()).toContain('结余 = 收入(10,000) - 支出(1,500) = 8,625')
   })
 
   it('hover 累计值显示公式弹窗', async () => {
