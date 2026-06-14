@@ -13,10 +13,12 @@ function generateId(): string {
 }
 
 function createDefault(): PlanData {
+  const startMonth = getCurrentMonth()
   return {
     version: 2,
     systemParams: {
-      startMonth: getCurrentMonth(),
+      startMonth,
+      endMonth: addMonths(startMonth, 59),   // 默认 5 年期限
       annualRate: 0.025,
       initialDeposit: 0,
       fundRate: 0.015,
@@ -133,6 +135,8 @@ function isValidPlanData(value: unknown): value is PlanData {
     isFiniteNumber(value.version) &&
     isFiniteNumber(value.systemParams.startMonth) &&
     isFiniteNumber(value.systemParams.annualRate) &&
+    // endMonth 可选：缺失时由 normalizeWorkspace 补默认；存在时须为有限数
+    (value.systemParams.endMonth === undefined || isFiniteNumber(value.systemParams.endMonth)) &&
     // fund 参数可选：缺失时由 normalizeWorkspace 补默认；存在时须为有限数
     (value.systemParams.fundRate === undefined || isFiniteNumber(value.systemParams.fundRate)) &&
     (value.systemParams.fundInterestMonth === undefined || isFiniteNumber(value.systemParams.fundInterestMonth)) &&
@@ -167,6 +171,10 @@ function normalizeWorkspace(ws: Workspace): Workspace {
     }
     if (!Array.isArray(scenario.plan.events)) {
       scenario.plan.events = []
+    }
+    // endMonth 缺失或非法时补 startMonth + 59（默认 5 年）
+    if (!isFiniteNumber(scenario.plan.systemParams.endMonth)) {
+      scenario.plan.systemParams.endMonth = addMonths(scenario.plan.systemParams.startMonth, 59)
     }
     // 初始存款缺失或非有限数时补 0
     if (!isFiniteNumber(scenario.plan.systemParams.initialDeposit)) {

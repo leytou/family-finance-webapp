@@ -1,5 +1,6 @@
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { addMonths } from '../../src/utils/month'
 
 async function loadUseStore() {
   return (await import('../../src/composables/useStore')).useStore
@@ -675,6 +676,39 @@ describe('useStore', () => {
     store.addSnapshot()
     store.reset()
     expect(store.data.value.snapshots).toEqual([])
+  })
+
+  it('默认方案含 endMonth = 起始月 + 59（5 年期限）', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    const start = store.data.value.systemParams.startMonth
+    expect(store.data.value.systemParams.endMonth).toBe(addMonths(start, 59))
+  })
+
+  it('加载缺少 endMonth 的存量数据时补 起始月+59 且不清空数据', async () => {
+    localStorage.setItem(
+      'family-finance-plan',
+      JSON.stringify({
+        version: 1,
+        activeId: 'sc1',
+        scenarios: [
+          {
+            id: 'sc1',
+            name: '默认方案',
+            plan: {
+              version: 2,
+              systemParams: { startMonth: 202601, annualRate: 0.025 },
+              columns: [],
+              anchors: [{ month: 202601, actualSavings: 100000 }],
+            },
+          },
+        ],
+      }),
+    )
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.systemParams.endMonth).toBe(203012)   // addMonths(202601, 59)
+    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
   })
 
   it('默认方案的初始存款为 0', async () => {

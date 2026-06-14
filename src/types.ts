@@ -51,6 +51,7 @@ export interface PlanSnapshot {
 
 export interface SystemParams {
   startMonth: number
+  endMonth: number              // 规划结束月（YYYYMM，绝对）；期限 = monthDiff(startMonth, endMonth) + 1
   annualRate: number
   initialDeposit?: number   // 初始存款（元），作为累计计算的起点本金；缺失视为 0
   fundRate: number            // 公积金年利率，默认 0.015
