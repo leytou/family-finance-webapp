@@ -1139,4 +1139,69 @@ describe('MonthlyTable · 公积金专区', () => {
     await wrapper.find('[data-fund-offset-auto="202601"] span').trigger('mouseenter')
     expect(wrapper.text()).toContain('自动联动')
   })
+
+  it('点击公积金余额单元格打开 FundFlowEditor', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('contribution', 202601, 1000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-balance="202601"]').trigger('click')
+    expect(wrapper.findComponent({ name: 'FundFlowEditor' }).exists()).toBe(true)
+  })
+
+  it('右键公积金余额弹出锚点菜单（仅清除下方公积金锚点）', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.addFundAnchor(202603, 500000) // 下方有公积金锚点
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-balance="202601"]').trigger('contextmenu')
+    const menu = wrapper.findComponent({ name: 'ContextMenu' })
+    expect(menu.exists()).toBe(true)
+    const labels = menu.props('items').map((i: any) => i.label)
+    expect(labels).toContain('清除下方公积金锚点')
+    expect(labels).not.toContain('同步到下方每年此月')
+  })
+
+  it('公积金锚点月余额单元格高亮', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('contribution', 202601, 1000)
+    store.addFundAnchor(202603, 500000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    const anchorCell = wrapper.find('[data-fund-balance="202603"]')
+    expect(anchorCell.classes()).toContain('bg-brand-50')
+  })
+
+  it('余额单元格 hover 展示公积金余额公式', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('contribution', 202601, 1000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-balance="202601"] span').trigger('mouseenter')
+    expect(wrapper.text()).toContain('上月余额')
+  })
 })

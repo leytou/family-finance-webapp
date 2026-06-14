@@ -5,7 +5,8 @@ import { buildMonthFormula, type MonthFormulaField } from '../utils/formula'
 import ContextMenu from './ContextMenu.vue'
 import EventEditor from './EventEditor.vue'
 import EventDetailPopover from './EventDetailPopover.vue'
-import type { MonthResult, FlowColumn, MilestoneEvent, FundConfig } from '../types'
+import FundFlowEditor from './FundFlowEditor.vue'
+import type { MonthResult, FlowColumn, MilestoneEvent, FundConfig, FundWithdrawal } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 import { useStore } from '../composables/useStore'
@@ -37,6 +38,16 @@ function fundOffsetDisplay(month: number): { value: number; auto: boolean } {
     return { value: Math.abs(resolveColumnValue(fund.value.monthlyOffset, month).amount), auto: false }
   }
   return { value: resolveFundOffset(fund.value, month), auto: true }
+}
+// 公积金期初余额：上月末 fundBalance，首月取 fundInitialBalance
+function fundPrevBalance(month: number): number {
+  const idx = props.results.findIndex(r => r.month === month)
+  if (idx <= 0) return store.data.value.systemParams.fundInitialBalance ?? 0
+  return props.results[idx - 1].fundBalance
+}
+// 当月公积金提取列表（FundFlowEditor 初始化草稿用）
+function fundWithdrawalsByMonth(month: number): FundWithdrawal[] {
+  return fund.value?.withdrawals.filter(w => w.month === month) ?? []
 }
 
 // 专项事件：按月聚合（净额、笔数、明细）。单元格直接读此 map，不依赖 columnValues
@@ -77,6 +88,15 @@ function showEventDetail(month: number, event: MouseEvent) {
 }
 function hideEventDetail() {
   eventPopover.value = null
+}
+
+// 公积金流水编辑器状态
+const fundFlowEditor = ref<{ month: number; x: number; y: number } | null>(null)
+function openFundFlowEditor(month: number, event: MouseEvent) {
+  fundFlowEditor.value = { month, x: event.clientX, y: event.clientY }
+}
+function closeFundFlowEditor() {
+  fundFlowEditor.value = null
 }
 
 // 动态列拖拽（列头按住拖动重排，范围限动态列内部）
@@ -287,6 +307,8 @@ const editCellOriginalValue = ref<number>(0)
 
 // 余额列在右键菜单逻辑中的特殊列标识
 const BALANCE_COLUMN_ID = '__balance__'
+// 公积金余额列在右键菜单逻辑中的特殊列标识
+const FUND_BALANCE_COLUMN_ID = '__fund_balance__'
 
 // 右键菜单状态：columnId 为现金流列 id，或 BALANCE_COLUMN_ID 表示余额列
 const contextMenu = ref<{ columnId: string; month: number; x: number; y: number } | null>(null)
@@ -295,7 +317,9 @@ const contextMenu = ref<{ columnId: string; month: number; x: number; y: number 
 function editedBelowRows(columnId: string, month: number): MonthResult[] {
   return props.results.filter(r =>
     r.month > month &&
-    (columnId === BALANCE_COLUMN_ID ? r.isAnchor : getColumnValue(r, columnId).isEdited))
+    (columnId === BALANCE_COLUMN_ID ? r.isAnchor
+      : columnId === FUND_BALANCE_COLUMN_ID ? r.isFundAnchor
+      : getColumnValue(r, columnId).isEdited))
 }
 
 // 统计某列在指定月份"严格下方"编辑过的值的数量
@@ -308,6 +332,8 @@ function clearEditedBelow(columnId: string, month: number): void {
   editedBelowRows(columnId, month).forEach(r => {
     if (columnId === BALANCE_COLUMN_ID) {
       store.removeAnchor(r.month)
+    } else if (columnId === FUND_BALANCE_COLUMN_ID) {
+      store.removeFundAnchor(r.month)
     } else {
       store.updateColumnEntry(columnId, r.month, null)
     }
@@ -343,8 +369,10 @@ const contextMenuItems = computed(() => {
   if (!ctx) return []
   const items: { label: string; disabled?: boolean; onClick: () => void }[] = []
 
+  const isBalanceColumn = ctx.columnId === BALANCE_COLUMN_ID || ctx.columnId === FUND_BALANCE_COLUMN_ID
+
   // 同步到下方每年此月：仅现金流列，且该月存在直接编辑值时启用
-  if (ctx.columnId !== BALANCE_COLUMN_ID) {
+  if (!isBalanceColumn) {
     const column = columns.value.find(c => c.id === ctx.columnId)
     const hasDirectEntry = column ? String(ctx.month) in column.entries : false
     items.push({
@@ -362,8 +390,11 @@ const contextMenuItems = computed(() => {
   })
 
   const count = countEditedBelow(ctx.columnId, ctx.month)
+  const clearLabel = ctx.columnId === FUND_BALANCE_COLUMN_ID
+    ? '清除下方公积金锚点'
+    : '清除下方编辑值'
   items.push({
-    label: '清除下方编辑值',
+    label: clearLabel,
     disabled: count === 0,
     onClick: () => clearEditedBelow(ctx.columnId, ctx.month),
   })
@@ -954,12 +985,20 @@ function getValueClass(value: number): string {
                 @mouseleave="popover = null"
               >{{ formatCurrency(fundOffsetDisplay(result.month).value) }}</span>
             </td>
-            <!-- 公积金余额（只读；Task 6 加 click/右键/hover） -->
+            <!-- 公积金余额（左键开 FundFlowEditor / 右键锚点菜单 / hover 余额公式） -->
             <td
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer"
               :class="{ 'bg-brand-50': result.isFundAnchor }"
+              :data-fund-balance="result.month"
+              @click="openFundFlowEditor(result.month, $event)"
+              @contextmenu.prevent="openContextMenu(FUND_BALANCE_COLUMN_ID, result.month, $event)"
             >
-              <span class="block w-full">{{ formatCurrency(result.fundBalance) }}</span>
+              <span
+                class="block w-full"
+                :aria-label="getFormulaAriaLabel(result, 'fundBalance')"
+                @mouseenter="showFormula(result, 'fundBalance', $event)"
+                @mouseleave="popover = null"
+              >{{ formatCurrency(result.fundBalance) }}</span>
             </td>
             <!-- 总资产（只读，加粗，hover 公式） -->
             <td class="px-1 py-0 text-right tabular-nums whitespace-nowrap font-bold">
@@ -1031,6 +1070,17 @@ function getValueClass(value: number): string {
     :x="eventPopover.x"
     :y="eventPopover.y"
     @close="eventPopover = null"
+  />
+
+  <FundFlowEditor
+    v-if="fundFlowEditor"
+    :month="fundFlowEditor.month"
+    :result="results.find(r => r.month === fundFlowEditor!.month)!"
+    :prev-fund-balance="fundPrevBalance(fundFlowEditor.month)"
+    :withdrawals="fundWithdrawalsByMonth(fundFlowEditor.month)"
+    :x="fundFlowEditor.x"
+    :y="fundFlowEditor.y"
+    @close="closeFundFlowEditor"
   />
 </template>
 
