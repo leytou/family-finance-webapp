@@ -15,10 +15,12 @@ export interface ChartSeries {
   type: 'bar' | 'line'
   data: number[]
   yAxisIndex?: number
-  itemStyle?: { color: string }
-  lineStyle?: { color: string }
+  itemStyle?: { color: string; borderRadius?: number[] }
+  lineStyle?: { color: string; width?: number }
+  areaStyle?: { color: unknown }   // ECharts 渐变对象，类型宽松
   smooth?: boolean
   showSymbol?: boolean
+  barCategoryGap?: string
 }
 
 export interface ChartOption {
@@ -90,7 +92,21 @@ export function buildChartOption(data: ChartData): ChartOption {
     series: [
       { name: '收入', type: 'bar', yAxisIndex: 0, data: data.income, itemStyle: { color: COLOR_INCOME } },
       { name: '支出', type: 'bar', yAxisIndex: 0, data: data.expense, itemStyle: { color: COLOR_EXPENSE } },
-      { name: '累计储蓄', type: 'line', yAxisIndex: 1, data: data.cumSavings, smooth: true, showSymbol: false, lineStyle: { color: COLOR_CUM }, itemStyle: { color: COLOR_CUM } },
+      {
+        name: '累计储蓄', type: 'line', yAxisIndex: 1, data: data.cumSavings,
+        smooth: true, showSymbol: false,
+        lineStyle: { color: COLOR_CUM, width: 2.5 },
+        itemStyle: { color: COLOR_CUM },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(79,70,229,0.28)' },
+              { offset: 1, color: 'rgba(79,70,229,0.02)' },
+            ],
+          },
+        },
+      },
     ],
   }
 }

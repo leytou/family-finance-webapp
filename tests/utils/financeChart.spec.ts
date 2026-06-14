@@ -93,4 +93,13 @@ describe('buildChartOption', () => {
     expect(option.xAxis.data).toEqual(['26/01'])
     expect(option.legend.data).toEqual(['收入', '支出', '累计储蓄'])
   })
+
+  it('累计储蓄为渐变面积主线：含 areaStyle 与 2.5px 粗线', () => {
+    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
+    const cum = buildChartOption(data).series[2]
+
+    expect(cum.areaStyle).toBeDefined()
+    expect(cum.areaStyle?.color).toBeDefined()
+    expect(cum.lineStyle?.width).toBe(2.5)
+  })
 })
