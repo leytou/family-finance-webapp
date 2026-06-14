@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AnnualTable from '../../src/components/AnnualTable.vue'
 import { useStore as useSharedStore } from '../../src/composables/useStore'
 import { calculate } from '../../src/composables/useCalculation'
-import type { MonthResult } from '../../src/types'
+import type { MonthResult, PlanData } from '../../src/types'
+import auditPlan from '../fixtures/audit-plan.json'
 
 function createResult(overrides: Partial<MonthResult> = {}): MonthResult {
   return {
@@ -497,6 +498,31 @@ describe('AnnualTable · 公积金/总资产', () => {
     for (const y of years) {
       expect(typeof y.totalAssets).toBe('number')
       expect(typeof y.fundBalance).toBe('number')
+    }
+  })
+
+  it('年度结余 = 年末存款 − 年初存款（含房贷月供与公积金转入）', async () => {
+    // 用含公积金的真实数据：年度结余必须把房贷月供（支出）和
+    // 公积金月冲/提取（转入可支配）都算进去，否则与「年末−年初」对不上
+    localStorage.setItem('family-finance-plan', JSON.stringify({
+      version: 1,
+      scenarios: [{ id: 's1', name: '默认方案', plan: auditPlan as PlanData }],
+      activeId: 's1',
+    }))
+    vi.resetModules()
+    const useStore = (await import('../../src/composables/useStore')).useStore
+    const store = useStore()
+    const results = calculate(store.data.value)
+    const AnnualTableCmp = (await import('../../src/components/AnnualTable.vue')).default
+    const wrapper = mount(AnnualTableCmp, { props: { results } })
+
+    const parse = (vals: string[]) => vals.map(v => Number(v.replace(/,/g, '')))
+    const start = parse(rowText(wrapper, '年初存款').slice(1))
+    const bal = parse(rowText(wrapper, '年度结余').slice(1))
+    const end = parse(rowText(wrapper, '年末存款').slice(1))
+    // 每一年的年度结余都应等于「年末存款 − 年初存款」（容差 2 容纳四舍五入）
+    for (let i = 0; i < start.length; i++) {
+      expect(Math.abs(bal[i] - (end[i] - start[i])), `${2026 + i}年`).toBeLessThan(2)
     }
   })
 })

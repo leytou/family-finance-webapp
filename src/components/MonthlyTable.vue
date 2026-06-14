@@ -257,6 +257,7 @@ function showFormula(result: MonthResult, field: MonthFormulaField, event: Mouse
     fundRate: store.data.value.systemParams.fundRate,
     mortgageAbs: fund.value ? fundMortgageAbs(result.month) : 0,
     offsetAutoLinked: od.auto,
+    fundOffsetTarget: od.value,
   })
   popover.value = { title, lines, x: computePopoverX(event.clientX), y: event.clientY + 10 }
 }

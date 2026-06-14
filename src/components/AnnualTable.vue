@@ -7,6 +7,7 @@ import { formatCurrency } from '../utils/format'
 import { buildYearFormula, type YearFormulaField, type YearFormulaContext } from '../utils/formula'
 import { computePopoverX } from '../utils/popover'
 import { useStore } from '../composables/useStore'
+import { resolveColumnValue } from '../composables/useCalculation'
 
 const props = defineProps<{
   results: MonthResult[]
@@ -51,6 +52,8 @@ function showYearFormula(summary: YearSummary, field: YearFormulaField, event: M
     events: eventsByYear.value.get(summary.year) ?? [],
     yearEndFundBalance: summary.fundBalance ?? 0,
     yearEndTotalAssets: summary.totalAssets ?? 0,
+    yearMortgage: summary.yearMortgage ?? 0,
+    yearFundInflow: summary.yearFundInflow ?? 0,
   }
   const { title, lines } = buildYearFormula(summary, field, ctx)
   popover.value = { title, lines, x: computePopoverX(event.clientX), y: event.clientY + 10 }
@@ -93,16 +96,27 @@ const yearSummaries = computed<YearSummary[]>(() => {
       // 计算理财收益总和
       const investReturn = sortedMonths.reduce((sum, result) => sum + result.investReturn, 0)
 
+      // 年度房贷月供合计（公积金专区列不在 columnValues，单独累加；负数=支出）
+      const yearMortgage = fund.value
+        ? sortedMonths.reduce((sum, r) => sum + resolveColumnValue(fund.value!.mortgage, r.month).amount, 0)
+        : 0
+      // 年度公积金转入可支配合计（月冲 + 提取）
+      const yearFundInflow = sortedMonths.reduce((sum, r) => sum + r.fundOutflow, 0)
+      // 年度结余 = 各月结余之和，口径与月度一致（含房贷支出与公积金转入）
+      const yearBalance = sortedMonths.reduce((sum, r) => sum + r.monthlyBalance, 0)
+
       return {
         year,
         startSavings: getStartSavings(firstResult, previousResult),
         columnSummaries,
         totalFlow,
         investReturn,
-        yearBalance: totalFlow + investReturn,
+        yearBalance,
         endSavings: lastResult.cumSavings,
         fundBalance: lastResult.fundBalance,
         totalAssets: lastResult.totalAssets,
+        yearMortgage,
+        yearFundInflow,
       }
     })
 })

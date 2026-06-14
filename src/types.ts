@@ -118,4 +118,6 @@ export interface YearSummary {
   endSavings: number
   fundBalance?: number   // 年末公积金余额（fund 启用时）
   totalAssets?: number   // 年末总资产（fund 启用时）
+  yearMortgage?: number   // 年度房贷月供合计（公积金专区列，未计入 columnSummaries；负数=支出）
+  yearFundInflow?: number // 年度公积金转入可支配合计（月冲 + 提取；正数）
 }

@@ -23,6 +23,8 @@ export interface MonthFormulaContext {
   mortgageAbs?: number
   /** 月冲是否自动联动房贷月供（false=手填） */
   offsetAutoLinked?: boolean
+  /** 月冲目标值（未截断：手填值或自动联动的房贷月供绝对值），用于区分「目标」与「实际冲额」 */
+  fundOffsetTarget?: number
 }
 
 const MONTH_LABELS: Record<MonthFormulaField, string> = {
@@ -81,24 +83,45 @@ export function buildMonthFormula(
         ? `收入 = ${formatCurrency(result.monthlyIncome)}`
         : `收入 = ${formatItems(positives)} = ${formatCurrency(result.monthlyIncome)}`
       break
-    case 'monthlyExpense':
-      line = negatives.length === 0
+    case 'monthlyExpense': {
+      // 房贷月供是公积金专区列（不在 columnValues），但计入可支配支出，需补进展开
+      const items = [...negatives]
+      const mort = ctx.mortgageAbs ?? 0
+      if (mort > 0) items.push({ name: '房贷月供', amount: mort })
+      line = items.length === 0
         ? `支出 = ${formatCurrency(result.monthlyExpense)}`
-        : `支出 = ${formatItems(negatives)} = ${formatCurrency(result.monthlyExpense)}`
+        : `支出 = ${formatItems(items)} = ${formatCurrency(result.monthlyExpense)}`
       break
-    case 'monthlyBalance':
-      line = `结余 = 收入(${formatCurrency(result.monthlyIncome)}) - 支出(${formatCurrency(result.monthlyExpense)}) + 理财(${formatCurrency(result.investReturn)}) = ${formatCurrency(result.monthlyBalance)}`
+    }
+    case 'monthlyBalance': {
+      // 公积金转入可支配（月冲抵扣 + 提取）；仅当非 0 才显示，无公积金时不多一项
+      const inflow = (ctx.fundWithdrawal ?? 0) + (ctx.fundOffset ?? 0)
+      const base = `结余 = 收入(${formatCurrency(result.monthlyIncome)}) - 支出(${formatCurrency(result.monthlyExpense)}) + 理财(${formatCurrency(result.investReturn)})`
+      line = inflow > 0
+        ? `${base} + 公积金转入(${formatCurrency(inflow)}) = ${formatCurrency(result.monthlyBalance)}`
+        : `${base} = ${formatCurrency(result.monthlyBalance)}`
       break
+    }
     case 'cumSavings':
       line = result.isAnchor
         ? `存款 = 锚点值(${formatCurrency(result.cumSavings)})`
         : `存款 = 上月存款(${formatCurrency(ctx.prevCum)}) + 当月结余(${formatCurrency(result.monthlyBalance)}) = ${formatCurrency(result.cumSavings)}`
       break
     case 'fundOffset': {
-      const v = formatCurrency(result.fundOffset)
-      line = ctx.offsetAutoLinked
-        ? `月冲 = 房贷月供(${formatCurrency(ctx.mortgageAbs ?? 0)}) [自动联动] = ${v}`
-        : `月冲 = 手填值(${v}) = ${v}`
+      // 目标值（未截断）vs 实际冲额（受公积金余额 min 截断）；两者不等=被截断
+      const actual = formatCurrency(result.fundOffset)
+      const target = ctx.fundOffsetTarget ?? result.fundOffset
+      const truncated = Math.abs(target - result.fundOffset) > 1
+      const targetFmt = formatCurrency(target)
+      if (ctx.offsetAutoLinked) {
+        line = truncated
+          ? `月冲 = 房贷月供(${targetFmt}) [自动联动]，余额不足实际冲(${actual}) = ${actual}`
+          : `月冲 = 房贷月供(${targetFmt}) [自动联动] = ${actual}`
+      } else {
+        line = truncated
+          ? `月冲 = 手填值(${targetFmt})，余额不足实际冲(${actual}) = ${actual}`
+          : `月冲 = 手填值(${targetFmt}) = ${actual}`
+      }
       break
     }
     case 'fundOffsetShortfall': {
@@ -142,6 +165,10 @@ export interface YearFormulaContext {
   yearEndFundBalance?: number
   /** 年末总资产（totalAssets 公式用） */
   yearEndTotalAssets?: number
+  /** 年度房贷月供合计（公积金专区列，未计入 columnSummaries；负数=支出） */
+  yearMortgage?: number
+  /** 年度公积金转入可支配合计（月冲+提取，正数） */
+  yearFundInflow?: number
 }
 
 const YEAR_LABELS: Record<YearFormulaField, string> = {
@@ -177,8 +204,16 @@ export function buildYearFormula(
       break
     case 'yearBalance': {
       const items = summary.columnSummaries.map(c => ({ name: c.name, amount: c.total }))
+      // 房贷月供是公积金专区列（不在 columnSummaries），但计入可支配支出
+      const mort = ctx.yearMortgage ?? 0
+      if (mort !== 0) items.push({ name: '房贷月供', amount: mort })
       items.push({ name: '理财收益', amount: summary.investReturn })
-      line = `年度结余 = ${formatItems(items)} = ${formatCurrency(summary.yearBalance)}`
+      // 公积金转入可支配（月冲 + 提取）；仅当非 0 才显示
+      const inflow = ctx.yearFundInflow ?? 0
+      const base = `年度结余 = ${formatItems(items)}`
+      line = inflow > 0
+        ? `${base} + 公积金转入(${formatCurrency(inflow)}) = ${formatCurrency(summary.yearBalance)}`
+        : `${base} = ${formatCurrency(summary.yearBalance)}`
       break
     }
     case 'endSavings':
