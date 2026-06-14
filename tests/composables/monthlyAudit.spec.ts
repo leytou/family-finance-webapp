@@ -38,31 +38,26 @@ describe('真实数据：月度计算不变量审计', () => {
       approx(r.monthlyBalance, r.totalFlow + r.investReturn + r.fundOutflow, '本月结余', r.month)
       if (!r.isAnchor) approx(r.cumSavings, prevCum + r.monthlyBalance, '月末存款', r.month)
       approx(r.totalAssets, r.cumSavings + r.fundBalance, '总资产', r.month)
-      approx(r.monthlyIncome - r.monthlyExpense, r.totalFlow, '收入-支出=现金流', r.month)
+      approx(r.monthlyIncome - r.monthlyExpense, r.monthlyBalance, '收入-支出=结余', r.month)
       approx(r.fundOutflow, r.fundWithdrawal + r.fundOffset, '公积金转出=提取+月冲', r.month)
       approx(r.fundBalance, prevFund + r.fundContribution - r.fundWithdrawal - r.fundOffset + r.fundInterest, '公积金余额链', r.month)
     })
     expect(violations, violations.join('\n')).toEqual([])
   })
 
-  it('结余 hover 公式：收入 − 支出 + 理财（+ 公积金转入）必须等于结余', () => {
+  it('结余 hover 公式：收入 − 支出 必须等于结余', () => {
     const violations: string[] = []
     results.forEach((r, i) => {
       const prevCum = i === 0 ? (sp.initialDeposit ?? 0) : results[i - 1].cumSavings
       const { lines } = buildMonthFormula(r, 'monthlyBalance', {
         annualRate: sp.annualRate, prevCum,
-        fundWithdrawal: r.fundWithdrawal, fundOffset: r.fundOffset,
       })
       const line = lines[0]
       const income = parseAmount(line.match(/收入\((-?[\d,]+)\)/)![1])
       const expense = parseAmount(line.match(/支出\((-?[\d,]+)\)/)![1])
-      const invest = parseAmount(line.match(/理财\((-?[\d,]+)\)/)![1])
-      const inflowMatch = line.match(/公积金转入\((-?[\d,]+)\)/)
-      const inflow = inflowMatch ? parseAmount(inflowMatch[1]) : 0
       const result = finalAmount(line)
-      const lhs = income - expense + invest + inflow
-      if (Math.abs(lhs - result) > 1) {
-        violations.push(`${r.month}: 公式左边 收入(${income})-支出(${expense})+理财(${invest})+公积金转入(${inflow})=${lhs} ≠ 结余显示 ${result}`)
+      if (Math.abs(income - expense - result) > 1) {
+        violations.push(`${r.month}: 收入(${income})-支出(${expense})=${income - expense} ≠ 结余显示 ${result}`)
       }
     })
     expect(violations, violations.join('\n')).toEqual([])
@@ -90,7 +85,8 @@ describe('真实数据：月度计算不变量审计', () => {
     const violations: string[] = []
     results.forEach((r, i) => {
       const prevCum = i === 0 ? (sp.initialDeposit ?? 0) : results[i - 1].cumSavings
-      const { lines } = buildMonthFormula(r, 'monthlyIncome', { annualRate: sp.annualRate, prevCum })
+      const mortgageAbs = planData.fund ? Math.abs(resolveColumnValue(planData.fund.mortgage, r.month).amount) : 0
+      const { lines } = buildMonthFormula(r, 'monthlyIncome', { annualRate: sp.annualRate, prevCum, mortgageAbs })
       const line = lines[0]
       if (!line.includes('(')) return
       const sum = bracketAmounts(line).reduce((a, b) => a + b, 0)
