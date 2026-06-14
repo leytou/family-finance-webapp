@@ -985,6 +985,74 @@ describe('useStore', () => {
       expect(other.plan.systemParams.startMonth).toBe(202709)                 // other 即激活方案
       expect(previousActive.plan.systemParams.startMonth).not.toBe(202709)    // 非激活方案不受影响
     })
+
+    it('起始月晚于结束月则拒绝（保护 endMonth 不动）', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      store.setEndMonth(202612)
+      expect(store.setStartMonth(202706)).toBe(false)   // 晚于 endMonth
+      expect(store.data.value.systemParams.startMonth).toBe(202601)
+    })
+
+    it('起始月改动导致期限超过 30 年则拒绝', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      store.setEndMonth(203012)                          // 5 年
+      expect(store.setStartMonth(199901)).toBe(false)   // 期限 ~32 年
+      expect(store.data.value.systemParams.startMonth).toBe(202601)
+    })
+  })
+
+  describe('setEndMonth', () => {
+    it('合法且晚于起始月则写入并返回 true', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      expect(store.setEndMonth(202812)).toBe(true)
+      expect(store.data.value.systemParams.endMonth).toBe(202812)
+    })
+
+    it('结束月早于起始月则拒绝且不改原值', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202606)
+      const before = store.data.value.systemParams.endMonth
+      expect(store.setEndMonth(202601)).toBe(false)
+      expect(store.data.value.systemParams.endMonth).toBe(before)
+    })
+
+    it('期限超过 30 年（360 月）则拒绝', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      expect(store.setEndMonth(205701)).toBe(false)   // 31 年
+    })
+
+    it('越界月份进位后写入规范化值', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      expect(store.setEndMonth(202813)).toBe(true)
+      expect(store.data.value.systemParams.endMonth).toBe(202901)
+    })
+
+    it('位数不足返回 false', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      expect(store.setEndMonth(2026)).toBe(false)
+    })
+
+    it('作用于当前激活方案', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const other = store.addScenario()
+      store.setStartMonth(202601)
+      store.setEndMonth(202812)
+      expect(store.data.value.systemParams.endMonth).toBe(202812)
+      expect(other.plan.systemParams.endMonth).toBe(202812)
+    })
   })
 
   describe('setColumnEnabled', () => {

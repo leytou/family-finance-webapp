@@ -1,6 +1,6 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import type { PlanData, FlowColumn, Scenario, Workspace, PlanSnapshot } from '../types'
-import { getCurrentMonth, formatMonth, addMonths, normalizeMonth, projectionMonths } from '../utils/month'
+import { getCurrentMonth, formatMonth, addMonths, normalizeMonth, monthDiff, projectionMonths } from '../utils/month'
 import { calculate } from './useCalculation'
 
 const STORAGE_KEY = 'family-finance-plan'
@@ -282,13 +282,32 @@ export function useStore() {
   }
 
   /**
-   * 设置起始月份（受控入口）：对原始值做规范化，
-   * 合法（含进位）则写入并返回 true；非法（非 6 位整数）则忽略并返回 false。
+   * 设置起始月份（受控入口）：规范化 + 与 endMonth 的一致性校验。
+   * 合法（含进位、且不晚于 endMonth、期限 ≤ 360）则写入并返回 true；否则忽略并返回 false。
    */
   function setStartMonth(raw: number): boolean {
     const normalized = normalizeMonth(raw)
     if (normalized === null) return false
-    getActivePlan().systemParams.startMonth = normalized
+    const plan = getActivePlan()
+    const end = Number.isFinite(plan.systemParams.endMonth) ? plan.systemParams.endMonth : addMonths(normalized, 59)
+    if (normalized > end) return false
+    if (monthDiff(normalized, end) + 1 > 360) return false
+    plan.systemParams.startMonth = normalized
+    return true
+  }
+
+  /**
+   * 设置结束月份（受控入口）：规范化 + 与 startMonth 的一致性校验。
+   * 合法（含进位、且不早于 startMonth、期限 ≤ 360）则写入并返回 true；否则忽略并返回 false。
+   */
+  function setEndMonth(raw: number): boolean {
+    const normalized = normalizeMonth(raw)
+    if (normalized === null) return false
+    const plan = getActivePlan()
+    const start = plan.systemParams.startMonth
+    if (normalized < start) return false
+    if (monthDiff(start, normalized) + 1 > 360) return false
+    plan.systemParams.endMonth = normalized
     return true
   }
 
@@ -602,6 +621,7 @@ export function useStore() {
     save,
     reloadWorkspace,
     setStartMonth,
+    setEndMonth,
     addColumn,
     removeColumn,
     renameColumn,
