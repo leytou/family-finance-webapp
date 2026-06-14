@@ -996,3 +996,60 @@ describe('MonthlyTable', () => {
     })
   })
 })
+
+describe('MonthlyTable · 公积金专区', () => {
+  beforeEach(() => {
+    vi.useRealTimers()
+    localStorage.clear()
+    vi.resetModules()
+  })
+
+  it('未启用 fund 时不渲染专区列表头', async () => {
+    const useStore = await loadUseStore()
+    useStore() // 初始化默认 store（无 fund）
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+    const headers = wrapper.findAll('th').map(t => t.text())
+    expect(headers).not.toContain('房贷月供')
+    expect(headers).not.toContain('总资产')
+  })
+
+  it('启用 fund 后渲染专区 5 列表头与值', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.updateFundEntry('mortgage', 202601, -5000)
+    store.updateFundEntry('contribution', 202601, 2000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    const headers = wrapper.findAll('th').map(t => t.text())
+    expect(headers).toContain('房贷月供')
+    expect(headers).toContain('公积金缴存')
+    expect(headers).toContain('公积金月冲')
+    expect(headers).toContain('公积金')
+    expect(headers).toContain('总资产')
+
+    // 房贷月供显示绝对值 5,000
+    expect(wrapper.text()).toContain('5,000')
+  })
+
+  it('月冲未手填时显示房贷月供绝对值且淡灰（自动联动）', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.data.value.systemParams.startMonth = 202601
+    store.enableFund()
+    store.updateFundEntry('mortgage', 202601, -5000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    const autoCell = wrapper.find('[data-fund-offset-auto="202601"]')
+    expect(autoCell.exists()).toBe(true)
+    expect(autoCell.classes()).toContain('text-neutral-400')
+    expect(autoCell.text()).toContain('5,000')
+  })
+})

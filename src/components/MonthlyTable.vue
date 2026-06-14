@@ -5,11 +5,11 @@ import { buildMonthFormula, type MonthFormulaField } from '../utils/formula'
 import ContextMenu from './ContextMenu.vue'
 import EventEditor from './EventEditor.vue'
 import EventDetailPopover from './EventDetailPopover.vue'
-import type { MonthResult, FlowColumn, MilestoneEvent } from '../types'
+import type { MonthResult, FlowColumn, MilestoneEvent, FundConfig } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 import { useStore } from '../composables/useStore'
-import { buildComparison } from '../composables/useCalculation'
+import { buildComparison, resolveColumnValue, hasColumnValue, resolveFundOffset } from '../composables/useCalculation'
 import { useClickOutside } from '../composables/useClickOutside'
 import { useColumnDrag } from '../composables/useColumnDrag'
 
@@ -19,6 +19,25 @@ const props = defineProps<{
 
 const store = useStore()
 const columns = computed(() => store.data.value.columns)
+
+// 公积金配置（未启用时为 undefined，专区不渲染）
+const fund = computed<FundConfig | undefined>(() => store.data.value.fund)
+
+// 专区单元格取值
+function fundMortgageAbs(month: number): number {
+  return Math.abs(resolveColumnValue(fund.value!.mortgage, month).amount)
+}
+function fundContribution(month: number): number {
+  return resolveColumnValue(fund.value!.contribution, month).amount
+}
+// 月冲：手填用手填值，否则自动联动房贷月供（返回 { value, auto }）
+function fundOffsetDisplay(month: number): { value: number; auto: boolean } {
+  if (!fund.value) return { value: 0, auto: false }
+  if (hasColumnValue(fund.value.monthlyOffset, month)) {
+    return { value: Math.abs(resolveColumnValue(fund.value.monthlyOffset, month).amount), auto: false }
+  }
+  return { value: resolveFundOffset(fund.value, month), auto: true }
+}
 
 // 专项事件：按月聚合（净额、笔数、明细）。单元格直接读此 map，不依赖 columnValues
 const ZERO_EVENT_INFO = { net: 0, count: 0, events: [] as MilestoneEvent[] }
@@ -157,6 +176,10 @@ const formulaLabels: Record<MonthFormulaField, string> = {
   monthlyExpense: '支出',
   monthlyBalance: '结余',
   cumSavings: '存款',
+  fundOffset: '月冲',
+  fundBalance: '公积金',
+  fundInterest: '结息',
+  totalAssets: '总资产',
 }
 
 // 现金流列单元格编辑状态
@@ -192,9 +215,22 @@ function showFormula(result: MonthResult, field: MonthFormulaField, event: Mouse
   const idx = props.results.findIndex(r => r.month === result.month)
   const initialDeposit = store.data.value.systemParams.initialDeposit ?? 0
   const prevCum = idx === 0 ? initialDeposit : props.results[idx - 1].cumSavings
+  const prevFundBalance = idx === 0
+    ? (store.data.value.systemParams.fundInitialBalance ?? 0)
+    : props.results[idx - 1].fundBalance
+  const od = fundOffsetDisplay(result.month)
   const { title, lines } = buildMonthFormula(result, field, {
     annualRate: store.data.value.systemParams.annualRate,
     prevCum,
+    prevFundBalance,
+    fundContribution: result.fundContribution,
+    fundWithdrawal: result.fundWithdrawal,
+    fundOffset: result.fundOffset,
+    fundInterest: result.fundInterest,
+    fundBalance: result.fundBalance,
+    fundRate: store.data.value.systemParams.fundRate,
+    mortgageAbs: fund.value ? fundMortgageAbs(result.month) : 0,
+    offsetAutoLinked: od.auto,
   })
   popover.value = { title, lines, x: event.clientX + 10, y: event.clientY + 10 }
 }
@@ -600,6 +636,14 @@ function getValueClass(value: number): string {
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">支出</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">结余</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">存款</th>
+          <!-- 公积金专区表头（仅 fund 启用） -->
+          <template v-if="fund">
+            <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap border-l-2 border-neutral-400">房贷月供</th>
+            <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">公积金缴存</th>
+            <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">公积金月冲</th>
+            <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">公积金</th>
+            <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">总资产</th>
+          </template>
           <!-- 对比列表头 -->
           <th v-if="selectedSnapshot" class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">当时预计</th>
           <th v-if="selectedSnapshot" class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">差额</th>
@@ -754,6 +798,44 @@ function getValueClass(value: number): string {
               {{ formatCurrency(result.cumSavings) }}
             </span>
           </td>
+          <!-- 公积金专区数据列（仅 fund 启用） -->
+          <template v-if="fund">
+            <!-- 房贷月供（只读，Task 4 改可编辑；显示绝对值） -->
+            <td
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l-2 border-neutral-400"
+              :class="getValueClass(-fundMortgageAbs(result.month))"
+            >
+              <span class="block w-full">{{ formatCurrency(fundMortgageAbs(result.month)) }}</span>
+            </td>
+            <!-- 公积金缴存（只读，Task 4 改可编辑） -->
+            <td class="px-1 py-0 text-right tabular-nums whitespace-nowrap">
+              <span class="block w-full">{{ formatCurrency(fundContribution(result.month)) }}</span>
+            </td>
+            <!-- 公积金月冲（只读 + 联动视觉；Task 4 改可编辑 + hover） -->
+            <td
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+              :class="{ 'text-neutral-400': fundOffsetDisplay(result.month).auto }"
+              :data-fund-offset-auto="fundOffsetDisplay(result.month).auto ? result.month : false"
+            >
+              <span class="block w-full">{{ formatCurrency(fundOffsetDisplay(result.month).value) }}</span>
+            </td>
+            <!-- 公积金余额（只读；Task 6 加 click/右键/hover） -->
+            <td
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+              :class="{ 'bg-brand-50': result.isFundAnchor }"
+            >
+              <span class="block w-full">{{ formatCurrency(result.fundBalance) }}</span>
+            </td>
+            <!-- 总资产（只读，加粗，hover 公式） -->
+            <td class="px-1 py-0 text-right tabular-nums whitespace-nowrap font-bold">
+              <span
+                class="block w-full"
+                :aria-label="getFormulaAriaLabel(result, 'totalAssets')"
+                @mouseenter="showFormula(result, 'totalAssets', $event)"
+                @mouseleave="popover = null"
+              >{{ formatCurrency(result.totalAssets) }}</span>
+            </td>
+          </template>
           <!-- 对比列：当时预计 -->
           <td
             v-if="selectedSnapshot"
