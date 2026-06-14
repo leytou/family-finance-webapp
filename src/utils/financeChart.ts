@@ -27,8 +27,16 @@ export interface ChartOption {
   tooltip: { trigger: string }
   legend: { data: string[] }
   grid: { left: string; right: string; bottom: string; containLabel: boolean }
-  xAxis: { type: string; data: string[]; axisLine?: { lineStyle: { color: string } } }
-  yAxis: { type: string; alignTicks: boolean; splitLine?: { show?: boolean; lineStyle: { color: string } } }[]
+  xAxis: {
+    type: string; data: string[]
+    axisLine?: { lineStyle: { color: string } }
+    axisLabel?: { interval: string | number }
+  }
+  yAxis: {
+    type: string; alignTicks: boolean
+    splitLine?: { show?: boolean; lineStyle: { color: string } }
+    axisLabel?: { formatter: (v: number) => string }
+  }[]
   series: ChartSeries[]
 }
 
@@ -84,10 +92,22 @@ export function buildChartOption(data: ChartData): ChartOption {
     tooltip: { trigger: 'axis' },
     legend: { data: ['收入', '支出', '累计储蓄'] },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'category', data: data.categories, axisLine: { lineStyle: { color: COLOR_AXIS } } },
+    xAxis: {
+      type: 'category', data: data.categories,
+      axisLine: { lineStyle: { color: COLOR_AXIS } },
+      axisLabel: { interval: 'auto' },
+    },
     yAxis: [
-      { type: 'value', alignTicks: true, splitLine: { lineStyle: { color: COLOR_GRID } } },
-      { type: 'value', alignTicks: true, splitLine: { show: false } },
+      {
+        type: 'value', alignTicks: true,
+        axisLabel: { formatter: (v: number) => formatAxisAmount(v) },
+        splitLine: { lineStyle: { color: COLOR_GRID } },
+      },
+      {
+        type: 'value', alignTicks: true,
+        axisLabel: { formatter: (v: number) => formatAxisAmount(v) },
+        splitLine: { show: false },
+      },
     ],
     series: [
       {

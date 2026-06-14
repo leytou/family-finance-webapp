@@ -121,4 +121,15 @@ describe('buildChartOption', () => {
     expect(left.splitLine?.show ?? true).toBe(true)
     expect(right.splitLine?.show).toBe(false)
   })
+
+  it('左右轴有万元 formatter，X 轴标签稀疏', () => {
+    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
+    const option = buildChartOption(data)
+
+    expect(typeof option.yAxis[0].axisLabel?.formatter).toBe('function')
+    expect(typeof option.yAxis[1].axisLabel?.formatter).toBe('function')
+    // formatter 行为：15800 → 1.6万
+    expect((option.yAxis[0].axisLabel!.formatter as (v: number) => string)(15800)).toBe('1.6万')
+    expect(option.xAxis.axisLabel?.interval).toBe('auto')
+  })
 })
