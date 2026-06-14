@@ -45,7 +45,7 @@ describe('formatAxisAmount', () => {
 })
 
 describe('buildChartData', () => {
-  it('按月：categories 用 YY/MM，支出取负', () => {
+  it('按月：categories 用 YY/MM，支出为正值', () => {
     const results = [
       makeResult({ month: 202601, monthlyIncome: 10000, monthlyExpense: 6000, cumSavings: 50000 }),
       makeResult({ month: 202602, monthlyIncome: 10000, monthlyExpense: 6000, cumSavings: 55000 }),
@@ -54,12 +54,12 @@ describe('buildChartData', () => {
     expect(buildChartData(results, 'month')).toEqual({
       categories: ['26/01', '26/02'],
       income: [10000, 10000],
-      expense: [-6000, -6000],
+      expense: [6000, 6000],
       cumSavings: [50000, 55000],
     })
   })
 
-  it('按年：按自然年聚合，支出取负，categories 用年份', () => {
+  it('按年：按自然年聚合，支出为正值，categories 用年份', () => {
     const results = [
       makeResult({ month: 202612, monthlyIncome: 10000, monthlyExpense: 5000, cumSavings: 110000 }),
       makeResult({ month: 202701, monthlyIncome: 12000, monthlyExpense: 5000, cumSavings: 120000 }),
@@ -68,7 +68,7 @@ describe('buildChartData', () => {
     expect(buildChartData(results, 'year')).toEqual({
       categories: ['2026', '2027'],
       income: [10000, 12000],
-      expense: [-5000, -5000],
+      expense: [5000, 5000],
       cumSavings: [110000, 120000],
     })
   })

@@ -6,7 +6,7 @@ export type Granularity = 'month' | 'year'
 export interface ChartData {
   categories: string[]
   income: number[]
-  expense: number[]      // 已取负（支出向下）
+  expense: number[]      // 正值（不再取负）
   cumSavings: number[]
 }
 
@@ -53,14 +53,14 @@ export function formatAxisAmount(v: number): string {
   return Math.round(v).toLocaleString('en-US')
 }
 
-/** 把月度结果按粒度转成图表数据；支出统一取负（向下画）。 */
+/** 把月度结果按粒度转成图表数据；支出为正值（不再镜像负轴）。 */
 export function buildChartData(results: MonthResult[], granularity: Granularity): ChartData {
   if (granularity === 'year') {
     const years = aggregateByYear(results)
     return {
       categories: years.map(p => String(p.year)),
       income: years.map(p => p.income),
-      expense: years.map(p => -p.expense),
+      expense: years.map(p => p.expense),
       cumSavings: years.map(p => p.cumSavings),
     }
   }
@@ -68,7 +68,7 @@ export function buildChartData(results: MonthResult[], granularity: Granularity)
   return {
     categories: results.map(r => formatAxisLabel(r.month)),
     income: results.map(r => r.monthlyIncome),
-    expense: results.map(r => -r.monthlyExpense),
+    expense: results.map(r => r.monthlyExpense),
     cumSavings: results.map(r => r.cumSavings),
   }
 }
