@@ -7,7 +7,7 @@ import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/compon
 import { CanvasRenderer } from 'echarts/renderers'
 
 import type { MonthResult } from '../types'
-import { buildChartData, buildChartOption } from '../utils/financeChart'
+import { buildChartData, buildChartOption, formatAxisAmount } from '../utils/financeChart'
 import type { Granularity } from '../utils/financeChart'
 
 // 按需 register：仅柱/折线 + 网格/提示/图例 + Canvas 渲染器
@@ -23,6 +23,12 @@ let resizeObserver: ResizeObserver | null = null
 
 // 由纯函数产出当前数据；粒度或 results 变化即重算
 const chartData = computed(() => buildChartData(props.results, granularity.value))
+
+// 当前累计储蓄（取最末月），万元化展示，作为标题区高亮
+const currentSavingsLabel = computed(() => {
+  const last = props.results[props.results.length - 1]
+  return last ? `¥ ${formatAxisAmount(last.cumSavings)}` : '—'
+})
 
 function render() {
   // option 字段遵循 ECharts 规范，用 as any 桥接第三方严格类型
@@ -49,7 +55,11 @@ onUnmounted(() => {
 <template>
   <div class="h-full w-full flex flex-col p-4">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="text-sm font-bold whitespace-nowrap">财务趋势图</h2>
+      <div class="flex items-baseline gap-2">
+        <h2 class="text-sm font-bold whitespace-nowrap">财务趋势图</h2>
+        <span class="text-xs text-neutral-400">累计储蓄</span>
+        <span class="text-base font-bold text-brand-600">{{ currentSavingsLabel }}</span>
+      </div>
       <div class="flex border rounded overflow-hidden text-xs">
         <button
           type="button"
