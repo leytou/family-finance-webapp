@@ -46,16 +46,15 @@ describe('buildMonthFormula', () => {
     expect(lines).toEqual(['支出 = 日常(1,500) + 房租(3,000) = 4,500'])
   })
 
-  it('monthlyBalance：引用收入/支出/理财', () => {
+  it('monthlyBalance：结余 = 收入 − 支出', () => {
     const r = makeResult({
       monthlyIncome: 11000,
       monthlyExpense: 4500,
-      investReturn: 125,
-      monthlyBalance: 6625,
+      monthlyBalance: 6500,
     })
     const { title, lines } = buildMonthFormula(r, 'monthlyBalance', { annualRate: 0.03, prevCum: 0 })
     expect(title).toBe('2026-01 - 结余')
-    expect(lines).toEqual(['结余 = 收入(11,000) - 支出(4,500) + 理财(125) = 6,625'])
+    expect(lines).toEqual(['结余 = 收入(11,000) - 支出(4,500) = 6,500'])
   })
 
   it('investReturn：用 prevCum 与年利率展开，带结果', () => {
@@ -104,6 +103,27 @@ describe('buildMonthFormula', () => {
     })
     const { lines } = buildMonthFormula(r, 'monthlyIncome', { annualRate: 0.03, prevCum: 0 })
     expect(lines).toEqual(['收入 = 月薪(10,000) + 专项(5,000) = 15,000'])
+  })
+
+  it('monthlyIncome：含理财收益与公积金提取', () => {
+    const r = makeResult({
+      columnValues: [{ id: 'c1', name: '月薪', amount: 10000, isEdited: true }],
+      investReturn: 125,
+      fundWithdrawal: 1000,
+      monthlyIncome: 11125,
+    })
+    const { lines } = buildMonthFormula(r, 'monthlyIncome', { annualRate: 0.03, prevCum: 0 })
+    expect(lines).toEqual(['收入 = 月薪(10,000) + 理财(125) + 公积金提取(1,000) = 11,125'])
+  })
+
+  it('monthlyExpense：房贷以存款补扣计入（非全额）', () => {
+    const r = makeResult({
+      columnValues: [{ id: 'c1', name: '日常', amount: -1500, isEdited: true }],
+      fundOffsetShortfall: 3000,
+      monthlyExpense: 4500,
+    })
+    const { lines } = buildMonthFormula(r, 'monthlyExpense', { annualRate: 0.03, prevCum: 0 })
+    expect(lines).toEqual(['支出 = 日常(1,500) + 存款补扣(3,000) = 4,500'])
   })
 })
 

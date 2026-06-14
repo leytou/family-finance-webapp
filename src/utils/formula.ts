@@ -78,30 +78,33 @@ export function buildMonthFormula(
       line = `理财 = 上月存款(${formatCurrency(ctx.prevCum)}) × ${ratePct}% ÷ 12 = ${formatCurrency(result.investReturn)}`
       break
     }
-    case 'monthlyIncome':
-      line = positives.length === 0
+    case 'monthlyIncome': {
+      // 收入 = 现金流正项 + 理财收益 + 公积金提取 + 月冲超额转出（值为 0 的项不显示）
+      const items = [...positives]
+      if (result.investReturn !== 0) items.push({ name: '理财', amount: result.investReturn })
+      const withdrawal = result.fundWithdrawal ?? 0
+      if (withdrawal !== 0) items.push({ name: '公积金提取', amount: withdrawal })
+      // 月冲超出房贷的部分（手填月冲 > 房贷），等同一笔转入可支配
+      const offsetSurplus = Math.max(0, (result.fundOffset ?? 0) - (ctx.mortgageAbs ?? 0))
+      if (offsetSurplus > 0) items.push({ name: '月冲超额转出', amount: offsetSurplus })
+      line = items.length === 0
         ? `收入 = ${formatCurrency(result.monthlyIncome)}`
-        : `收入 = ${formatItems(positives)} = ${formatCurrency(result.monthlyIncome)}`
+        : `收入 = ${formatItems(items)} = ${formatCurrency(result.monthlyIncome)}`
       break
+    }
     case 'monthlyExpense': {
-      // 房贷月供是公积金专区列（不在 columnValues），但计入可支配支出，需补进展开
+      // 支出 = 现金流负项 + 存款补扣（自己实际掏的房贷 = 房贷全额 − 月冲；仅当 > 0 显示）
       const items = [...negatives]
-      const mort = ctx.mortgageAbs ?? 0
-      if (mort > 0) items.push({ name: '房贷月供', amount: mort })
+      const shortfall = result.fundOffsetShortfall ?? 0
+      if (shortfall > 0) items.push({ name: '存款补扣', amount: shortfall })
       line = items.length === 0
         ? `支出 = ${formatCurrency(result.monthlyExpense)}`
         : `支出 = ${formatItems(items)} = ${formatCurrency(result.monthlyExpense)}`
       break
     }
-    case 'monthlyBalance': {
-      // 公积金转入可支配（月冲抵扣 + 提取）；仅当非 0 才显示，无公积金时不多一项
-      const inflow = (ctx.fundWithdrawal ?? 0) + (ctx.fundOffset ?? 0)
-      const base = `结余 = 收入(${formatCurrency(result.monthlyIncome)}) - 支出(${formatCurrency(result.monthlyExpense)}) + 理财(${formatCurrency(result.investReturn)})`
-      line = inflow > 0
-        ? `${base} + 公积金转入(${formatCurrency(inflow)}) = ${formatCurrency(result.monthlyBalance)}`
-        : `${base} = ${formatCurrency(result.monthlyBalance)}`
+    case 'monthlyBalance':
+      line = `结余 = 收入(${formatCurrency(result.monthlyIncome)}) - 支出(${formatCurrency(result.monthlyExpense)}) = ${formatCurrency(result.monthlyBalance)}`
       break
-    }
     case 'cumSavings':
       line = result.isAnchor
         ? `存款 = 锚点值(${formatCurrency(result.cumSavings)})`
