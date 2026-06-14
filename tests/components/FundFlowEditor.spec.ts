@@ -90,8 +90,9 @@ describe('FundFlowEditor', () => {
       props: { month: 202602, result, prevFundBalance: 10000, withdrawals, x: 10, y: 10 },
     })
     const text = wrapper.text()
-    expect(text).toContain('999,999')
+    expect(text).toContain('999,999')   // 编辑行请求值
     expect(text).toContain('已截断')
+    expect(text).toContain('2,000')     // 流水行实际值（result.fundWithdrawal=2000）
   })
 
   it('按传入坐标定位', async () => {

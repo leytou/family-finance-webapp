@@ -49,6 +49,11 @@ function fundPrevBalance(month: number): number {
 function fundWithdrawalsByMonth(month: number): FundWithdrawal[] {
   return fund.value?.withdrawals.filter(w => w.month === month) ?? []
 }
+// FundFlowEditor 的该月 result：fundFlowEditor 打开的月份必在 results 内（余额单元格由 results v-for 渲染），
+// 断言集中在此 computed，避免模板内联 results.find(...)! 散落。
+const fundFlowEditorResult = computed<MonthResult>(() =>
+  props.results.find(r => r.month === fundFlowEditor.value!.month)!,
+)
 
 // 专项事件：按月聚合（净额、笔数、明细）。单元格直接读此 map，不依赖 columnValues
 const ZERO_EVENT_INFO = { net: 0, count: 0, events: [] as MilestoneEvent[] }
@@ -235,9 +240,7 @@ function showFormula(result: MonthResult, field: MonthFormulaField, event: Mouse
   const idx = props.results.findIndex(r => r.month === result.month)
   const initialDeposit = store.data.value.systemParams.initialDeposit ?? 0
   const prevCum = idx === 0 ? initialDeposit : props.results[idx - 1].cumSavings
-  const prevFundBalance = idx === 0
-    ? (store.data.value.systemParams.fundInitialBalance ?? 0)
-    : props.results[idx - 1].fundBalance
+  const prevFundBalance = fundPrevBalance(result.month)
   const od = fundOffsetDisplay(result.month)
   const { title, lines } = buildMonthFormula(result, field, {
     annualRate: store.data.value.systemParams.annualRate,
@@ -1075,7 +1078,7 @@ function getValueClass(value: number): string {
   <FundFlowEditor
     v-if="fundFlowEditor"
     :month="fundFlowEditor.month"
-    :result="results.find(r => r.month === fundFlowEditor!.month)!"
+    :result="fundFlowEditorResult"
     :prev-fund-balance="fundPrevBalance(fundFlowEditor.month)"
     :withdrawals="fundWithdrawalsByMonth(fundFlowEditor.month)"
     :x="fundFlowEditor.x"
