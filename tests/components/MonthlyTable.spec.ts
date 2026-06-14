@@ -544,7 +544,8 @@ describe('MonthlyTable', () => {
 
     const menuItem = wrapper
       .findComponent({ name: 'ContextMenu' })
-      .get('[role="menuitem"]')
+      .findAll('[role="menuitem"]')
+      .find(i => i.text() === '清除下方编辑值')!
     await menuItem.trigger('click')
 
     // 202601、202602 锚点保留，202603 被清除
@@ -574,6 +575,99 @@ describe('MonthlyTable', () => {
       .findAll('[role="menuitem"]')
       .find(i => i.text() === '清除下方编辑值')!
     expect(menuItem.attributes('aria-disabled')).toBe('true')
+  })
+
+  describe('右键清除该值', () => {
+    it('点击「清除该值」删除当前格现金流编辑值', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      const col = store.addColumn('测试列')
+      store.updateColumnEntry(col.id, 202601, 1000)
+      store.updateColumnEntry(col.id, 202602, 2000)
+      const results = calculate(store.data.value).slice(0, 2)
+
+      const wrapper = mount(MonthlyTable, { props: { results } })
+
+      // 第一行（202601）该列右键
+      const firstRowCells = wrapper.findAll('tbody tr')[0].findAll('td')
+      await firstRowCells[1].trigger('contextmenu')
+
+      const menuItem = wrapper
+        .findComponent({ name: 'ContextMenu' })
+        .findAll('[role="menuitem"]')
+        .find(i => i.text() === '清除该值')!
+      await menuItem.trigger('click')
+
+      // 当前格 202601 被清除，202602 保留
+      expect(col.entries[202601]).toBeUndefined()
+      expect(col.entries[202602]).toBe(2000)
+    })
+
+    it('点击「清除该值」删除当前格余额列锚点', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.addColumn('测试列')
+      store.addAnchor(202601, 10000)
+      store.addAnchor(202602, 20000)
+      const results = calculate(store.data.value).slice(0, 2)
+
+      const wrapper = mount(MonthlyTable, { props: { results } })
+
+      // 第一行余额列（最后一列）右键
+      const firstRowCells = wrapper.findAll('tbody tr')[0].findAll('td')
+      await firstRowCells[firstRowCells.length - 1].trigger('contextmenu')
+
+      const menuItem = wrapper
+        .findComponent({ name: 'ContextMenu' })
+        .findAll('[role="menuitem"]')
+        .find(i => i.text() === '清除该值')!
+      await menuItem.trigger('click')
+
+      // 当前格 202601 锚点删除，202602 保留
+      const months = store.data.value.anchors.map(a => a.month)
+      expect(months).not.toContain(202601)
+      expect(months).toContain(202602)
+    })
+
+    it('未编辑的现金流格，「清除该值」禁用', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.addColumn('测试列') // 无任何 entry
+      const results = calculate(store.data.value).slice(0, 1)
+
+      const wrapper = mount(MonthlyTable, { props: { results } })
+      const row = wrapper.findAll('tbody tr')[0]
+      await row.findAll('td')[1].trigger('contextmenu')
+
+      const menuItem = wrapper
+        .findComponent({ name: 'ContextMenu' })
+        .findAll('[role="menuitem"]')
+        .find(i => i.text() === '清除该值')!
+      expect(menuItem.attributes('aria-disabled')).toBe('true')
+    })
+
+    it('动态列右键菜单顺序：同步 → 清除该值 → 清除下方编辑值', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.addColumn('测试列')
+      store.updateColumnEntry(store.data.value.columns[0].id, 202601, 1000)
+      store.updateColumnEntry(store.data.value.columns[0].id, 202602, 2000)
+      const results = calculate(store.data.value).slice(0, 2)
+
+      const wrapper = mount(MonthlyTable, { props: { results } })
+      const row = wrapper.findAll('tbody tr')[0]
+      await row.findAll('td')[1].trigger('contextmenu')
+
+      const labels = wrapper
+        .findComponent({ name: 'ContextMenu' })
+        .findAll('[role="menuitem"]')
+        .map(i => i.text())
+      expect(labels).toEqual(['同步到下方每年此月', '清除该值', '清除下方编辑值'])
+    })
   })
 
   it('渲染快照工具条与封存按钮', async () => {

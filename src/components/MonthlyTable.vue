@@ -278,6 +278,24 @@ function clearEditedBelow(columnId: string, month: number): void {
   })
 }
 
+// 当前格是否已被手动编辑（决定「清除该值」是否可用）
+function isCurrentCellEdited(columnId: string, month: number): boolean {
+  if (columnId === BALANCE_COLUMN_ID) {
+    return props.results.find(r => r.month === month)?.isAnchor ?? false
+  }
+  const column = columns.value.find(c => c.id === columnId)
+  return column ? String(month) in column.entries : false
+}
+
+// 清除当前格的编辑值
+function clearCurrentValue(columnId: string, month: number): void {
+  if (columnId === BALANCE_COLUMN_ID) {
+    store.removeAnchor(month)
+  } else {
+    store.updateColumnEntry(columnId, month, null)
+  }
+}
+
 // 打开右键菜单
 function openContextMenu(columnId: string, month: number, event: MouseEvent): void {
   contextMenu.value = { columnId, month, x: event.clientX, y: event.clientY }
@@ -299,6 +317,13 @@ const contextMenuItems = computed(() => {
       onClick: () => store.syncYearly(ctx.columnId, ctx.month),
     })
   }
+
+  // 清除该值：当前单元格存在编辑值时启用（动态列与余额列均支持）
+  items.push({
+    label: '清除该值',
+    disabled: !isCurrentCellEdited(ctx.columnId, ctx.month),
+    onClick: () => clearCurrentValue(ctx.columnId, ctx.month),
+  })
 
   const count = countEditedBelow(ctx.columnId, ctx.month)
   items.push({
