@@ -45,6 +45,14 @@ export function formatAxisLabel(month: number): string {
   return `${String(year).padStart(2, '0')}/${String(m).padStart(2, '0')}`
 }
 
+/** 轴刻度 / 摘要智能缩写：<1万 千分位整数，≥1万 X.X万，≥1亿 X.X亿（去尾零）。 */
+export function formatAxisAmount(v: number): string {
+  const abs = Math.abs(v)
+  if (abs >= 1e8) return (v / 1e8).toFixed(1).replace(/\.0$/, '') + '亿'
+  if (abs >= 1e4) return (v / 1e4).toFixed(1).replace(/\.0$/, '') + '万'
+  return Math.round(v).toLocaleString('en-US')
+}
+
 /** 把月度结果按粒度转成图表数据；支出统一取负（向下画）。 */
 export function buildChartData(results: MonthResult[], granularity: Granularity): ChartData {
   if (granularity === 'year') {

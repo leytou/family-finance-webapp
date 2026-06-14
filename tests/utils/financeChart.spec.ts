@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MonthResult } from '../../src/types'
-import { formatAxisLabel, buildChartData, buildChartOption } from '../../src/utils/financeChart'
+import { formatAxisLabel, buildChartData, buildChartOption, formatAxisAmount } from '../../src/utils/financeChart'
 
 function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
   return {
@@ -22,6 +22,25 @@ describe('formatAxisLabel', () => {
     expect(formatAxisLabel(202601)).toBe('26/01')
     expect(formatAxisLabel(202612)).toBe('26/12')
     expect(formatAxisLabel(203007)).toBe('30/07')
+  })
+})
+
+describe('formatAxisAmount', () => {
+  it('<1万 千分位整数', () => {
+    expect(formatAxisAmount(500)).toBe('500')
+    expect(formatAxisAmount(0)).toBe('0')
+    expect(formatAxisAmount(9200)).toBe('9,200')
+  })
+  it('≥1万 显示 X.X万（去尾零）', () => {
+    expect(formatAxisAmount(15800)).toBe('1.6万')
+    expect(formatAxisAmount(1234567)).toBe('123.5万')
+    expect(formatAxisAmount(150000)).toBe('15万')
+  })
+  it('≥1亿 显示 X.X亿', () => {
+    expect(formatAxisAmount(120000000)).toBe('1.2亿')
+  })
+  it('负值带 - 前缀', () => {
+    expect(formatAxisAmount(-1500000)).toBe('-150万')
   })
 })
 
