@@ -50,6 +50,7 @@ export interface ChartOption {
 // 配色（中式柔和：收入朱砂 / 支出竹青 / 累计靛蓝），与表格语义同源
 const COLOR_INCOME = '#c0504d'   // zhusha-600
 const COLOR_EXPENSE = '#6b8e7b'  // zhuqing-500（柱用柔和阶）
+const COLOR_NET_NEG = '#5e8270'  // zhuqing-600 净结余赤字
 const COLOR_CUM = '#4f46e5'
 // 中性轴/网格（slate），网格更淡
 const COLOR_AXIS = '#cbd5e1'
@@ -108,7 +109,7 @@ export function buildChartOption(data: ChartData): ChartOption {
         const expense = get('支出')
         const cum = get('累计储蓄')
         const net = income - expense
-        const netColor = net >= 0 ? '#c0504d' : '#5e8270'   // 盈余朱砂 / 赤字竹青
+        const netColor = net >= 0 ? COLOR_INCOME : COLOR_NET_NEG   // 盈余朱砂 / 赤字竹青
         const row = (label: string, val: number, color = '#0f172a') =>
           `<div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;line-height:18px">`
           + `<span style="color:#64748b">${label}</span>`

@@ -291,7 +291,7 @@ export function buildComparison(
 export interface YearlyPoint {
   year: number
   income: number      // 该自然年 monthlyIncome 求和
-  expense: number     // 该自然年 monthlyExpense 求和（正数；绘制时取负）
+  expense: number     // 该自然年 monthlyExpense 求和（正数）
   cumSavings: number  // 该自然年最后一月的 cumSavings（年末存款）
 }
 

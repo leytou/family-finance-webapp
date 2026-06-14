@@ -112,6 +112,7 @@ describe('buildChartOption', () => {
     expect(income.itemStyle?.borderRadius).toEqual([2, 2, 0, 0])
     expect(expense.itemStyle?.borderRadius).toEqual([2, 2, 0, 0])
     expect(income.barCategoryGap).toBe('40%')
+    expect(expense.barCategoryGap).toBe('40%')
   })
 
   it('仅左轴画网格，右轴不画（避免双重网格）', () => {
@@ -156,5 +157,14 @@ describe('buildChartOption', () => {
     expect(html).toContain('1.6万')        // 收入 15800
     expect(html).toContain('9,200')        // 支出 9200（<1万 千分位）
     expect(html).toContain('123.5万')      // 累计 1234567
+
+    // 赤字场景：净结余 5000-9000 = -4000，竹青色 + 千分位负数
+    const deficitHtml = (option.tooltip.formatter as (p: Array<{ seriesName: string; value: number }>) => string)([
+      { seriesName: '收入', value: 5000 },
+      { seriesName: '支出', value: 9000 },
+      { seriesName: '累计储蓄', value: 1234567 },
+    ])
+    expect(deficitHtml).toContain('#5e8270')   // 赤字竹青色（COLOR_NET_NEG）
+    expect(deficitHtml).toContain('-4,000')    // 净结余 -4000 千分位负数
   })
 })
