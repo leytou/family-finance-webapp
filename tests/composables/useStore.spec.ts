@@ -1231,4 +1231,36 @@ describe('fund 操作函数', () => {
     store.setFundRate(0.02)
     expect(store.data.value.systemParams.fundRate).toBe(0.02)
   })
+
+  it('syncFundYearly 把该月值复制到当前月及下方所有同月，并标记 yearly', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.setStartMonth(202601)
+    store.enableFund()
+    store.updateFundEntry('mortgage', 202603, 5000)
+    store.syncFundYearly('mortgage', 202603)
+    const col = store.data.value.fund!.mortgage
+    // 202603 自身及下方所有 3 月都被写入 5000
+    expect(col.entries[202603]).toBe(5000)
+    expect(col.entries[202703]).toBe(5000)
+    expect(col.entries[202803]).toBe(5000)
+    expect(col.yearlyMonths?.[202703]).toBe(true)
+    expect(col.yearlyMonths?.[202803]).toBe(true)
+    // 非 3 月未被写入
+    expect(col.entries[202601]).toBeUndefined()
+    expect(col.entries[202602]).toBeUndefined()
+  })
+
+  it('updateFundEntry 传 null 删除 entry 并清除 yearlyMonths 标记', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.setStartMonth(202601)
+    store.enableFund()
+    store.updateFundEntry('contribution', 202603, 2000)
+    store.syncFundYearly('contribution', 202603)   // 标记 yearly
+    expect(store.data.value.fund!.contribution.yearlyMonths?.[202603]).toBe(true)
+    store.updateFundEntry('contribution', 202603, null)   // 删除
+    expect(store.data.value.fund!.contribution.entries[202603]).toBeUndefined()
+    expect(store.data.value.fund!.contribution.yearlyMonths?.[202603]).toBeUndefined()
+  })
 })
