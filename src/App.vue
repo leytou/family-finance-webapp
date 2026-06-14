@@ -51,8 +51,9 @@ const results = computed(() => calculate(data.value))
 type ActiveView = 'table' | 'chart' | 'comparison'
 const activeView = ref<ActiveView>('table')
 
-function showView(view: ActiveView) {
-  activeView.value = activeView.value === view ? 'table' : view
+// 显式切换：三按钮各点击直接设置目标视图（取代旧 toggle）
+function setActiveView(view: ActiveView) {
+  activeView.value = view
 }
 
 // 起始月份：双向绑定桥接到 store 受控入口 setStartMonth（选出的值恒合法，原样写入）
@@ -120,9 +121,17 @@ const startMonth = computed({
         </button>
         <button
           class="px-3 py-1 border rounded text-sm"
+          :class="activeView === 'table' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
+          type="button"
+          @click="setActiveView('table')"
+        >
+          表格
+        </button>
+        <button
+          class="px-3 py-1 border rounded text-sm"
           :class="activeView === 'chart' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
           type="button"
-          @click="showView('chart')"
+          @click="setActiveView('chart')"
         >
           图表
         </button>
@@ -130,7 +139,7 @@ const startMonth = computed({
           class="px-3 py-1 border rounded text-sm"
           :class="activeView === 'comparison' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
           type="button"
-          @click="showView('comparison')"
+          @click="setActiveView('comparison')"
         >
           对比
         </button>

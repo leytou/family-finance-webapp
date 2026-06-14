@@ -102,6 +102,33 @@ describe('App', () => {
     expect(wrapper.findComponent({ name: 'FinanceChart' }).exists()).toBe(true)
   })
 
+  it('视图切换为显式三按钮（表格/图表/对比）', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    expect(findButton(wrapper, '表格')).toBeDefined()
+    expect(findButton(wrapper, '图表')).toBeDefined()
+    expect(findButton(wrapper, '对比')).toBeDefined()
+  })
+
+  it('点击表格按钮从图表视图回到表格', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    // 初始为表格视图
+    expect(wrapper.findComponent({ name: 'AnnualTable' }).exists()).toBe(true)
+
+    // 切到图表
+    await findButton(wrapper, '图表')?.trigger('click')
+    expect(wrapper.findComponent({ name: 'FinanceChart' }).exists()).toBe(true)
+    expect(wrapper.findComponent({ name: 'AnnualTable' }).exists()).toBe(false)
+
+    // 点「表格」按钮显式回到表格（覆盖新增按钮，取代旧 toggle）
+    await findButton(wrapper, '表格')?.trigger('click')
+    expect(wrapper.findComponent({ name: 'AnnualTable' }).exists()).toBe(true)
+    expect(wrapper.findComponent({ name: 'FinanceChart' }).exists()).toBe(false)
+  })
+
   it('系统参数输入正确绑定', async () => {
     const App = await loadApp()
     const wrapper = mount(App, { global: { stubs: globalStubs } })
