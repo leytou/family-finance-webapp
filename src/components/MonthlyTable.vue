@@ -734,10 +734,10 @@ function getValueClass(value: number): string {
           </th>
 
           <!-- 专项固定列 -->
-          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">专项</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap border-l border-neutral-300">专项</th>
 
           <!-- 固定列 -->
-          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap border-l border-neutral-300">理财</th>
+          <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">理财</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">收入</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">支出</th>
           <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">结余</th>
@@ -810,7 +810,7 @@ function getValueClass(value: number): string {
 
           <!-- 专项单元格 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer border-l border-neutral-300"
             :class="getValueClass(eventInfo(result.month).net)"
             :aria-label="`编辑 ${formatMonth(result.month)} 专项`"
             @click="openEventEditor(result.month, $event)"
@@ -824,7 +824,7 @@ function getValueClass(value: number): string {
 
           <!-- 理财列 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l border-neutral-300"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
             :class="getValueClass(result.investReturn)"
           >
             <span
