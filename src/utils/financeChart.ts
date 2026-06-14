@@ -28,7 +28,7 @@ export interface ChartOption {
   legend: { data: string[] }
   grid: { left: string; right: string; bottom: string; containLabel: boolean }
   xAxis: { type: string; data: string[]; axisLine?: { lineStyle: { color: string } } }
-  yAxis: { type: string; alignTicks: boolean; splitLine?: { lineStyle: { color: string } } }[]
+  yAxis: { type: string; alignTicks: boolean; splitLine?: { show?: boolean; lineStyle: { color: string } } }[]
   series: ChartSeries[]
 }
 
@@ -87,7 +87,7 @@ export function buildChartOption(data: ChartData): ChartOption {
     xAxis: { type: 'category', data: data.categories, axisLine: { lineStyle: { color: COLOR_AXIS } } },
     yAxis: [
       { type: 'value', alignTicks: true, splitLine: { lineStyle: { color: COLOR_GRID } } },
-      { type: 'value', alignTicks: true, splitLine: { lineStyle: { color: COLOR_GRID } } },
+      { type: 'value', alignTicks: true, splitLine: { show: false } },
     ],
     series: [
       {

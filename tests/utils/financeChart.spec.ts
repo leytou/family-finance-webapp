@@ -113,4 +113,12 @@ describe('buildChartOption', () => {
     expect(expense.itemStyle?.borderRadius).toEqual([2, 2, 0, 0])
     expect(income.barCategoryGap).toBe('40%')
   })
+
+  it('仅左轴画网格，右轴不画（避免双重网格）', () => {
+    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
+    const [left, right] = buildChartOption(data).yAxis
+
+    expect(left.splitLine?.show ?? true).toBe(true)
+    expect(right.splitLine?.show).toBe(false)
+  })
 })
