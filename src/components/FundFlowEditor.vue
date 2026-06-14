@@ -105,7 +105,7 @@ onMounted(() => { rootRef.value?.focus() })
     <!-- 截断提示：请求总额 ≠ 实际 fundWithdrawal -->
     <div
       v-if="requestedTotal() !== result.fundWithdrawal"
-      class="mt-1 text-[11px] text-amber-600"
+      class="mt-1 text-[11px] text-warning-600"
     >已截断：请求 {{ formatCurrency(requestedTotal()) }}，实际提取 {{ formatCurrency(result.fundWithdrawal) }}</div>
 
     <div class="mt-1 flex items-center justify-between gap-4">
