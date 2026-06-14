@@ -8,8 +8,10 @@ import {
   getCurrentMonth,
   isInRange,
   isValidYyyyMm,
+  monthDiff,
   monthRange,
   normalizeMonth,
+  projectionMonths,
 } from '../../src/utils/month'
 
 describe('month utils', () => {
@@ -157,6 +159,46 @@ describe('month utils', () => {
 
     it('边界 999999（9999 年 99 月）进位为 1000703（记录行为，不额外约束）', () => {
       expect(normalizeMonth(999999)).toBe(1000703)
+    })
+  })
+
+  describe('monthDiff', () => {
+    it('同年内：end 比 start 晚若干月', () => {
+      expect(monthDiff(202601, 202606)).toBe(5)
+    })
+
+    it('跨年', () => {
+      expect(monthDiff(202601, 203012)).toBe(59)
+    })
+
+    it('end == start 返回 0', () => {
+      expect(monthDiff(202606, 202606)).toBe(0)
+    })
+
+    it('end 在 start 之前返回负数', () => {
+      expect(monthDiff(202606, 202601)).toBe(-5)
+    })
+
+    it('跨年单月（11 月 → 次年 2 月）', () => {
+      expect(monthDiff(202611, 202702)).toBe(3)
+    })
+  })
+
+  describe('projectionMonths', () => {
+    it('5 年 = 60', () => {
+      expect(projectionMonths(202601, 203012)).toBe(60)
+    })
+
+    it('同月 = 1', () => {
+      expect(projectionMonths(202601, 202601)).toBe(1)
+    })
+
+    it('超过 360 月时 clamp 到 360', () => {
+      expect(projectionMonths(202601, 206001)).toBe(360)   // ~40 年
+    })
+
+    it('end 早于 start 时 clamp 到 1（兜底）', () => {
+      expect(projectionMonths(202606, 202601)).toBe(1)
     })
   })
 })

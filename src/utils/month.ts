@@ -64,3 +64,21 @@ export function formatMonthZh(yyyymm: number): string {
   const month = yyyymm % 100
   return `${year}年${month}月`
 }
+
+/**
+ * 计算 end 比 start 晚多少个月（end == start 返回 0；含跨年进位）。
+ * 不校验入参合法性——交由调用方保证 YYYYMM 已规范化。
+ */
+export function monthDiff(start: number, end: number): number {
+  const startAbs = Math.floor(start / 100) * 12 + (start % 100) - 1
+  const endAbs = Math.floor(end / 100) * 12 + (end % 100) - 1
+  return endAbs - startAbs
+}
+
+/**
+ * 由起止月计算规划期限（月数），clamp 到 [1, 360]。
+ * 调用方负责保证 start/end 已规范化（end 缺失时由调用方兜底为 start+59）。
+ */
+export function projectionMonths(start: number, end: number): number {
+  return Math.max(1, Math.min(monthDiff(start, end) + 1, 360))
+}
