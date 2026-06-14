@@ -483,9 +483,77 @@ function handleEditCumBlur() {
   confirmEditCum()
 }
 
+// 公积金专区单元格编辑状态（独立 ref，镜像 editCell/editCum 模式）
+const editingFundCell = ref<{ field: 'mortgage' | 'contribution' | 'monthlyOffset'; month: number } | null>(null)
+const editFundCellValue = ref<string>('')
+const editFundCellInput = ref<HTMLInputElement | null>(null)
+const editFundOriginalValue = ref<number>(0)
+function setEditFundCellInput(el: any) { editFundCellInput.value = el ?? null }
+
+function fundEditKey(field: 'mortgage' | 'contribution' | 'monthlyOffset', month: number): string {
+  return `${field}-${month}`
+}
+
+function startEditFundCell(
+  field: 'mortgage' | 'contribution' | 'monthlyOffset',
+  month: number,
+) {
+  if (!fund.value) return
+  const current = Math.abs(resolveColumnValue(fund.value[field], month).amount)
+  editingFundCell.value = { field, month }
+  editFundOriginalValue.value = Math.round(current)
+  editFundCellValue.value = String(editFundOriginalValue.value)
+  nextTick(() => {
+    editFundCellInput.value?.select()
+  })
+}
+
+function confirmEditFundCell() {
+  if (!editingFundCell.value) return
+  const { field, month } = editingFundCell.value
+  const trimmed = editFundCellValue.value.trim()
+  if (trimmed === '') {
+    store.updateFundEntry(field, month, null)
+  } else {
+    const num = Math.round(Number(trimmed))
+    if (Number.isFinite(num) && num !== editFundOriginalValue.value) {
+      store.updateFundEntry(field, month, field === 'mortgage' ? -num : num)
+    }
+  }
+  editingFundCell.value = null
+  editFundCellValue.value = ''
+}
+
+function cancelEditFundCell() {
+  editingFundCell.value = null
+  editFundCellValue.value = ''
+}
+
+async function moveEditFundCell(
+  field: 'mortgage' | 'contribution' | 'monthlyOffset',
+  month: number,
+  direction: -1 | 1,
+) {
+  const idx = props.results.findIndex(r => r.month === month)
+  const targetIdx = idx + direction
+  if (idx === -1 || targetIdx < 0 || targetIdx >= props.results.length) return
+  skipBlur.value = true
+  confirmEditFundCell()
+  await nextTick()
+  startEditFundCell(field, props.results[targetIdx].month)
+  await nextTick()
+  skipBlur.value = false
+}
+
+function handleEditFundCellBlur() {
+  if (skipBlur.value) return
+  confirmEditFundCell()
+}
+
 // 点击外部退出编辑（mousedown 捕获阶段，先于 blur 触发）
 useClickOutside(editCellInput, confirmEditCell)
 useClickOutside(editCumInput, confirmEditCum)
+useClickOutside(editFundCellInput, confirmEditFundCell)
 useClickOutside(renameInput, confirmRename)
 useClickOutside(snapshotRenameInput, confirmSnapshotRename)
 
@@ -800,24 +868,91 @@ function getValueClass(value: number): string {
           </td>
           <!-- 公积金专区数据列（仅 fund 启用） -->
           <template v-if="fund">
-            <!-- 房贷月供（只读，Task 4 改可编辑；显示绝对值） -->
+            <!-- 房贷月供（可编辑；输入正数存负数，显示绝对值） -->
             <td
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l-2 border-neutral-400"
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l-2 border-neutral-400 relative"
               :class="getValueClass(-fundMortgageAbs(result.month))"
             >
-              <span class="block w-full">{{ formatCurrency(fundMortgageAbs(result.month)) }}</span>
+              <input
+                v-if="editingFundCell?.field === 'mortgage' && editingFundCell?.month === result.month"
+                :data-fund-edit-input="fundEditKey('mortgage', result.month)"
+                :ref="setEditFundCellInput"
+                type="text"
+                inputmode="numeric"
+                class="absolute inset-0 border rounded px-1 text-right text-[11px]"
+                :value="editFundCellValue"
+                @input="editFundCellValue = ($event.target as HTMLInputElement).value"
+                @keyup.enter="confirmEditFundCell"
+                @keyup.escape="cancelEditFundCell"
+                @keydown.up.prevent="moveEditFundCell('mortgage', result.month, -1)"
+                @keydown.down.prevent="moveEditFundCell('mortgage', result.month, 1)"
+                @blur="handleEditFundCellBlur"
+              />
+              <span
+                v-else
+                class="block w-full cursor-pointer"
+                :data-fund-edit="fundEditKey('mortgage', result.month)"
+                @click="startEditFundCell('mortgage', result.month)"
+              >{{ formatCurrency(fundMortgageAbs(result.month)) }}</span>
             </td>
-            <!-- 公积金缴存（只读，Task 4 改可编辑） -->
-            <td class="px-1 py-0 text-right tabular-nums whitespace-nowrap">
-              <span class="block w-full">{{ formatCurrency(fundContribution(result.month)) }}</span>
+            <!-- 公积金缴存（可编辑） -->
+            <td class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative">
+              <input
+                v-if="editingFundCell?.field === 'contribution' && editingFundCell?.month === result.month"
+                :data-fund-edit-input="fundEditKey('contribution', result.month)"
+                :ref="setEditFundCellInput"
+                type="text"
+                inputmode="numeric"
+                class="absolute inset-0 border rounded px-1 text-right text-[11px]"
+                :value="editFundCellValue"
+                @input="editFundCellValue = ($event.target as HTMLInputElement).value"
+                @keyup.enter="confirmEditFundCell"
+                @keyup.escape="cancelEditFundCell"
+                @keydown.up.prevent="moveEditFundCell('contribution', result.month, -1)"
+                @keydown.down.prevent="moveEditFundCell('contribution', result.month, 1)"
+                @blur="handleEditFundCellBlur"
+              />
+              <span
+                v-else
+                class="block w-full cursor-pointer"
+                :data-fund-edit="fundEditKey('contribution', result.month)"
+                @click="startEditFundCell('contribution', result.month)"
+              >{{ formatCurrency(fundContribution(result.month)) }}</span>
             </td>
-            <!-- 公积金月冲（只读 + 联动视觉；Task 4 改可编辑 + hover） -->
+            <!-- 公积金月冲（可编辑 + 联动视觉：auto 淡灰 / 手填蓝底 + hover 公式） -->
             <td
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-              :class="{ 'text-neutral-400': fundOffsetDisplay(result.month).auto }"
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative"
+              :class="{
+                'text-neutral-400': fundOffsetDisplay(result.month).auto,
+                'bg-brand-50': !fundOffsetDisplay(result.month).auto,
+              }"
               :data-fund-offset-auto="fundOffsetDisplay(result.month).auto ? result.month : false"
+              :data-fund-offset-edited="!fundOffsetDisplay(result.month).auto ? result.month : false"
             >
-              <span class="block w-full">{{ formatCurrency(fundOffsetDisplay(result.month).value) }}</span>
+              <input
+                v-if="editingFundCell?.field === 'monthlyOffset' && editingFundCell?.month === result.month"
+                :data-fund-edit-input="fundEditKey('monthlyOffset', result.month)"
+                :ref="setEditFundCellInput"
+                type="text"
+                inputmode="numeric"
+                class="absolute inset-0 border rounded px-1 text-right text-[11px]"
+                :value="editFundCellValue"
+                @input="editFundCellValue = ($event.target as HTMLInputElement).value"
+                @keyup.enter="confirmEditFundCell"
+                @keyup.escape="cancelEditFundCell"
+                @keydown.up.prevent="moveEditFundCell('monthlyOffset', result.month, -1)"
+                @keydown.down.prevent="moveEditFundCell('monthlyOffset', result.month, 1)"
+                @blur="handleEditFundCellBlur"
+              />
+              <span
+                v-else
+                class="block w-full cursor-pointer"
+                :data-fund-edit="fundEditKey('monthlyOffset', result.month)"
+                :aria-label="getFormulaAriaLabel(result, 'fundOffset')"
+                @click="startEditFundCell('monthlyOffset', result.month)"
+                @mouseenter="showFormula(result, 'fundOffset', $event)"
+                @mouseleave="popover = null"
+              >{{ formatCurrency(fundOffsetDisplay(result.month).value) }}</span>
             </td>
             <!-- 公积金余额（只读；Task 6 加 click/右键/hover） -->
             <td

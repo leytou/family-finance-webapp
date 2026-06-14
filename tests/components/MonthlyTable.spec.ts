@@ -1052,4 +1052,91 @@ describe('MonthlyTable · 公积金专区', () => {
     expect(autoCell.classes()).toContain('text-neutral-400')
     expect(autoCell.text()).toContain('5,000')
   })
+
+  it('房贷月供输入正数存负数', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-edit="mortgage-202601"]').trigger('click')
+    const input = wrapper.find('[data-fund-edit-input="mortgage-202601"]')
+    await input.setValue('5000')
+    await input.trigger('blur')
+
+    expect(store.data.value.fund!.mortgage.entries[202601]).toBe(-5000)
+  })
+
+  it('公积金缴存输入正数原样存储', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-edit="contribution-202601"]').trigger('click')
+    const input = wrapper.find('[data-fund-edit-input="contribution-202601"]')
+    await input.setValue('2000')
+    await input.trigger('blur')
+
+    expect(store.data.value.fund!.contribution.entries[202601]).toBe(2000)
+  })
+
+  it('月冲手填覆盖后显示蓝底（已编辑）', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('mortgage', 202601, -5000)
+    store.updateFundEntry('monthlyOffset', 202601, 3000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    const cell = wrapper.find('[data-fund-offset-edited="202601"]')
+    expect(cell.exists()).toBe(true)
+    expect(cell.classes()).toContain('bg-brand-50')
+    expect(cell.text()).toContain('3,000')
+  })
+
+  it('月冲手填编辑写回 monthlyOffset', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-edit="monthlyOffset-202601"]').trigger('click')
+    const input = wrapper.find('[data-fund-edit-input="monthlyOffset-202601"]')
+    await input.setValue('3000')
+    await input.trigger('blur')
+
+    expect(store.data.value.fund!.monthlyOffset.entries[202601]).toBe(3000)
+  })
+
+  it('月冲单元格 hover 展示公式（自动联动）', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('mortgage', 202601, -5000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-offset-auto="202601"] span').trigger('mouseenter')
+    expect(wrapper.text()).toContain('自动联动')
+  })
 })
