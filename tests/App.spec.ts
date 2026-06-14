@@ -147,17 +147,32 @@ describe('App', () => {
     expect(store.data.value.systemParams.annualRate).toBeCloseTo(0.035)
   })
 
-  it('整体布局结构正确', async () => {
+  it('整体布局结构正确（两行 header）', async () => {
     const App = await loadApp()
     const wrapper = mount(App, { global: { stubs: globalStubs } })
 
     expect(wrapper.get('.h-screen').classes()).toContain('flex-col')
-    expect(wrapper.get('header').classes()).toContain('h-12')
-    expect(wrapper.get('header').classes()).toContain('border-b')
+
+    const header = wrapper.get('header')
+    expect(header.classes()).toContain('border-b')
+
+    // 两行：第一行 h-12（导航），第二行 h-9 淡灰底（操作）
+    const rows = header.findAll(':scope > div')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].classes()).toContain('h-12')
+    expect(rows[1].classes()).toContain('h-9')
+    expect(rows[1].classes()).toContain('bg-neutral-50')
 
     const main = wrapper.get('main')
     expect(main.classes()).toContain('flex-1')
     expect(main.classes()).toContain('flex-col')
+  })
+
+  it('第二行操作层含「参数」行标签', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    expect(wrapper.get('[data-testid="param-row-label"]').text()).toBe('参数')
   })
 
   it('初始存款输入框正确绑定', async () => {
