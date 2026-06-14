@@ -156,11 +156,11 @@ describe('App', () => {
     const header = wrapper.get('header')
     expect(header.classes()).toContain('border-b')
 
-    // 两行：第一行 h-12（导航），第二行 h-9 淡灰底（操作）
+    // 两行：第一行 h-12（导航），第二行 min-h-8 淡灰底（参数，公积金启用时增高）
     const rows = header.findAll(':scope > div')
     expect(rows).toHaveLength(2)
     expect(rows[0].classes()).toContain('h-12')
-    expect(rows[1].classes()).toContain('h-9')
+    expect(rows[1].classes()).toContain('min-h-8')
     expect(rows[1].classes()).toContain('bg-neutral-50')
 
     const main = wrapper.get('main')

@@ -157,89 +157,9 @@ function onFundToggle(e: Event) {
             对比
           </button>
           <div class="border-l h-5 mx-2" />
-          <ToolsMenu />
-        </div>
-      </div>
-      <!-- 第二行 · 操作层：参数标签 + 参数输入 / 撤销·重做 -->
-      <div class="h-9 flex items-center justify-between px-4 bg-neutral-50 border-t">
-        <div class="flex items-center gap-4">
-          <span data-testid="param-row-label" class="text-[10px] uppercase tracking-wide text-neutral-400 border-r pr-3">参数</span>
-          <div class="flex items-center gap-2">
-            <label for="start-month" class="text-xs whitespace-nowrap">起始月份</label>
-            <MonthPicker v-model="startMonth" input-id="start-month" />
-          </div>
-          <div class="flex items-center gap-2">
-            <label for="end-month" class="text-xs whitespace-nowrap">结束月份</label>
-            <MonthPicker v-model="endMonth" input-id="end-month" />
-            <span data-testid="projection-text" class="text-xs text-neutral-400 whitespace-nowrap">{{ projectionText }}</span>
-          </div>
-          <span v-if="periodError" data-testid="end-month-error" class="text-xs text-negative-600 whitespace-nowrap">{{ periodError }}</span>
-          <div class="flex items-center gap-2">
-            <label class="text-xs whitespace-nowrap">年化收益率(%)</label>
-            <input
-              :value="(data.systemParams.annualRate * 100).toFixed(3)"
-              @input="(e: Event) => { const target = e.target as HTMLInputElement; data.systemParams.annualRate = Number(target.value) / 100 }"
-              type="number"
-              step="0.001"
-              class="border rounded px-2 py-1 text-sm w-20"
-            />
-          </div>
-          <div class="flex items-center gap-2">
-            <label class="text-xs whitespace-nowrap">初始存款</label>
-            <input
-              v-model.number="data.systemParams.initialDeposit"
-              type="number"
-              class="border rounded px-2 py-1 text-sm w-28"
-              placeholder="元"
-            />
-          </div>
-          <!-- 公积金子分组：仅 fund 启用时显示 3 输入 -->
-          <div class="flex items-center gap-2 border-l pl-4">
-            <label class="text-xs whitespace-nowrap flex items-center gap-1">
-              <input
-                data-testid="fund-enable-toggle"
-                type="checkbox"
-                :checked="fundEnabled"
-                @change="onFundToggle"
-              />
-              公积金
-            </label>
-            <template v-if="fundEnabled">
-              <label class="text-xs whitespace-nowrap">年利率(%)</label>
-              <input
-                data-testid="fund-rate-input"
-                :value="(data.systemParams.fundRate * 100).toFixed(1)"
-                @input="(e: Event) => setFundRate(Number((e.target as HTMLInputElement).value) / 100)"
-                type="number"
-                step="0.1"
-                class="border rounded px-2 py-1 text-sm w-16"
-              />
-              <label class="text-xs whitespace-nowrap">结息月</label>
-              <input
-                data-testid="fund-interest-month-input"
-                :value="data.systemParams.fundInterestMonth"
-                @input="(e: Event) => setFundInterestMonth(Math.round(Number((e.target as HTMLInputElement).value)))"
-                type="number"
-                min="1"
-                max="12"
-                class="border rounded px-2 py-1 text-sm w-12"
-              />
-              <label class="text-xs whitespace-nowrap">初始余额</label>
-              <input
-                data-testid="fund-initial-balance-input"
-                :value="data.systemParams.fundInitialBalance ?? 0"
-                @input="(e: Event) => setFundInitialBalance(Number((e.target as HTMLInputElement).value))"
-                type="number"
-                class="border rounded px-2 py-1 text-sm w-24"
-                placeholder="元"
-              />
-            </template>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
           <button
             data-testid="undo-btn"
-            class="px-3 py-1 border rounded text-sm disabled:cursor-not-allowed disabled:opacity-40"
+            class="px-3 py-1 border rounded text-sm whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
             :class="canUndo ? 'hover:bg-neutral-50' : ''"
             type="button"
             :disabled="!canUndo"
@@ -250,7 +170,7 @@ function onFundToggle(e: Event) {
           </button>
           <button
             data-testid="redo-btn"
-            class="px-3 py-1 border rounded text-sm disabled:cursor-not-allowed disabled:opacity-40"
+            class="px-3 py-1 border rounded text-sm whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
             :class="canRedo ? 'hover:bg-neutral-50' : ''"
             type="button"
             :disabled="!canRedo"
@@ -259,6 +179,85 @@ function onFundToggle(e: Event) {
           >
             <span aria-hidden="true">↷</span>重做
           </button>
+          <div class="border-l h-5 mx-2" />
+          <ToolsMenu />
+        </div>
+      </div>
+      <!-- 第二行 · 参数层：参数标签 + 参数输入 / 撤销·重做（字体与表格同 11px，整体紧凑）-->
+      <div class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-neutral-50 border-t">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+          <span data-testid="param-row-label" class="text-[10px] uppercase tracking-wide text-neutral-400 border-r pr-3">参数</span>
+          <div class="flex items-center gap-2">
+            <label for="start-month" class="text-[11px] whitespace-nowrap">起始月份</label>
+            <MonthPicker v-model="startMonth" input-id="start-month" />
+          </div>
+          <div class="flex items-center gap-2">
+            <label for="end-month" class="text-[11px] whitespace-nowrap">结束月份</label>
+            <MonthPicker v-model="endMonth" input-id="end-month" />
+            <span data-testid="projection-text" class="text-[11px] text-neutral-400 whitespace-nowrap">{{ projectionText }}</span>
+          </div>
+          <span v-if="periodError" data-testid="end-month-error" class="text-[11px] text-negative-600 whitespace-nowrap">{{ periodError }}</span>
+          <div class="flex items-center gap-2">
+            <label class="text-[11px] whitespace-nowrap">年化收益率(%)</label>
+            <input
+              :value="(data.systemParams.annualRate * 100).toFixed(3)"
+              @input="(e: Event) => { const target = e.target as HTMLInputElement; data.systemParams.annualRate = Number(target.value) / 100 }"
+              type="number"
+              step="0.001"
+              class="border rounded px-2 py-0.5 text-[11px] w-[85px]"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-[11px] whitespace-nowrap">初始存款</label>
+            <input
+              v-model.number="data.systemParams.initialDeposit"
+              type="number"
+              class="border rounded px-2 py-0.5 text-[11px] w-24"
+              placeholder="元"
+            />
+          </div>
+          <!-- 公积金子分组：另起一行展示；仅 fund 启用时显示 3 输入 -->
+          <div class="flex items-center gap-2 w-full">
+            <label class="text-[11px] whitespace-nowrap flex items-center gap-1">
+              <input
+                data-testid="fund-enable-toggle"
+                type="checkbox"
+                :checked="fundEnabled"
+                @change="onFundToggle"
+              />
+              公积金
+            </label>
+            <template v-if="fundEnabled">
+              <label class="text-[11px] whitespace-nowrap">年利率(%)</label>
+              <input
+                data-testid="fund-rate-input"
+                :value="(data.systemParams.fundRate * 100).toFixed(1)"
+                @input="(e: Event) => setFundRate(Number((e.target as HTMLInputElement).value) / 100)"
+                type="number"
+                step="0.1"
+                class="border rounded px-2 py-0.5 text-[11px] w-[85px]"
+              />
+              <label class="text-[11px] whitespace-nowrap">结息月</label>
+              <input
+                data-testid="fund-interest-month-input"
+                :value="data.systemParams.fundInterestMonth"
+                @input="(e: Event) => setFundInterestMonth(Math.round(Number((e.target as HTMLInputElement).value)))"
+                type="number"
+                min="1"
+                max="12"
+                class="border rounded px-2 py-0.5 text-[11px] w-12"
+              />
+              <label class="text-[11px] whitespace-nowrap">初始余额</label>
+              <input
+                data-testid="fund-initial-balance-input"
+                :value="data.systemParams.fundInitialBalance ?? 0"
+                @input="(e: Event) => setFundInitialBalance(Number((e.target as HTMLInputElement).value))"
+                type="number"
+                class="border rounded px-2 py-0.5 text-[11px] w-24"
+                placeholder="元"
+              />
+            </template>
+          </div>
         </div>
       </div>
     </header>
