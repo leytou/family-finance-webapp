@@ -21,3 +21,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Brainstorming 可视化伴侣会话产物
+.superpowers/
