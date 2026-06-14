@@ -61,7 +61,7 @@ describe('FinanceChart', () => {
     const mockInstance = mockInit.mock.results[0].value as { setOption: ReturnType<typeof vi.fn> }
     expect(mockInstance.setOption).toHaveBeenCalledTimes(1)
     const option = mockInstance.setOption.mock.calls[0][0] as { series: { name: string }[] }
-    expect(option.series.map(s => s.name)).toEqual(['收入', '支出', '累计储蓄'])
+    expect(option.series.map(s => s.name)).toEqual(['收入', '支出', '总资产'])
   })
 
   it('点击「按年」切换粒度并以年份为 x 轴刷新 option', async () => {

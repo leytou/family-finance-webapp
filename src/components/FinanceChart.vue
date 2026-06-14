@@ -9,6 +9,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import type { MonthResult } from '../types'
 import { buildChartData, buildChartOption, formatAxisAmount } from '../utils/financeChart'
 import type { Granularity } from '../utils/financeChart'
+import { useStore } from '../composables/useStore'
 
 // 按需 register：仅柱/折线 + 网格/提示/图例 + Canvas 渲染器
 echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
@@ -21,6 +22,9 @@ const el = ref<HTMLElement>()
 let chart: echarts.ECharts | null = null
 let resizeObserver: ResizeObserver | null = null
 
+const store = useStore()
+const fundEnabled = computed(() => !!store.data.value.fund)
+
 // 由纯函数产出当前数据；粒度或 results 变化即重算
 const chartData = computed(() => buildChartData(props.results, granularity.value))
 
@@ -32,7 +36,7 @@ const currentSavingsLabel = computed(() => {
 
 function render() {
   // option 字段遵循 ECharts 规范，用 as any 桥接第三方严格类型
-  chart?.setOption(buildChartOption(chartData.value) as unknown as echarts.EChartsCoreOption)
+  chart?.setOption(buildChartOption(chartData.value, fundEnabled.value) as unknown as echarts.EChartsCoreOption)
 }
 
 onMounted(() => {
@@ -44,6 +48,7 @@ onMounted(() => {
 })
 
 watch(chartData, render)
+watch(fundEnabled, render)
 
 onUnmounted(() => {
   resizeObserver?.disconnect()

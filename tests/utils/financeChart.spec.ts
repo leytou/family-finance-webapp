@@ -13,6 +13,14 @@ function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
     monthlyBalance: 0,
     cumSavings: 0,
     isAnchor: false,
+    fundBalance: 0,
+    fundInterest: 0,
+    fundContribution: 0,
+    fundOffset: 0,
+    fundWithdrawal: 0,
+    fundOutflow: 0,
+    isFundAnchor: false,
+    totalAssets: 0,
     ...overrides,
   }
 }
@@ -47,8 +55,8 @@ describe('formatAxisAmount', () => {
 describe('buildChartData', () => {
   it('按月：categories 用 YY/MM，支出为正值', () => {
     const results = [
-      makeResult({ month: 202601, monthlyIncome: 10000, monthlyExpense: 6000, cumSavings: 50000 }),
-      makeResult({ month: 202602, monthlyIncome: 10000, monthlyExpense: 6000, cumSavings: 55000 }),
+      makeResult({ month: 202601, monthlyIncome: 10000, monthlyExpense: 6000, cumSavings: 50000, totalAssets: 50000 }),
+      makeResult({ month: 202602, monthlyIncome: 10000, monthlyExpense: 6000, cumSavings: 55000, totalAssets: 55000 }),
     ]
 
     expect(buildChartData(results, 'month')).toEqual({
@@ -56,13 +64,15 @@ describe('buildChartData', () => {
       income: [10000, 10000],
       expense: [6000, 6000],
       cumSavings: [50000, 55000],
+      totalAssets: [50000, 55000],
+      fundBalance: [0, 0],
     })
   })
 
   it('按年：按自然年聚合，支出为正值，categories 用年份', () => {
     const results = [
-      makeResult({ month: 202612, monthlyIncome: 10000, monthlyExpense: 5000, cumSavings: 110000 }),
-      makeResult({ month: 202701, monthlyIncome: 12000, monthlyExpense: 5000, cumSavings: 120000 }),
+      makeResult({ month: 202612, monthlyIncome: 10000, monthlyExpense: 5000, cumSavings: 110000, totalAssets: 110000 }),
+      makeResult({ month: 202701, monthlyIncome: 12000, monthlyExpense: 5000, cumSavings: 120000, totalAssets: 120000 }),
     ]
 
     expect(buildChartData(results, 'year')).toEqual({
@@ -70,17 +80,27 @@ describe('buildChartData', () => {
       income: [10000, 12000],
       expense: [5000, 5000],
       cumSavings: [110000, 120000],
+      totalAssets: [110000, 120000],
+      fundBalance: [0, 0],
     })
   })
 })
 
-describe('buildChartOption', () => {
-  it('三系列：收入/支出走左轴，累计储蓄走右轴；数据与配色正确', () => {
-    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
+describe('buildChartOption · 退化模式（fundEnabled=false）', () => {
+  // 退化模式 data：无 fund，totalAssets = cumSavings
+  const baseData = () => ({
+    categories: ['26/01'],
+    income: [10000],
+    expense: [6000],
+    cumSavings: [50000],
+    totalAssets: [50000],
+    fundBalance: [0],
+  })
 
-    const option = buildChartOption(data)
+  it('三系列：收入/支出走左轴，总资产走右轴；数据与配色正确', () => {
+    const option = buildChartOption(baseData(), false)
 
-    expect(option.series.map(s => s.name)).toEqual(['收入', '支出', '累计储蓄'])
+    expect(option.series.map(s => s.name)).toEqual(['收入', '支出', '总资产'])
     expect(option.series.map(s => s.type)).toEqual(['bar', 'bar', 'line'])
     expect(option.series[0].yAxisIndex).toBe(0)
     expect(option.series[1].yAxisIndex).toBe(0)
@@ -91,21 +111,19 @@ describe('buildChartOption', () => {
     expect(option.series[0].itemStyle?.color).toBe('#c0504d')
     expect(option.series[1].itemStyle?.color).toBe('#6b8e7b')
     expect(option.xAxis.data).toEqual(['26/01'])
-    expect(option.legend.data).toEqual(['收入', '支出', '累计储蓄'])
+    expect(option.legend.data).toEqual(['收入', '支出', '总资产'])
   })
 
-  it('累计储蓄为渐变面积主线：含 areaStyle 与 2.5px 粗线', () => {
-    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
-    const cum = buildChartOption(data).series[2]
+  it('总资产为渐变面积主线：含 areaStyle 与 2.5px 粗线', () => {
+    const main = buildChartOption(baseData(), false).series[2]
 
-    expect(cum.areaStyle).toBeDefined()
-    expect(cum.areaStyle?.color).toBeDefined()
-    expect(cum.lineStyle?.width).toBe(2.5)
+    expect(main.areaStyle).toBeDefined()
+    expect(main.areaStyle?.color).toBeDefined()
+    expect(main.lineStyle?.width).toBe(2.5)
   })
 
   it('收支柱为正值并列双柱，顶部圆角', () => {
-    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
-    const option = buildChartOption(data)
+    const option = buildChartOption(baseData(), false)
     const income = option.series[0]
     const expense = option.series[1]
 
@@ -116,16 +134,14 @@ describe('buildChartOption', () => {
   })
 
   it('仅左轴画网格，右轴不画（避免双重网格）', () => {
-    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
-    const [left, right] = buildChartOption(data).yAxis
+    const [left, right] = buildChartOption(baseData(), false).yAxis
 
     expect(left.splitLine?.show ?? true).toBe(true)
     expect(right.splitLine?.show).toBe(false)
   })
 
   it('左右轴有万元 formatter，X 轴标签稀疏', () => {
-    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
-    const option = buildChartOption(data)
+    const option = buildChartOption(baseData(), false)
 
     expect(typeof option.yAxis[0].axisLabel?.formatter).toBe('function')
     expect(typeof option.yAxis[1].axisLabel?.formatter).toBe('function')
@@ -134,12 +150,12 @@ describe('buildChartOption', () => {
     expect(option.xAxis.axisLabel?.interval).toBe('auto')
   })
 
-  it('tooltip 为浅色卡片，formatter 含收入/支出/净结余/累计且金额万元化', () => {
+  it('tooltip 为浅色卡片，formatter 含收入/支出/净结余/总资产且金额万元化', () => {
     const data = {
       categories: ['26/08'],
-      income: [15800], expense: [9200], cumSavings: [1234567],
+      income: [15800], expense: [9200], cumSavings: [1234567], totalAssets: [1234567], fundBalance: [0],
     }
-    const option = buildChartOption(data)
+    const option = buildChartOption(data, false)
 
     expect(option.tooltip.backgroundColor).toBe('#ffffff')
     expect(option.tooltip.borderColor).toBe('#e2e8f0')
@@ -148,23 +164,67 @@ describe('buildChartOption', () => {
     const html = (option.tooltip.formatter as (p: Array<{ seriesName: string; value: number }>) => string)([
       { seriesName: '收入', value: 15800 },
       { seriesName: '支出', value: 9200 },
-      { seriesName: '累计储蓄', value: 1234567 },
+      { seriesName: '总资产', value: 1234567 },
     ])
     expect(html).toContain('收入')
     expect(html).toContain('支出')
     expect(html).toContain('净结余')
-    expect(html).toContain('累计')
+    expect(html).toContain('总资产')
     expect(html).toContain('1.6万')        // 收入 15800
     expect(html).toContain('9,200')        // 支出 9200（<1万 千分位）
-    expect(html).toContain('123.5万')      // 累计 1234567
+    expect(html).toContain('123.5万')      // 总资产 1234567
+    expect(html).not.toContain('公积金余额')   // 退化模式 tooltip 不含公积金
 
     // 赤字场景：净结余 5000-9000 = -4000，竹青色 + 千分位负数
     const deficitHtml = (option.tooltip.formatter as (p: Array<{ seriesName: string; value: number }>) => string)([
       { seriesName: '收入', value: 5000 },
       { seriesName: '支出', value: 9000 },
-      { seriesName: '累计储蓄', value: 1234567 },
+      { seriesName: '总资产', value: 1234567 },
     ])
     expect(deficitHtml).toContain('#5e8270')   // 赤字竹青色（COLOR_NET_NEG）
     expect(deficitHtml).toContain('-4,000')    // 净结余 -4000 千分位负数
+  })
+})
+
+describe('fund 双线', () => {
+  it('buildChartData 含 totalAssets / fundBalance 数组', () => {
+    const results: MonthResult[] = [
+      makeResult({ month: 202601, cumSavings: 100, fundBalance: 50, totalAssets: 150 }),
+    ]
+    const data = buildChartData(results, 'month')
+    expect(data.totalAssets).toEqual([150])
+    expect(data.fundBalance).toEqual([50])
+  })
+
+  it('buildChartOption fundEnabled=true 含总资产与公积金余额两条线', () => {
+    const data = buildChartData([], 'month')
+    const opt = buildChartOption(data, true)
+    const names = opt.series.map(s => s.name)
+    expect(names).toEqual(['收入', '支出', '总资产', '公积金余额'])
+    expect(opt.legend.data).toEqual(['收入', '支出', '总资产', '公积金余额'])
+    expect(opt.series[3].yAxisIndex).toBe(1)
+    expect(opt.series[3].itemStyle?.color).toBe('#d97706')   // 公积金琥珀
+  })
+
+  it('buildChartOption fundEnabled=false 仅总资产线（退化）', () => {
+    const data = buildChartData([], 'month')
+    const opt = buildChartOption(data, false)
+    const names = opt.series.map(s => s.name)
+    expect(names).toContain('总资产')
+    expect(names).not.toContain('公积金余额')
+    expect(opt.legend.data).not.toContain('公积金余额')
+  })
+
+  it('fundEnabled=true 时 tooltip 含公积金余额行', () => {
+    const data = buildChartData([], 'month')
+    const option = buildChartOption(data, true)
+    const html = (option.tooltip.formatter as (p: Array<{ seriesName: string; value: number }>) => string)([
+      { seriesName: '收入', value: 10000 },
+      { seriesName: '支出', value: 6000 },
+      { seriesName: '总资产', value: 80000 },
+      { seriesName: '公积金余额', value: 30000 },
+    ])
+    expect(html).toContain('公积金余额')
+    expect(html).toContain('3万')   // 公积金 30000
   })
 })
