@@ -24,7 +24,14 @@ export interface ChartSeries {
 }
 
 export interface ChartOption {
-  tooltip: { trigger: string }
+  tooltip: {
+    trigger: string
+    backgroundColor?: string
+    borderColor?: string
+    borderWidth?: number
+    textStyle?: { color: string }
+    formatter: (params: Array<{ seriesName: string; value: number }>) => string
+  }
   legend: { data: string[] }
   grid: { left: string; right: string; bottom: string; containLabel: boolean }
   xAxis: {
@@ -89,7 +96,29 @@ export function buildChartData(results: MonthResult[], granularity: Granularity)
  */
 export function buildChartOption(data: ChartData): ChartOption {
   return {
-    tooltip: { trigger: 'axis' },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#ffffff',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      textStyle: { color: '#0f172a' },
+      formatter: params => {
+        const get = (name: string) => params.find(p => p.seriesName === name)?.value ?? 0
+        const income = get('收入')
+        const expense = get('支出')
+        const cum = get('累计储蓄')
+        const net = income - expense
+        const netColor = net >= 0 ? '#c0504d' : '#5e8270'   // 盈余朱砂 / 赤字竹青
+        const row = (label: string, val: number, color = '#0f172a') =>
+          `<div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;line-height:18px">`
+          + `<span style="color:#64748b">${label}</span>`
+          + `<span style="color:${color};font-weight:600">${formatAxisAmount(val)}</span></div>`
+        return row('收入', income) + row('支出', expense)
+          + row('净结余', net, netColor)
+          + `<div style="height:1px;background:#e2e8f0;margin:4px 0"></div>`
+          + row('累计储蓄', cum)
+      },
+    },
     legend: { data: ['收入', '支出', '累计储蓄'] },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: {

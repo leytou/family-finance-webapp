@@ -132,4 +132,29 @@ describe('buildChartOption', () => {
     expect((option.yAxis[0].axisLabel!.formatter as (v: number) => string)(15800)).toBe('1.6万')
     expect(option.xAxis.axisLabel?.interval).toBe('auto')
   })
+
+  it('tooltip 为浅色卡片，formatter 含收入/支出/净结余/累计且金额万元化', () => {
+    const data = {
+      categories: ['26/08'],
+      income: [15800], expense: [9200], cumSavings: [1234567],
+    }
+    const option = buildChartOption(data)
+
+    expect(option.tooltip.backgroundColor).toBe('#ffffff')
+    expect(option.tooltip.borderColor).toBe('#e2e8f0')
+    expect(option.tooltip.textStyle?.color).toBe('#0f172a')
+
+    const html = (option.tooltip.formatter as (p: Array<{ seriesName: string; value: number }>) => string)([
+      { seriesName: '收入', value: 15800 },
+      { seriesName: '支出', value: 9200 },
+      { seriesName: '累计储蓄', value: 1234567 },
+    ])
+    expect(html).toContain('收入')
+    expect(html).toContain('支出')
+    expect(html).toContain('净结余')
+    expect(html).toContain('累计')
+    expect(html).toContain('1.6万')        // 收入 15800
+    expect(html).toContain('9,200')        // 支出 9200（<1万 千分位）
+    expect(html).toContain('123.5万')      // 累计 1234567
+  })
 })
