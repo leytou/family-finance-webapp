@@ -80,12 +80,12 @@ theme: {
 #### 2.1 智能金额格式化纯函数（新增，可单测）
 
 ```ts
-/** 轴刻度 / 摘要智能缩写：<1万 显示整数，≥1万 X.X万，≥1亿 X.X亿（去尾零）。 */
+/** 轴刻度 / 摘要智能缩写：<1万 千分位整数，≥1万 X.X万，≥1亿 X.X亿（去尾零）。 */
 export function formatAxisAmount(v: number): string {
   const abs = Math.abs(v)
   if (abs >= 1e8) return (v / 1e8).toFixed(1).replace(/\.0$/, '') + '亿'
   if (abs >= 1e4) return (v / 1e4).toFixed(1).replace(/\.0$/, '') + '万'
-  return String(Math.round(v))
+  return Math.round(v).toLocaleString('en-US')
 }
 ```
 
