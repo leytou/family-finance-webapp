@@ -44,24 +44,32 @@ function formatDiff(value: number, baselineValue: number): { text: string; class
   }
 }
 
-// 对比表行定义
+// 对比表行定义：年末行按期限动态生成，汇总行固定
 interface ComparisonRow {
   label: string
   getValues: (m: ScenarioMetrics) => number[]
 }
 
-const comparisonRows: ComparisonRow[] = [
-  { label: '第1年末', getValues: m => [m.yearEndSavings[0]] },
-  { label: '第2年末', getValues: m => [m.yearEndSavings[1]] },
-  { label: '第3年末', getValues: m => [m.yearEndSavings[2]] },
-  { label: '第4年末', getValues: m => [m.yearEndSavings[3]] },
-  { label: '第5年末', getValues: m => [m.yearEndSavings[4]] },
-  { label: '5年总收入', getValues: m => [m.totalIncome] },
-  { label: '5年总支出', getValues: m => [m.totalExpense] },
-  { label: '5年净储蓄', getValues: m => [m.netSavings] },
-  { label: '最终累计储蓄', getValues: m => [m.finalCumSavings] },
-  { label: '期间最低储蓄', getValues: m => [m.minCumSavings] },
-]
+// 期限年数：取首个方案指标（所有对比方案共享同一期限口径）
+const projectionYears = computed(() => {
+  if (metricsList.value.length === 0) return 0
+  return metricsList.value[0].yearEndSavings.length
+})
+
+const comparisonRows = computed<ComparisonRow[]>(() => {
+  const yearRows: ComparisonRow[] = Array.from({ length: projectionYears.value }, (_, i) => ({
+    label: `第${i + 1}年末`,
+    getValues: m => [m.yearEndSavings[i]],
+  }))
+  return [
+    ...yearRows,
+    { label: '全程总收入', getValues: m => [m.totalIncome] },
+    { label: '全程总支出', getValues: m => [m.totalExpense] },
+    { label: '全程净储蓄', getValues: m => [m.netSavings] },
+    { label: '最终累计储蓄', getValues: m => [m.finalCumSavings] },
+    { label: '期间最低储蓄', getValues: m => [m.minCumSavings] },
+  ]
+})
 </script>
 
 <template>
