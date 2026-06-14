@@ -344,6 +344,41 @@ describe('resolveFundOffset', () => {
 })
 
 describe('calculate', () => {
+  it('期限由 endMonth 决定：3 年 = 36 个月', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7, endMonth: 202812 },
+      columns: [],
+    }))
+
+    expect(results).toHaveLength(36)
+    expect(results[0].month).toBe(202601)
+    expect(results[35].month).toBe(202812)
+  })
+
+  it('endMonth == startMonth 时期限为 1 个月', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7, endMonth: 202601 },
+    }))
+
+    expect(results).toHaveLength(1)
+    expect(results[0].month).toBe(202601)
+  })
+
+  it('endMonth 缺失时兜底为 5 年（60 个月）——兼容无 endMonth 的存量数据', () => {
+    const results = calculate(makePlan())
+
+    expect(results).toHaveLength(60)
+    expect(results[59].month).toBe(203012)
+  })
+
+  it('endMonth 超出 30 年上限时 clamp 到 360 个月', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7, endMonth: 206001 },
+    }))
+
+    expect(results).toHaveLength(360)
+  })
+
   it('空 columns 产生 60 个月全零', () => {
     const results = calculate(makePlan())
 

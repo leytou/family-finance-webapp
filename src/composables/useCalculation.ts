@@ -1,7 +1,5 @@
 import type { FlowColumn, FundConfig, MonthResult, PlanData, PlanSnapshot } from '../types'
-import { addMonths } from '../utils/month'
-
-const PROJECTION_MONTHS = 60
+import { addMonths, projectionMonths } from '../utils/month'
 
 // 虚拟「专项」列值在 columnValues 中的固定 id（事件求和注入；非真实 FlowColumn）
 const EVENT_COLUMN_ID = '__events__'
@@ -178,8 +176,13 @@ export function calculate(plan: PlanData): MonthResult[] {
   const fundInitialBalance = Number(plan.systemParams.fundInitialBalance) || 0
   let fundAccrual = 0 // 公积金应计利息，跨月维护
 
-  for (let index = 0; index < PROJECTION_MONTHS; index++) {
-    const month = addMonths(plan.systemParams.startMonth, index)
+  // 期限由 startMonth + endMonth 动态决定；endMonth 缺失兜底为 5 年，clamp 到 [1, 360]
+  const start = plan.systemParams.startMonth
+  const end = Number.isFinite(plan.systemParams.endMonth) ? plan.systemParams.endMonth : addMonths(start, 59)
+  const totalMonths = projectionMonths(start, end)
+
+  for (let index = 0; index < totalMonths; index++) {
+    const month = addMonths(start, index)
 
     // —— 可支配部分 ——
     const prevCum = index === 0

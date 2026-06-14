@@ -234,4 +234,48 @@ describe('App', () => {
 
     expect(store.data.value.columns).toHaveLength(0)
   })
+
+  it('header 含结束月份选择器与期限提示', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    // 起始月 + 结束月两个 MonthPicker 触发器
+    expect(wrapper.findAll('button[aria-haspopup="dialog"]')).toHaveLength(2)
+    expect(wrapper.get('[data-testid="projection-text"]').text()).toContain('共')
+  })
+
+  it('结束月份选择器写入 endMonth 并保持合法', async () => {
+    const App = await loadApp()
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.setStartMonth(202601)
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    // 第二个 MonthPicker（结束月）：展开 → 点 12 月格
+    const pickers = wrapper.findAll('button[aria-haspopup="dialog"]')
+    await pickers[1].trigger('click')
+    await wrapper.findAll('[data-testid="month-cell"]')[11].trigger('click')
+
+    // 默认 endMonth = startMonth + 59 = 203012，面板年份 2030，选 12 月 → 203012
+    expect(store.data.value.systemParams.endMonth % 100).toBe(12)
+  })
+
+  it('起始月改为晚于结束月时显示错误提示且不写入', async () => {
+    const App = await loadApp()
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.setStartMonth(202601)
+    store.setEndMonth(202612)
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    // 起始月 MonthPicker：展开 → 翻到 2027 年 → 点 6 月（晚于 endMonth 202612）
+    const picker = wrapper.findAll('button[aria-haspopup="dialog"]')[0]
+    await picker.trigger('click')
+    // 点「下一年」翻到 2027
+    await wrapper.find('button[aria-label="下一年"]').trigger('click')
+    await wrapper.findAll('[data-testid="month-cell"]')[5].trigger('click')
+
+    expect(store.data.value.systemParams.startMonth).toBe(202601)   // 未被改写
+    expect(wrapper.find('[data-testid="end-month-error"]').exists()).toBe(true)
+  })
 })

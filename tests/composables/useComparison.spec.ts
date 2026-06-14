@@ -117,4 +117,26 @@ describe('computeScenarioMetrics', () => {
     expect(metrics.scenarioId).toBe('test-id')
     expect(metrics.scenarioName).toBe('测试方案')
   })
+
+  it('期限 10 年时 yearEndSavings 含 10 个元素', () => {
+    const plan = createTestPlan({
+      systemParams: { startMonth: 202601, annualRate: 0, endMonth: 203512 },
+      columns: [{ id: 'salary', name: '工资', entries: { 202601: 10000 } }],
+    })
+
+    const metrics = computeScenarioMetrics('s1', '方案A', plan)
+
+    expect(metrics.yearEndSavings).toHaveLength(10)
+  })
+
+  it('期限 2 年时 yearEndSavings 含 2 个元素', () => {
+    const plan = createTestPlan({
+      systemParams: { startMonth: 202601, annualRate: 0, endMonth: 202712 },
+      columns: [{ id: 'salary', name: '工资', entries: { 202601: 10000 } }],
+    })
+
+    const metrics = computeScenarioMetrics('s1', '方案A', plan)
+
+    expect(metrics.yearEndSavings).toHaveLength(2)
+  })
 })

@@ -1,6 +1,6 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import type { PlanData, FlowColumn, Scenario, Workspace, PlanSnapshot } from '../types'
-import { getCurrentMonth, formatMonth, addMonths, normalizeMonth } from '../utils/month'
+import { getCurrentMonth, formatMonth, addMonths, normalizeMonth, monthDiff, projectionMonths } from '../utils/month'
 import { calculate } from './useCalculation'
 
 const STORAGE_KEY = 'family-finance-plan'
@@ -13,10 +13,12 @@ function generateId(): string {
 }
 
 function createDefault(): PlanData {
+  const startMonth = getCurrentMonth()
   return {
     version: 2,
     systemParams: {
-      startMonth: getCurrentMonth(),
+      startMonth,
+      endMonth: addMonths(startMonth, 59),   // 默认 5 年期限
       annualRate: 0.025,
       initialDeposit: 0,
       fundRate: 0.015,
@@ -133,6 +135,8 @@ function isValidPlanData(value: unknown): value is PlanData {
     isFiniteNumber(value.version) &&
     isFiniteNumber(value.systemParams.startMonth) &&
     isFiniteNumber(value.systemParams.annualRate) &&
+    // endMonth 可选：缺失时由 normalizeWorkspace 补默认；存在时须为有限数
+    (value.systemParams.endMonth === undefined || isFiniteNumber(value.systemParams.endMonth)) &&
     // fund 参数可选：缺失时由 normalizeWorkspace 补默认；存在时须为有限数
     (value.systemParams.fundRate === undefined || isFiniteNumber(value.systemParams.fundRate)) &&
     (value.systemParams.fundInterestMonth === undefined || isFiniteNumber(value.systemParams.fundInterestMonth)) &&
@@ -167,6 +171,10 @@ function normalizeWorkspace(ws: Workspace): Workspace {
     }
     if (!Array.isArray(scenario.plan.events)) {
       scenario.plan.events = []
+    }
+    // endMonth 缺失或非法时补 startMonth + 59（默认 5 年）
+    if (!isFiniteNumber(scenario.plan.systemParams.endMonth)) {
+      scenario.plan.systemParams.endMonth = addMonths(scenario.plan.systemParams.startMonth, 59)
     }
     // 初始存款缺失或非有限数时补 0
     if (!isFiniteNumber(scenario.plan.systemParams.initialDeposit)) {
@@ -274,13 +282,32 @@ export function useStore() {
   }
 
   /**
-   * 设置起始月份（受控入口）：对原始值做规范化，
-   * 合法（含进位）则写入并返回 true；非法（非 6 位整数）则忽略并返回 false。
+   * 设置起始月份（受控入口）：规范化 + 与 endMonth 的一致性校验。
+   * 合法（含进位、且不晚于 endMonth、期限 ≤ 360）则写入并返回 true；否则忽略并返回 false。
    */
   function setStartMonth(raw: number): boolean {
     const normalized = normalizeMonth(raw)
     if (normalized === null) return false
-    getActivePlan().systemParams.startMonth = normalized
+    const plan = getActivePlan()
+    const end = Number.isFinite(plan.systemParams.endMonth) ? plan.systemParams.endMonth : addMonths(normalized, 59)
+    if (normalized > end) return false
+    if (monthDiff(normalized, end) + 1 > 360) return false
+    plan.systemParams.startMonth = normalized
+    return true
+  }
+
+  /**
+   * 设置结束月份（受控入口）：规范化 + 与 startMonth 的一致性校验。
+   * 合法（含进位、且不早于 startMonth、期限 ≤ 360）则写入并返回 true；否则忽略并返回 false。
+   */
+  function setEndMonth(raw: number): boolean {
+    const normalized = normalizeMonth(raw)
+    if (normalized === null) return false
+    const plan = getActivePlan()
+    const start = plan.systemParams.startMonth
+    if (normalized < start) return false
+    if (monthDiff(start, normalized) + 1 > 360) return false
+    plan.systemParams.endMonth = normalized
     return true
   }
 
@@ -357,7 +384,9 @@ export function useStore() {
     if (!column.yearlyMonths) column.yearlyMonths = {}
     const moy = month % 100
     const start = plan.systemParams.startMonth
-    for (let i = 0; i < 60; i++) {                   // 与 calculate 的 PROJECTION_MONTHS 一致
+    const end = Number.isFinite(plan.systemParams.endMonth) ? plan.systemParams.endMonth : addMonths(start, 59)
+    const totalMonths = projectionMonths(start, end)
+    for (let i = 0; i < totalMonths; i++) {          // 跟随 endMonth，与 calculate 一致
       const m = addMonths(start, i)
       // 仅当前月及下方（m >= month）：保护上方过去年份不被覆盖
       if (m % 100 === moy && m >= month) {
@@ -442,7 +471,9 @@ export function useStore() {
     if (!column.yearlyMonths) column.yearlyMonths = {}
     const moy = month % 100
     const start = plan.systemParams.startMonth
-    for (let i = 0; i < 60; i++) {
+    const end = Number.isFinite(plan.systemParams.endMonth) ? plan.systemParams.endMonth : addMonths(start, 59)
+    const totalMonths = projectionMonths(start, end)
+    for (let i = 0; i < totalMonths; i++) {
       const m = addMonths(start, i)
       if (m % 100 === moy && m >= month) {
         column.entries[m] = amount
@@ -590,6 +621,7 @@ export function useStore() {
     save,
     reloadWorkspace,
     setStartMonth,
+    setEndMonth,
     addColumn,
     removeColumn,
     renameColumn,

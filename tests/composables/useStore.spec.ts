@@ -1,5 +1,6 @@
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { addMonths } from '../../src/utils/month'
 
 async function loadUseStore() {
   return (await import('../../src/composables/useStore')).useStore
@@ -677,6 +678,39 @@ describe('useStore', () => {
     expect(store.data.value.snapshots).toEqual([])
   })
 
+  it('默认方案含 endMonth = 起始月 + 59（5 年期限）', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    const start = store.data.value.systemParams.startMonth
+    expect(store.data.value.systemParams.endMonth).toBe(addMonths(start, 59))
+  })
+
+  it('加载缺少 endMonth 的存量数据时补 起始月+59 且不清空数据', async () => {
+    localStorage.setItem(
+      'family-finance-plan',
+      JSON.stringify({
+        version: 1,
+        activeId: 'sc1',
+        scenarios: [
+          {
+            id: 'sc1',
+            name: '默认方案',
+            plan: {
+              version: 2,
+              systemParams: { startMonth: 202601, annualRate: 0.025 },
+              columns: [],
+              anchors: [{ month: 202601, actualSavings: 100000 }],
+            },
+          },
+        ],
+      }),
+    )
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.systemParams.endMonth).toBe(203012)   // addMonths(202601, 59)
+    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+  })
+
   it('默认方案的初始存款为 0', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
@@ -790,6 +824,40 @@ describe('useStore', () => {
       expect(column.yearlyMonths?.[202812]).toBe(true)
       expect(column.yearlyMonths?.[202912]).toBe(true)
       expect(column.yearlyMonths?.[203012]).toBe(true)
+    })
+
+    it('同步范围跟随 endMonth：期限 10 年时同步覆盖到 2035 同月', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.data.value.systemParams.startMonth = 202601
+      store.data.value.systemParams.endMonth = 203512   // 10 年
+      const col = store.addColumn('年终奖')
+      store.updateColumnEntry(col.id, 202612, 50000)
+
+      store.syncYearly(col.id, 202612)
+
+      const column = store.data.value.columns[0]
+      // 10 年内所有 12 月都被同步（重点：原硬编码 60 只覆盖到 203012）
+      expect(column.entries[202612]).toBe(50000)
+      expect(column.entries[203012]).toBe(50000)
+      expect(column.entries[203512]).toBe(50000)
+      expect(column.yearlyMonths?.[203512]).toBe(true)
+    })
+
+    it('同步范围跟随 endMonth：期限 2 年时不越界写到第 3 年', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.data.value.systemParams.startMonth = 202601
+      store.data.value.systemParams.endMonth = 202712   // 2 年
+      const col = store.addColumn('年终奖')
+      store.updateColumnEntry(col.id, 202612, 50000)
+
+      store.syncYearly(col.id, 202612)
+
+      const column = store.data.value.columns[0]
+      expect(column.entries[202612]).toBe(50000)
+      expect(column.entries[202712]).toBe(50000)
+      expect(column.entries[202812]).toBeUndefined()   // 超出 2 年范围，不写
     })
   })
 
@@ -916,6 +984,74 @@ describe('useStore', () => {
       expect(store.data.value.systemParams.startMonth).toBe(202709)           // 当前激活方案已写入
       expect(other.plan.systemParams.startMonth).toBe(202709)                 // other 即激活方案
       expect(previousActive.plan.systemParams.startMonth).not.toBe(202709)    // 非激活方案不受影响
+    })
+
+    it('起始月晚于结束月则拒绝（保护 endMonth 不动）', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      store.setEndMonth(202612)
+      expect(store.setStartMonth(202706)).toBe(false)   // 晚于 endMonth
+      expect(store.data.value.systemParams.startMonth).toBe(202601)
+    })
+
+    it('起始月改动导致期限超过 30 年则拒绝', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      store.setEndMonth(203012)                          // 5 年
+      expect(store.setStartMonth(199901)).toBe(false)   // 期限 ~32 年
+      expect(store.data.value.systemParams.startMonth).toBe(202601)
+    })
+  })
+
+  describe('setEndMonth', () => {
+    it('合法且晚于起始月则写入并返回 true', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      expect(store.setEndMonth(202812)).toBe(true)
+      expect(store.data.value.systemParams.endMonth).toBe(202812)
+    })
+
+    it('结束月早于起始月则拒绝且不改原值', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202606)
+      const before = store.data.value.systemParams.endMonth
+      expect(store.setEndMonth(202601)).toBe(false)
+      expect(store.data.value.systemParams.endMonth).toBe(before)
+    })
+
+    it('期限超过 30 年（360 月）则拒绝', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      expect(store.setEndMonth(205701)).toBe(false)   // 31 年
+    })
+
+    it('越界月份进位后写入规范化值', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.setStartMonth(202601)
+      expect(store.setEndMonth(202813)).toBe(true)
+      expect(store.data.value.systemParams.endMonth).toBe(202901)
+    })
+
+    it('位数不足返回 false', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      expect(store.setEndMonth(2026)).toBe(false)
+    })
+
+    it('作用于当前激活方案', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      const other = store.addScenario()
+      store.setStartMonth(202601)
+      store.setEndMonth(202812)
+      expect(store.data.value.systemParams.endMonth).toBe(202812)
+      expect(other.plan.systemParams.endMonth).toBe(202812)
     })
   })
 
@@ -1262,5 +1398,20 @@ describe('fund 操作函数', () => {
     store.updateFundEntry('contribution', 202603, null)   // 删除
     expect(store.data.value.fund!.contribution.entries[202603]).toBeUndefined()
     expect(store.data.value.fund!.contribution.yearlyMonths?.[202603]).toBeUndefined()
+  })
+
+  it('syncFundYearly 同步范围跟随 endMonth：期限 10 年覆盖到 2035 同月', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.setStartMonth(202601)
+    store.data.value.systemParams.endMonth = 203512   // 10 年
+    store.enableFund()
+    store.updateFundEntry('mortgage', 202603, 5000)
+    store.syncFundYearly('mortgage', 202603)
+    const col = store.data.value.fund!.mortgage
+    expect(col.entries[202603]).toBe(5000)
+    expect(col.entries[203303]).toBe(5000)
+    expect(col.entries[203503]).toBe(5000)   // 10 年内的 3 月
+    expect(col.yearlyMonths?.[203503]).toBe(true)
   })
 })

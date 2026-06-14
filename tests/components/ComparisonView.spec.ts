@@ -95,11 +95,48 @@ describe('ComparisonView', () => {
     expect(labels).toContain('第3年末')
     expect(labels).toContain('第4年末')
     expect(labels).toContain('第5年末')
-    expect(labels).toContain('5年总收入')
-    expect(labels).toContain('5年总支出')
-    expect(labels).toContain('5年净储蓄')
+    expect(labels).toContain('全程总收入')
+    expect(labels).toContain('全程总支出')
+    expect(labels).toContain('全程净储蓄')
     expect(labels).toContain('最终累计储蓄')
     expect(labels).toContain('期间最低储蓄')
+  })
+
+  it('对比表年末行数跟随期限：默认 5 年显示 5 个年末行', async () => {
+    await setupMultipleScenarios()
+    const ComparisonView = await loadComparisonView()
+    const wrapper = mount(ComparisonView)
+
+    const rows = wrapper.findAll('tbody tr')
+    const labels = rows.map(r => r.find('td').text())
+    expect(labels.filter(l => /^第\d+年末$/.test(l))).toHaveLength(5)
+  })
+
+  it('汇总行文案为「全程总XXX」而非「5年总XXX」', async () => {
+    await setupMultipleScenarios()
+    const ComparisonView = await loadComparisonView()
+    const wrapper = mount(ComparisonView)
+
+    const text = wrapper.text()
+    expect(text).toContain('全程总收入')
+    expect(text).toContain('全程总支出')
+    expect(text).toContain('全程净储蓄')
+    expect(text).not.toContain('5年总收入')
+  })
+
+  it('期限延长到 10 年后对比表显示 10 个年末行', async () => {
+    const store = await setupMultipleScenarios()
+    for (const s of store.workspace.value.scenarios) {
+      s.plan.systemParams.startMonth = 202601   // 锚定起点，规避当前月份漂移
+      s.plan.systemParams.endMonth = 203512   // 202601→203512 共 120 个月 = 10 年
+    }
+    const ComparisonView = await loadComparisonView()
+    const wrapper = mount(ComparisonView)
+    await nextTick()
+
+    const rows = wrapper.findAll('tbody tr')
+    const labels = rows.map(r => r.find('td').text())
+    expect(labels.filter(l => /^第\d+年末$/.test(l))).toHaveLength(10)
   })
 
   it('差异列以第一个选中方案为基准标注正负差额', async () => {
@@ -107,9 +144,9 @@ describe('ComparisonView', () => {
     const ComparisonView = await loadComparisonView()
     const wrapper = mount(ComparisonView)
 
-    // 找到「5年总支出」行
+    // 找到「全程总支出」行
     const rows = wrapper.findAll('tbody tr')
-    const expenseRow = rows.find(r => r.find('td').text().includes('5年总支出'))
+    const expenseRow = rows.find(r => r.find('td').text().includes('全程总支出'))
     expect(expenseRow).toBeDefined()
 
     const cells = expenseRow!.findAll('td')
