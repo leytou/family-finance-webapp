@@ -1,6 +1,6 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import type { PlanData, FlowColumn, Scenario, Workspace, PlanSnapshot } from '../types'
-import { getCurrentMonth, formatMonth, addMonths, normalizeMonth } from '../utils/month'
+import { getCurrentMonth, formatMonth, addMonths, normalizeMonth, projectionMonths } from '../utils/month'
 import { calculate } from './useCalculation'
 
 const STORAGE_KEY = 'family-finance-plan'
@@ -365,7 +365,9 @@ export function useStore() {
     if (!column.yearlyMonths) column.yearlyMonths = {}
     const moy = month % 100
     const start = plan.systemParams.startMonth
-    for (let i = 0; i < 60; i++) {                   // 与 calculate 的 PROJECTION_MONTHS 一致
+    const end = Number.isFinite(plan.systemParams.endMonth) ? plan.systemParams.endMonth : addMonths(start, 59)
+    const totalMonths = projectionMonths(start, end)
+    for (let i = 0; i < totalMonths; i++) {          // 跟随 endMonth，与 calculate 一致
       const m = addMonths(start, i)
       // 仅当前月及下方（m >= month）：保护上方过去年份不被覆盖
       if (m % 100 === moy && m >= month) {
@@ -450,7 +452,9 @@ export function useStore() {
     if (!column.yearlyMonths) column.yearlyMonths = {}
     const moy = month % 100
     const start = plan.systemParams.startMonth
-    for (let i = 0; i < 60; i++) {
+    const end = Number.isFinite(plan.systemParams.endMonth) ? plan.systemParams.endMonth : addMonths(start, 59)
+    const totalMonths = projectionMonths(start, end)
+    for (let i = 0; i < totalMonths; i++) {
       const m = addMonths(start, i)
       if (m % 100 === moy && m >= month) {
         column.entries[m] = amount

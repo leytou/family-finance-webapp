@@ -825,6 +825,40 @@ describe('useStore', () => {
       expect(column.yearlyMonths?.[202912]).toBe(true)
       expect(column.yearlyMonths?.[203012]).toBe(true)
     })
+
+    it('同步范围跟随 endMonth：期限 10 年时同步覆盖到 2035 同月', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.data.value.systemParams.startMonth = 202601
+      store.data.value.systemParams.endMonth = 203512   // 10 年
+      const col = store.addColumn('年终奖')
+      store.updateColumnEntry(col.id, 202612, 50000)
+
+      store.syncYearly(col.id, 202612)
+
+      const column = store.data.value.columns[0]
+      // 10 年内所有 12 月都被同步（重点：原硬编码 60 只覆盖到 203012）
+      expect(column.entries[202612]).toBe(50000)
+      expect(column.entries[203012]).toBe(50000)
+      expect(column.entries[203512]).toBe(50000)
+      expect(column.yearlyMonths?.[203512]).toBe(true)
+    })
+
+    it('同步范围跟随 endMonth：期限 2 年时不越界写到第 3 年', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.data.value.systemParams.startMonth = 202601
+      store.data.value.systemParams.endMonth = 202712   // 2 年
+      const col = store.addColumn('年终奖')
+      store.updateColumnEntry(col.id, 202612, 50000)
+
+      store.syncYearly(col.id, 202612)
+
+      const column = store.data.value.columns[0]
+      expect(column.entries[202612]).toBe(50000)
+      expect(column.entries[202712]).toBe(50000)
+      expect(column.entries[202812]).toBeUndefined()   // 超出 2 年范围，不写
+    })
   })
 
   describe('moveColumn', () => {
@@ -1296,5 +1330,20 @@ describe('fund 操作函数', () => {
     store.updateFundEntry('contribution', 202603, null)   // 删除
     expect(store.data.value.fund!.contribution.entries[202603]).toBeUndefined()
     expect(store.data.value.fund!.contribution.yearlyMonths?.[202603]).toBeUndefined()
+  })
+
+  it('syncFundYearly 同步范围跟随 endMonth：期限 10 年覆盖到 2035 同月', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.setStartMonth(202601)
+    store.data.value.systemParams.endMonth = 203512   // 10 年
+    store.enableFund()
+    store.updateFundEntry('mortgage', 202603, 5000)
+    store.syncFundYearly('mortgage', 202603)
+    const col = store.data.value.fund!.mortgage
+    expect(col.entries[202603]).toBe(5000)
+    expect(col.entries[203303]).toBe(5000)
+    expect(col.entries[203503]).toBe(5000)   // 10 年内的 3 月
+    expect(col.yearlyMonths?.[203503]).toBe(true)
   })
 })
