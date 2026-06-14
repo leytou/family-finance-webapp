@@ -2,8 +2,11 @@
 
 > 日期：2026-06-14
 > 状态：已定稿，待实现计划
-> 依赖：核心计算与状态层已完成（`docs/superpowers/specs/2026-06-14-housing-fund-design.md`），331 测试全绿。
-> 关联：吸收 header 两行重构（`docs/superpowers/specs/2026-06-14-header布局重构-design.md`，已提交 spec+plan 但未实现）。
+> 依赖：核心计算与状态层已完成（`docs/superpowers/specs/2026-06-14-housing-fund-design.md`）。
+> 基线：当前 master `npx vitest run` = **335 测试全绿**（22 文件）。
+> 关联：
+> - **header 两行重构已完成并合入**（commit `3fddef9`）：App.vue 现已是「导航/操作」两行，第二行「参数」区含起始月份/年化收益率/初始存款 + 撤销/重做。本设计的公积金参数直接进该现有参数行，**无需再做 header 重构**。
+> - **图表专业化改版**（`chart-redesign-design.md` / `chart-redesign.md`）为独立**已规划未实现**努力：大改 `buildChartOption`（累计储蓄→渐变面积+粗线、支出正值双柱、朱砂/竹青配色、万元格式），**不涉及 fund/总资产/公积金**。本设计的图表双线任务建立在**当前**（未改版）图表之上；若改版先实现，双线需并入其 area 主线形态。
 
 ## 1. 背景与范围
 
@@ -15,12 +18,13 @@
 - 不加可支配储蓄线在图表的切换（默认隐藏即可，后续按需）。
 - 不加年度结息合计行（spec 标「可选」，本期略）。
 - 不做窄屏响应式收纳。
+- 不实现图表专业化改版（`chart-redesign`，独立 effort，见顶部关联）。本任务的图表双线建立在当前（未改版）图表之上。
 
 ## 2. 已确认的交互决策
 
 | 决策点 | 选择 |
 |---|---|
-| header 与 fund 参数耦合 | **吸收**：本计划含 header 两行重构，公积金参数进第二行「参数」区 |
+| header 与 fund 参数耦合 | **复用现有参数行**：header 两行重构已合入（`3fddef9`），公积金参数直接进第二行「参数」区，无需再做重构 |
 | 公积金参数排布 | **开关门控**：`enableFund` 复选框 +「公积金」小标签分隔；未启用隐藏 3 个输入 |
 | 月冲默认联动视觉提示 | **淡灰文字**（`text-neutral-400`、无蓝底）；手填→正常黑字 + 淡蓝底 `bg-brand-50`；hover 公式说明 |
 | 专区列分组 | **轻量分隔竖线**（`border-l-2 border-neutral-400`、无底色）；总资产加粗 |
@@ -75,11 +79,12 @@
 
 现有 `startEditCell/confirmEditCell` 按 `columnId`（动态列）运作。公积金 3 列（mortgage/contribution/monthlyOffset）不在 `columns` 里，走 `updateFundEntry(field, month, value)`。
 
-**不重载现有函数**（避免破坏现有 11 处列编辑断言），新增并行的小型 fund 编辑路径：
-- `editingFundCell: { field: 'mortgage'|'contribution'|'monthlyOffset'; month: number } | null`
-- `startEditFundCell(field, month)` / `confirmEditFundCell()`
-- 复用同一份 `editCellValue` 字符串状态、`editCellInput` ref、`skipBlur` 标志、上下键移动（`moveEditFundCell`）、`useClickOutside` 提交模式。
-- `confirmEditFundCell` 内：`field === 'mortgage'` 时提交值取负（`-Math.round(num)`）；其余两字段原样。空输入 → `updateFundEntry(field, month, null)` 删除 entry。
+**不重载现有函数**（避免破坏现有 11 处列编辑断言），新增并行的小型 fund 编辑路径，**完全镜像现有 `editCell`/`editCum` 双 ref 模式**（每个编辑态独立 ref + 独立 `useClickOutside`）：
+- 状态：`editingFundCell: { field: 'mortgage'|'contribution'|'monthlyOffset'; month: number } | null`、`editFundCellValue: string`、`editFundCellInput: HTMLInputElement | null`（独立 ref，**不复用 `editCellInput`**，避免外部点击误触发 `confirmEditCell`）、`editFundOriginalValue: number`。
+- 函数：`setEditFundCellInput(el)` 函数 ref setter、`startEditFundCell(field, month, currentValue)`、`confirmEditFundCell()`、`cancelEditFundCell()`、`moveEditFundCell(field, month, direction)`、`handleEditFundCellBlur()`。
+- 共享 `skipBlur` 标志（上下键跨行移动时跳过 blur）、共享 `v-focus` 指令。
+- `confirmEditFundCell` 内：`field === 'mortgage'` 时提交值取负（`-Math.round(num)`）；其余两字段原样。空输入 → `updateFundEntry(field, month, null)` 删除 entry。值未变化时不写入。
+- 单独注册 `useClickOutside(editFundCellInput, confirmEditFundCell)`。
 
 ## 5. 公积金余额锚点右键（`FUND_BALANCE_COLUMN_ID`）
 
@@ -154,34 +159,41 @@
 ### 9.1 `financeChart.ts`
 
 - `ChartData` 新增 `totalAssets: number[]`、`fundBalance: number[]`。
-- `buildChartData`：按月/按年填充（按年用年末值：`aggregateByYear` 需补返回 totalAssets/fundBalance 年末值，或 buildChartData 内取该年最后一月 result）。
-- `buildChartOption`：
+- `buildChartData`：按月/按年填充（按年用年末值，取自扩展后的 `aggregateByYear`，见 §9.3）。
+- `buildChartOption(data, fundEnabled)`：
   - `累计储蓄` 线 → 改名 **总资产**（靛蓝 `COLOR_CUM`，加粗线宽）。
-  - 新增 **公积金余额** 线（琥珀 `#d97706`、`showSymbol:false`、`smooth:true`）。
+  - **仅当 `fundEnabled === true`** 时新增 **公积金余额** 线（琥珀 `#d97706`、`showSymbol:false`、`smooth:true`），并把它加入图例。
   - 新增配色常量 `COLOR_FUND = '#d97706'`。
-- **退化**：`fund` 未启用（`fundBalance` 全 0）时**不 push 公积金线** series，图例仅 `['收入','支出','总资产']`；`总资产` 线等同于原累计储蓄。
+- **退化**：`fundEnabled === false`（`store.data.value.fund` 不存在）时不 push 公积金线，图例仅 `['收入','支出','总资产']`；`总资产` 线等同原累计储蓄。显式传 flag 避免用「fundBalance 全 0」误判「启用但余额恰为 0」。
 
-### 9.2 `aggregateByYear` 扩展
+### 9.2 FinanceChart.vue
 
-`YearlyPoint` 新增 `totalAssets: number`、`fundBalance: number`（年末值），供按年图表使用。
+- `import { useStore }`（与 MonthlyTable/AnnualTable 兄弟一致），读 `const fundEnabled = computed(() => !!store.data.value.fund)`。
+- `render()` 调 `buildChartOption(chartData.value, fundEnabled.value)`。
+- `aggregateByYear` / `YearlyPoint` 扩展见 §9.3。
 
-## 10. App.vue header（吸收两行重构）
+### 9.3 `aggregateByYear` 扩展（`useCalculation.ts`）
 
-按已提交 header plan 三步执行，再追加公积金参数：
+`YearlyPoint` 新增 `totalAssets: number`、`fundBalance: number`（年末值，取该年最后一月 `MonthResult`），供按年图表使用。
 
-1. **ToolsMenu** 触发按钮 `⋯` → `更多`（+ 新建 `ToolsMenu.spec.ts`）。
-2. **视图切换** `showView`(toggle) → `setActiveView`（直接赋值）+ 加「表格」成三按钮。
-3. **header 拆两行**：第一行导航（标题/方案标签/视图三按钮/更多，白底 `h-12`）；第二行操作（淡灰底 `bg-neutral-50` `h-9`）。
-4. **公积金参数进第二行「参数」区**：
+## 10. App.vue 参数行 · 追加公积金参数
+
+header 两行重构已合入（`3fddef9`）。第二行「参数」区现有：起始月份 / 年化收益率 / 初始存款（左侧）+ 撤销/重做（右侧）。**仅在左侧参数组末尾（初始存款之后）追加公积金参数，不动其他控件与两行结构。**
 
 ```
 [参数] 起始月份[__] 年化%[__] 初始存款[__] │ 公积金[☑启用] 年利率%[1.5] 结息月[7] 初始余额[0]   ↶撤销 ↷重做
 ```
 
-- `enableFund` 复选框：勾选→`store.enableFund()`，取消→`store.disableFund()`（双向桥接）。
-- 「公积金」小标签 + 左竖线分隔（`border-l pl-3`，与「参数」标签同级风格）。
-- 未启用时 `v-if="data.fund"` 隐藏后 3 个输入；启用后行内出现。
-- 3 个输入分别绑 `setFundRate` / `setFundInterestMonth` / `setFundInitialBalance`。
+- 「公积金」小标签 + 左竖线分隔（`border-l pl-3`，与「参数」标签同级风格），作为参数组内的子分组。
+- `enableFund` 复选框：勾选→`store.enableFund()`，取消→`store.disableFund()`（双向桥接；`disableFund` 会清空 fund 配置，需 `window.confirm` 二次确认以防误删）。
+- 未启用时 `v-if="data.fund"` 隐藏后 3 个输入；启用后行内出现（开关门控，§2 已确认）。
+- 3 个输入分别绑 `setFundRate` / `setFundInterestMonth` / `setFundInitialBalance`：
+  - 年利率：`:value="(data.systemParams.fundRate*100).toFixed(1)"` + `@input` 写回 `Number(v)/100`。
+  - 结息月：`<select>` 1-12 或 number input，绑 `setFundInterestMonth`。
+  - 初始余额：number input，绑 `setFundInitialBalance`。
+- `App.vue` script 解构 `useStore()` 补 `enableFund/disableFund/setFundRate/setFundInterestMonth/setFundInitialBalance`。
+
+> 注：复选框「取消启用」会丢失 fund 配置（缴存/月冲/提取/锚点全删）。加 `window.confirm` 二次确认作为防误删保护（spec 原未提及，属本次新增的防误删决策）。
 
 ## 11. 文件改动清单
 
@@ -190,18 +202,18 @@
 | `src/components/MonthlyTable.vue` | 专区 5 列 + 粗竖线；fund 单元格编辑路径（`startEditFundCell`/`confirmEditFundCell`/`moveEditFundCell`）；月冲联动视觉；`FUND_BALANCE_COLUMN_ID` 右键；FundFlowEditor 接入 |
 | `src/components/FundFlowEditor.vue` | **新建**，竖向流水 + 内嵌提取编辑 |
 | `src/components/AnnualTable.vue` | 「公积金」「总资产」两行 + hover 公式 |
-| `src/components/FinanceChart.vue` | 无（仅透传，数据层在 financeChart.ts） |
+| `src/components/FinanceChart.vue` | `import { useStore }` 读 `fund` 存在性，传 `fundEnabled` 给 `buildChartOption` |
 | `src/utils/financeChart.ts` | `ChartData` 加 totalAssets/fundBalance；双线 option；退化处理 |
 | `src/composables/useCalculation.ts` | `aggregateByYear` / `YearlyPoint` 加 totalAssets/fundBalance 年末值 |
 | `src/utils/formula.ts` | `MonthFormulaField`/`YearFormulaField` 扩展 + build 公式新 case |
-| `src/App.vue` | 吸收两行重构 + 公积金参数区 |
-| `src/components/ToolsMenu.vue` | `⋯` → `更多` |
+| `src/App.vue` | 参数行追加公积金参数（enableFund 门控 + 3 输入 + disable 二次确认）；不动两行结构与现有控件 |
 | `tests/components/FundFlowEditor.spec.ts` | **新建** |
 | `tests/components/MonthlyTable.spec.ts` | 专区列渲染/编辑/月冲联动/余额右键 |
 | `tests/components/AnnualTable.spec.ts` | 公积金/总资产行 |
-| `tests/components/FinanceChart.spec.ts`（或 financeChart 单测） | 双线数据 + 退化 |
-| `tests/App.spec.ts` | 两行 header + 公积金参数区 |
-| `tests/components/ToolsMenu.spec.ts` | **新建**，「更多」文案 |
+| `tests/components/FinanceChart.spec.ts`（已存在） | 扩展：双线数据 + 退化 |
+| `tests/App.spec.ts` | 公积金参数区（enableFund 门控 / 3 输入绑定 / disable 确认）；不动两行结构断言 |
+
+> 不改动：`src/components/ToolsMenu.vue`（`更多` 已完成 `25a9d49`）、`tests/components/ToolsMenu.spec.ts`（已存在）；header 两行结构本身（已完成 `3fddef9`）。
 
 ## 12. 测试计划
 
@@ -210,20 +222,21 @@
 - **FUND_BALANCE 右键**：仅「清除下方公积金锚点」；无年度同步项；调 `removeFundAnchor`。
 - **AnnualTable**：fund 启用时多「公积金」「总资产」两行；未启用不出现。
 - **FinanceChart**：fund 启用 → totalAssets + fundBalance 双线；未启用 → 仅总资产线（退化）。
-- **header**：两行结构；视图三按钮；enableFund 门控隐藏/显示 3 输入；3 输入绑定正确。
+- **App.vue 参数行**：enableFund 门控隐藏/显示 3 输入；3 输入绑定正确（年利率/结息月/初始余额）；取消启用弹二次确认。
 - **formula**：各新 case 输出符合预期文案。
 
 ## 13. 完成标准
 
-- `npx vitest run` 全绿（331 基线 + 新增）。
+- `npx vitest run` 全绿（**335 基线** + 新增）。
 - `npx vue-tsc --noEmit` 无类型错误。
 - `npm run build` 通过。
 - 无 fund 时 UI 完全退化（专区/图表公积金线不出现，总资产=存款），与改造前一致。
+- 不破坏既有 header 两行结构 / 视图三按钮 / ToolsMenu「更多」断言。
 - 每任务独立提交，提交信息中文。
 
 ## 14. 实现顺序建议（供 writing-plans 参考）
 
-1. App.vue header 两行重构（吸收 header plan 三步）+ 公积金参数区。
+1. App.vue 参数行追加公积金参数（enableFund 门控 + 3 输入 + disable 二次确认）——启用入口，先做才能验证后续。
 2. MonthlyTable 专区 5 列骨架（仅 fund 启用渲染 + 粗竖线 + 总资产/余额只读列）。
 3. MonthlyTable fund 单元格编辑（房贷/缴存/月冲 + 月冲联动视觉 + 符号翻转）。
 4. 公积金余额列三态（hover 公式 + 锚点高亮 + `FUND_BALANCE_COLUMN_ID` 右键）。
@@ -232,4 +245,4 @@
 7. AnnualTable 公积金/总资产行 + aggregateByYear 扩展。
 8. FinanceChart 双线 + 退化。
 
-> 顺序理由：header 重构先做（参数区是启用公积金的入口）；专区骨架先于编辑/交互；FundFlowEditor 依赖余额列左键接入；formula 供多个组件 hover；图表/年度表最后，纯展示。
+> 顺序理由：参数行（启用入口）先做；专区骨架先于编辑/交互；FundFlowEditor 依赖余额列左键接入；formula 供多个组件 hover；图表/年度表最后，纯展示。注意 §1 图表改版为并行独立努力，若先于本任务实现，第 8 步需并入其 area 主线形态。
