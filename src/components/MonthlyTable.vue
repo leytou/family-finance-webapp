@@ -9,6 +9,7 @@ import FundFlowEditor from './FundFlowEditor.vue'
 import type { MonthResult, FlowColumn, MilestoneEvent, FundConfig, FundWithdrawal } from '../types'
 import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
+import { computePopoverX } from '../utils/popover'
 import { useStore } from '../composables/useStore'
 import { buildComparison, resolveColumnValue, hasColumnValue, resolveFundOffset } from '../composables/useCalculation'
 import { useClickOutside } from '../composables/useClickOutside'
@@ -88,7 +89,7 @@ const eventPopover = ref<{ month: number; x: number; y: number } | null>(null)
 function showEventDetail(month: number, event: MouseEvent) {
   // 仅在有事件的月份才弹出明细
   if (eventInfo(month).count > 0) {
-    eventPopover.value = { month, x: event.clientX + 10, y: event.clientY + 10 }
+    eventPopover.value = { month, x: computePopoverX(event.clientX), y: event.clientY + 10 }
   }
 }
 function hideEventDetail() {
@@ -256,7 +257,7 @@ function showFormula(result: MonthResult, field: MonthFormulaField, event: Mouse
     mortgageAbs: fund.value ? fundMortgageAbs(result.month) : 0,
     offsetAutoLinked: od.auto,
   })
-  popover.value = { title, lines, x: event.clientX + 10, y: event.clientY + 10 }
+  popover.value = { title, lines, x: computePopoverX(event.clientX), y: event.clientY + 10 }
 }
 
 function getFormulaAriaLabel(result: MonthResult, field: MonthFormulaField): string {

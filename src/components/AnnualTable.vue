@@ -5,6 +5,7 @@ import FormulaPopover from './FormulaPopover.vue'
 import type { MonthResult, YearSummary, ColumnSummary } from '../types'
 import { formatCurrency } from '../utils/format'
 import { buildYearFormula, type YearFormulaField, type YearFormulaContext } from '../utils/formula'
+import { computePopoverX } from '../utils/popover'
 import { useStore } from '../composables/useStore'
 
 const props = defineProps<{
@@ -52,7 +53,7 @@ function showYearFormula(summary: YearSummary, field: YearFormulaField, event: M
     yearEndTotalAssets: summary.totalAssets ?? 0,
   }
   const { title, lines } = buildYearFormula(summary, field, ctx)
-  popover.value = { title, lines, x: event.clientX + 10, y: event.clientY + 10 }
+  popover.value = { title, lines, x: computePopoverX(event.clientX), y: event.clientY + 10 }
 }
 
 const yearSummaries = computed<YearSummary[]>(() => {

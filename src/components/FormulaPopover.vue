@@ -11,7 +11,7 @@ const emit = defineEmits<{ close: [] }>()
 
 <template>
   <div
-    class="fixed z-50 max-w-96 border rounded bg-white p-3 text-sm shadow-lg"
+    class="fixed z-50 min-w-48 max-w-96 border rounded bg-white p-3 text-sm shadow-lg"
     :style="{ left: `${x}px`, top: `${y}px` }"
     @mouseleave="emit('close')"
   >
