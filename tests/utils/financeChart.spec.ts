@@ -76,7 +76,7 @@ describe('buildChartData', () => {
 
 describe('buildChartOption', () => {
   it('三系列：收入/支出走左轴，累计储蓄走右轴；数据与配色正确', () => {
-    const data = { categories: ['26/01'], income: [10000], expense: [-6000], cumSavings: [50000] }
+    const data = { categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000] }
 
     const option = buildChartOption(data)
 
@@ -86,10 +86,10 @@ describe('buildChartOption', () => {
     expect(option.series[1].yAxisIndex).toBe(0)
     expect(option.series[2].yAxisIndex).toBe(1)
     expect(option.series[0].data).toEqual([10000])
-    expect(option.series[1].data).toEqual([-6000])
+    expect(option.series[1].data).toEqual([6000])
     expect(option.series[2].data).toEqual([50000])
-    expect(option.series[0].itemStyle?.color).toBe('#dc2626')
-    expect(option.series[1].itemStyle?.color).toBe('#15803d')
+    expect(option.series[0].itemStyle?.color).toBe('#c0504d')
+    expect(option.series[1].itemStyle?.color).toBe('#6b8e7b')
     expect(option.xAxis.data).toEqual(['26/01'])
     expect(option.legend.data).toEqual(['收入', '支出', '累计储蓄'])
   })

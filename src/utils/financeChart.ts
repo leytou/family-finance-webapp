@@ -30,13 +30,13 @@ export interface ChartOption {
   series: ChartSeries[]
 }
 
-// 配色（中式：收入红 / 支出绿 / 累计储蓄靛蓝），与表格语义同源
-const COLOR_INCOME = '#dc2626'
-const COLOR_EXPENSE = '#15803d'
+// 配色（中式柔和：收入朱砂 / 支出竹青 / 累计靛蓝），与表格语义同源
+const COLOR_INCOME = '#c0504d'   // zhusha-600
+const COLOR_EXPENSE = '#6b8e7b'  // zhuqing-500（柱用柔和阶）
 const COLOR_CUM = '#4f46e5'
-// 中性轴/网格（slate-300 / slate-200），与表格中性一致
+// 中性轴/网格（slate），网格更淡
 const COLOR_AXIS = '#cbd5e1'
-const COLOR_GRID = '#e2e8f0'
+const COLOR_GRID = '#eef2f7'
 
 /** YYYYMM → 紧凑 YY/MM（如 26/01），用于按月视图 x 轴标签。 */
 export function formatAxisLabel(month: number): string {
