@@ -278,4 +278,73 @@ describe('App', () => {
     expect(store.data.value.systemParams.startMonth).toBe(202601)   // 未被改写
     expect(wrapper.find('[data-testid="end-month-error"]').exists()).toBe(true)
   })
+
+  it('参数行含公积金启用开关，未启用时隐藏 3 个公积金输入', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    const fundToggle = wrapper.get('[data-testid="fund-enable-toggle"]')
+    expect(fundToggle.exists()).toBe(true)
+
+    expect(wrapper.find('[data-testid="fund-rate-input"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="fund-interest-month-input"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="fund-initial-balance-input"]').exists()).toBe(false)
+  })
+
+  it('勾选公积金启用开关调用 enableFund 并显示 3 个输入', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    expect(store.data.value.fund).toBeUndefined()
+
+    await wrapper.get('[data-testid="fund-enable-toggle"]').setValue(true)
+
+    expect(store.data.value.fund).toBeDefined()
+    expect(wrapper.find('[data-testid="fund-rate-input"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="fund-interest-month-input"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="fund-initial-balance-input"]').exists()).toBe(true)
+  })
+
+  it('改公积金年利率输入写回 setFundRate', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    await wrapper.get('[data-testid="fund-enable-toggle"]').setValue(true)
+    await wrapper.get('[data-testid="fund-rate-input"]').setValue('2')
+
+    expect(store.data.value.systemParams.fundRate).toBeCloseTo(0.02)
+  })
+
+  it('取消启用弹二次确认，确认后调用 disableFund', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    await wrapper.get('[data-testid="fund-enable-toggle"]').setValue(true)
+    expect(store.data.value.fund).toBeDefined()
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await wrapper.get('[data-testid="fund-enable-toggle"]').setValue(false)
+
+    expect(confirmSpy).toHaveBeenCalled()
+    expect(store.data.value.fund).toBeUndefined()
+  })
+
+  it('取消启用但二次确认驳回则保留 fund', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    await wrapper.get('[data-testid="fund-enable-toggle"]').setValue(true)
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    await wrapper.get('[data-testid="fund-enable-toggle"]').setValue(false)
+
+    expect(store.data.value.fund).toBeDefined()
+  })
 })

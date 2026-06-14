@@ -13,7 +13,16 @@ import { useStore } from './composables/useStore'
 import { useHistory } from './composables/useHistory'
 import { monthDiff } from './utils/month'
 
-const { data, setStartMonth, setEndMonth } = useStore()
+const {
+  data,
+  setStartMonth,
+  setEndMonth,
+  enableFund,
+  disableFund,
+  setFundRate,
+  setFundInterestMonth,
+  setFundInitialBalance,
+} = useStore()
 const { undo, redo, canUndo, canRedo } = useHistory()
 
 // 失焦当前输入框（触发进行中编辑的失焦提交），再执行撤销/重做
@@ -94,6 +103,21 @@ const projectionText = computed(() => {
   if (months === 0) return `共 ${years} 年`
   return `共 ${years} 年 ${months} 个月`
 })
+
+// 公积金启用开关：勾选→enableFund，取消→disableFund（二次确认防误删）
+const fundEnabled = computed(() => !!data.value.fund)
+function onFundToggle(e: Event) {
+  const checked = (e.target as HTMLInputElement).checked
+  if (checked) {
+    enableFund()
+  } else {
+    if (window.confirm('关闭公积金将清空所有缴存/月冲/提取/锚点配置，确定？')) {
+      disableFund()
+    } else {
+      ;(e.target as HTMLInputElement).checked = true
+    }
+  }
+}
 </script>
 
 <template>
@@ -168,6 +192,48 @@ const projectionText = computed(() => {
               class="border rounded px-2 py-1 text-sm w-28"
               placeholder="元"
             />
+          </div>
+          <!-- 公积金子分组：仅 fund 启用时显示 3 输入 -->
+          <div class="flex items-center gap-2 border-l pl-4">
+            <label class="text-xs whitespace-nowrap flex items-center gap-1">
+              <input
+                data-testid="fund-enable-toggle"
+                type="checkbox"
+                :checked="fundEnabled"
+                @change="onFundToggle"
+              />
+              公积金
+            </label>
+            <template v-if="fundEnabled">
+              <label class="text-xs whitespace-nowrap">年利率(%)</label>
+              <input
+                data-testid="fund-rate-input"
+                :value="(data.systemParams.fundRate * 100).toFixed(1)"
+                @input="(e: Event) => setFundRate(Number((e.target as HTMLInputElement).value) / 100)"
+                type="number"
+                step="0.1"
+                class="border rounded px-2 py-1 text-sm w-16"
+              />
+              <label class="text-xs whitespace-nowrap">结息月</label>
+              <input
+                data-testid="fund-interest-month-input"
+                :value="data.systemParams.fundInterestMonth"
+                @input="(e: Event) => setFundInterestMonth(Math.round(Number((e.target as HTMLInputElement).value)))"
+                type="number"
+                min="1"
+                max="12"
+                class="border rounded px-2 py-1 text-sm w-12"
+              />
+              <label class="text-xs whitespace-nowrap">初始余额</label>
+              <input
+                data-testid="fund-initial-balance-input"
+                :value="data.systemParams.fundInitialBalance ?? 0"
+                @input="(e: Event) => setFundInitialBalance(Number((e.target as HTMLInputElement).value))"
+                type="number"
+                class="border rounded px-2 py-1 text-sm w-24"
+                placeholder="元"
+              />
+            </template>
           </div>
         </div>
         <div class="flex items-center gap-2">
