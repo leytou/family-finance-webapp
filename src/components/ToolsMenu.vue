@@ -82,7 +82,7 @@ function handleReset() {
       type="button"
       @click="toggleMenu"
     >
-      ⋯
+      更多
     </button>
     <div
       v-if="open"
