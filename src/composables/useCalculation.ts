@@ -232,9 +232,11 @@ export function calculate(plan: PlanData): MonthResult[] {
       fundOffsetShortfall = Math.max(0, Math.abs(mortgageValue) - fundOffset)
     }
 
-    // —— 汇总（新口径：收入含理财+公积金提取，支出含存款补扣，结余=收入−支出）——
-    // 数值上与旧口径 totalFlow + investReturn + fundOutflow 完全等价（累计储蓄不变）
-    const monthlyIncome = flowIncome + investReturn + fundWithdrawal
+    // —— 汇总（新口径：收入含理财+公积金提取+月冲超额，支出含存款补扣，结余=收入−支出）——
+    // 月冲超出房贷月供的部分（手填月冲 > 房贷时）等同一笔转入可支配，计入收入，
+    // 使 cumSavings 与旧口径 totalFlow + investReturn + fundOutflow 对所有输入完全一致
+    const offsetSurplus = fund ? Math.max(0, fundOffset - Math.abs(mortgageValue)) : 0
+    const monthlyIncome = flowIncome + investReturn + fundWithdrawal + offsetSurplus
     const monthlyExpense = flowExpense + fundOffsetShortfall
     const monthlyBalance = monthlyIncome - monthlyExpense
     const anchor = plan.anchors.find(item => item.month === month)

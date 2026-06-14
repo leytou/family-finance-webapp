@@ -1013,6 +1013,24 @@ describe('calculate', () => {
       expect(r.monthlyBalance).toBe(r.monthlyIncome - r.monthlyExpense)
     }
   })
+
+  it('手填月冲超过房贷月供时，超出部分计入收入（cumSavings 与旧口径一致）', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -3000 } },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 100000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 5000 } }, // 手填 5000 > 房贷 3000
+        withdrawals: [], anchors: [],
+      },
+    }))
+    // 月冲扣 5000：3000 抵房贷、2000 转入可支配（计入收入）
+    expect(results[0].fundOffset).toBe(5000)
+    expect(results[0].fundOffsetShortfall).toBe(0)
+    expect(results[0].monthlyIncome).toBe(2000)
+    expect(results[0].monthlyExpense).toBe(0)
+    expect(results[0].monthlyBalance).toBe(2000)
+  })
 })
 
 describe('存款补扣 fundOffsetShortfall（= 房贷月供 − 公积金实际月冲，由可支配存款承担）', () => {
