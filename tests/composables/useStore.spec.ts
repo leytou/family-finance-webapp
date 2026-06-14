@@ -1178,3 +1178,57 @@ describe('fund 校验与迁移', () => {
     expect(store.data.value.fund).toBeUndefined()
   })
 })
+
+describe('fund 操作函数', () => {
+  beforeEach(() => {
+    vi.useRealTimers()
+    localStorage.clear()
+    vi.resetModules()
+  })
+
+  it('enableFund 创建空 FundConfig，disableFund 移除', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    expect(store.data.value.fund).toBeUndefined()
+    store.enableFund()
+    expect(store.data.value.fund).toBeDefined()
+    expect(store.data.value.fund?.mortgage.entries).toEqual({})
+    expect(store.data.value.fund?.withdrawals).toEqual([])
+    store.disableFund()
+    expect(store.data.value.fund).toBeUndefined()
+  })
+
+  it('updateFundEntry 写入指定 fund 列的月份值', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.updateFundEntry('contribution', 202601, 2000)
+    expect(store.data.value.fund?.contribution.entries[202601]).toBe(2000)
+  })
+
+  it('replaceMonthWithdrawals 替换指定月提取', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.replaceMonthWithdrawals(202602, [{ name: '买房提取', amount: 30000 }])
+    expect(store.data.value.fund?.withdrawals).toHaveLength(1)
+    expect(store.data.value.fund?.withdrawals[0].month).toBe(202602)
+  })
+
+  it('addFundAnchor / removeFundAnchor 维护公积金锚点', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.addFundAnchor(202603, 500000)
+    expect(store.data.value.fund?.anchors).toHaveLength(1)
+    store.removeFundAnchor(202603)
+    expect(store.data.value.fund?.anchors).toHaveLength(0)
+  })
+
+  it('setFundRate 设置公积金年利率', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.setFundRate(0.02)
+    expect(store.data.value.systemParams.fundRate).toBe(0.02)
+  })
+})

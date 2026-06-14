@@ -395,6 +395,103 @@ export function useStore() {
     plan.anchors = plan.anchors.filter(anchor => anchor.month !== month)
   }
 
+  // —— 公积金操作 ——
+  function emptyFlowColumn(name: string): FlowColumn {
+    return { id: generateId(), name, entries: {} }
+  }
+
+  function enableFund(): void {
+    const plan = getActivePlan()
+    if (plan.fund) return
+    plan.fund = {
+      mortgage: emptyFlowColumn('房贷月供'),
+      contribution: emptyFlowColumn('公积金缴存'),
+      monthlyOffset: emptyFlowColumn('公积金月冲'),
+      withdrawals: [],
+      anchors: [],
+    }
+  }
+
+  function disableFund(): void {
+    const plan = getActivePlan()
+    plan.fund = undefined
+  }
+
+  function updateFundEntry(
+    field: 'mortgage' | 'contribution' | 'monthlyOffset',
+    month: number,
+    value: number | null,
+  ): void {
+    const plan = getActivePlan()
+    if (!plan.fund) return
+    const column = plan.fund[field]
+    if (value === null) {
+      delete column.entries[month]
+      if (column.yearlyMonths) delete column.yearlyMonths[month]
+    } else {
+      column.entries[month] = value
+    }
+  }
+
+  function syncFundYearly(field: 'mortgage' | 'contribution' | 'monthlyOffset', month: number): void {
+    const plan = getActivePlan()
+    if (!plan.fund) return
+    const column = plan.fund[field]
+    const amount = column.entries[month]
+    if (amount === undefined) return
+    if (!column.yearlyMonths) column.yearlyMonths = {}
+    const moy = month % 100
+    const start = plan.systemParams.startMonth
+    for (let i = 0; i < 60; i++) {
+      const m = addMonths(start, i)
+      if (m % 100 === moy && m >= month) {
+        column.entries[m] = amount
+        column.yearlyMonths[m] = true
+      }
+    }
+  }
+
+  function replaceMonthWithdrawals(month: number, items: { name: string; amount: number }[]): void {
+    const plan = getActivePlan()
+    if (!plan.fund) return
+    plan.fund.withdrawals = plan.fund.withdrawals.filter(w => w.month !== month)
+    for (const it of items) {
+      const name = it.name.trim()
+      if (name && Number.isFinite(it.amount)) {
+        plan.fund.withdrawals.push({ id: generateId(), name, month, amount: Math.round(it.amount) })
+      }
+    }
+  }
+
+  function addFundAnchor(month: number, actualBalance: number): void {
+    const plan = getActivePlan()
+    if (!plan.fund) return
+    const existing = plan.fund.anchors.findIndex(a => a.month === month)
+    if (existing >= 0) {
+      plan.fund.anchors[existing].actualBalance = actualBalance
+    } else {
+      plan.fund.anchors.push({ month, actualBalance })
+    }
+  }
+
+  function removeFundAnchor(month: number): void {
+    const plan = getActivePlan()
+    if (!plan.fund) return
+    plan.fund.anchors = plan.fund.anchors.filter(a => a.month !== month)
+  }
+
+  function setFundRate(rate: number): void {
+    getActivePlan().systemParams.fundRate = rate
+  }
+
+  function setFundInterestMonth(m: number): void {
+    getActivePlan().systemParams.fundInterestMonth = m
+  }
+
+  function setFundInitialBalance(v: number): void {
+    getActivePlan().systemParams.fundInitialBalance = v
+  }
+
   function addSnapshot(): PlanSnapshot {
     const plan = getActivePlan()
     const results = calculate(plan)
@@ -512,5 +609,15 @@ export function useStore() {
     removeScenario,
     renameScenario,
     switchScenario,
+    enableFund,
+    disableFund,
+    updateFundEntry,
+    syncFundYearly,
+    replaceMonthWithdrawals,
+    addFundAnchor,
+    removeFundAnchor,
+    setFundRate,
+    setFundInterestMonth,
+    setFundInitialBalance,
   }
 }
