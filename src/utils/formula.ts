@@ -205,20 +205,9 @@ export function buildYearFormula(
     case 'investReturn':
       line = `理财收益 = 全年各月理财收益合计 = ${formatCurrency(summary.investReturn)}`
       break
-    case 'yearBalance': {
-      const items = summary.columnSummaries.map(c => ({ name: c.name, amount: c.total }))
-      // 房贷月供是公积金专区列（不在 columnSummaries），但计入可支配支出
-      const mort = ctx.yearMortgage ?? 0
-      if (mort !== 0) items.push({ name: '房贷月供', amount: mort })
-      items.push({ name: '理财收益', amount: summary.investReturn })
-      // 公积金转入可支配（月冲 + 提取）；仅当非 0 才显示
-      const inflow = ctx.yearFundInflow ?? 0
-      const base = `年度结余 = ${formatItems(items)}`
-      line = inflow > 0
-        ? `${base} + 公积金转入(${formatCurrency(inflow)}) = ${formatCurrency(summary.yearBalance)}`
-        : `${base} = ${formatCurrency(summary.yearBalance)}`
+    case 'yearBalance':
+      line = `年度结余 = 年收入(${formatCurrency(summary.yearIncome)}) - 年支出(${formatCurrency(summary.yearExpense)}) = ${formatCurrency(summary.yearBalance)}`
       break
-    }
     case 'endSavings':
       line = `年末存款 = 年初存款(${formatCurrency(summary.startSavings)}) + 年度结余(${formatCurrency(summary.yearBalance)}) = ${formatCurrency(summary.endSavings)}`
       break

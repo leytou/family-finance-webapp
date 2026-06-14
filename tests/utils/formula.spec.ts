@@ -134,6 +134,8 @@ function makeSummary(overrides: Partial<YearSummary> = {}): YearSummary {
     columnSummaries: [],
     totalFlow: 0,
     investReturn: 0,
+    yearIncome: 0,
+    yearExpense: 0,
     yearBalance: 0,
     endSavings: 0,
     ...overrides,
@@ -174,21 +176,18 @@ describe('buildYearFormula', () => {
     expect(lines).toEqual(['理财收益 = 全年各月理财收益合计 = 1,560'])
   })
 
-  it('yearBalance：各列带正负 + 理财收益', () => {
+  it('yearBalance：年度结余 = 年收入 − 年支出', () => {
     const s = makeSummary({
       year: 2026,
-      columnSummaries: [
-        { name: '工资', total: 120000 },
-        { name: '育儿', total: -18000 },
-      ],
-      investReturn: 1560,
+      yearIncome: 121560,
+      yearExpense: 18000,
       yearBalance: 103560,
     })
     const { title, lines } = buildYearFormula(s, 'yearBalance', {
       isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 0, prevYearEndSavings: 0, events: [],
     })
     expect(title).toBe('2026 - 年度结余')
-    expect(lines).toEqual(['年度结余 = 工资(120,000) - 育儿(18,000) + 理财收益(1,560) = 103,560'])
+    expect(lines).toEqual(['年度结余 = 年收入(121,560) - 年支出(18,000) = 103,560'])
   })
 
   it('endSavings：年初 + 年度结余', () => {

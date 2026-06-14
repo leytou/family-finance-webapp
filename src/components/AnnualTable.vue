@@ -96,6 +96,10 @@ const yearSummaries = computed<YearSummary[]>(() => {
       // 计算理财收益总和
       const investReturn = sortedMonths.reduce((sum, result) => sum + result.investReturn, 0)
 
+      // 年度收入/支出：各月 monthlyIncome / monthlyExpense 求和（口径与月度一致）
+      const yearIncome = sortedMonths.reduce((sum, result) => sum + result.monthlyIncome, 0)
+      const yearExpense = sortedMonths.reduce((sum, result) => sum + result.monthlyExpense, 0)
+
       // 年度房贷月供合计（公积金专区列不在 columnValues，单独累加；负数=支出）
       const yearMortgage = fund.value
         ? sortedMonths.reduce((sum, r) => sum + resolveColumnValue(fund.value!.mortgage, r.month).amount, 0)
@@ -111,6 +115,8 @@ const yearSummaries = computed<YearSummary[]>(() => {
         columnSummaries,
         totalFlow,
         investReturn,
+        yearIncome,
+        yearExpense,
         yearBalance,
         endSavings: lastResult.cumSavings,
         fundBalance: lastResult.fundBalance,
@@ -224,6 +230,30 @@ function getColumnTotal(summary: YearSummary, name: string): number {
               @mouseenter="showYearFormula(summary, 'investReturn', $event)"
               @mouseleave="popover = null"
             >{{ formatCurrency(summary.investReturn) }}</span>
+          </td>
+        </tr>
+
+        <tr class="border-b">
+          <td class="px-1 py-0 whitespace-nowrap">年收入</td>
+          <td
+            v-for="summary in yearSummaries"
+            :key="`income-${summary.year}`"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'italic': summary.yearIncome < 0 }"
+          >
+            <span class="block w-full">{{ formatCurrency(summary.yearIncome) }}</span>
+          </td>
+        </tr>
+
+        <tr class="border-b">
+          <td class="px-1 py-0 whitespace-nowrap">年支出</td>
+          <td
+            v-for="summary in yearSummaries"
+            :key="`expense-${summary.year}`"
+            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="{ 'italic': summary.yearExpense < 0 }"
+          >
+            <span class="block w-full">{{ formatCurrency(summary.yearExpense) }}</span>
           </td>
         </tr>
 

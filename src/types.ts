@@ -114,6 +114,8 @@ export interface YearSummary {
   columnSummaries: ColumnSummary[]
   totalFlow: number
   investReturn: number
+  yearIncome: number        // 该自然年各月 monthlyIncome 求和
+  yearExpense: number       // 该自然年各月 monthlyExpense 求和
   yearBalance: number
   endSavings: number
   fundBalance?: number   // 年末公积金余额（fund 启用时）

@@ -383,7 +383,7 @@ describe('AnnualTable', () => {
     const popover = wrapper.findComponent({ name: 'FormulaPopover' })
     expect(popover.exists()).toBe(true)
     expect(popover.text()).toContain('2026 - 年度结余')
-    expect(popover.text()).toContain('年度结余 = 工资(20,000) - 育儿(3,000) + 理财收益(200) = 17,200')
+    expect(popover.text()).toContain('年度结余 = 年收入(20,000) - 年支出(3,000) = 17,200')
 
     await valueCell.find('span').trigger('mouseleave')
     expect(wrapper.findComponent({ name: 'FormulaPopover' }).exists()).toBe(false)
@@ -453,6 +453,33 @@ describe('AnnualTable', () => {
     expect(popover.exists()).toBe(true)
     expect(popover.text()).toContain('年初存款 = 锚点值(150,000)')
     expect(popover.text()).not.toContain('初始存款')
+  })
+
+  it('展示「年收入」「年支出」两行，且收入−支出=年度结余', () => {
+    const wrapper = mount(AnnualTable, {
+      props: {
+        results: [
+          createResult({
+            month: 202601,
+            columnValues: [{ id: 'c1', name: '工资', amount: 10000, isEdited: true }],
+            totalFlow: 10000, investReturn: 100,
+            monthlyIncome: 10100, monthlyExpense: 0, monthlyBalance: 10100, cumSavings: 10100,
+          }),
+          createResult({
+            month: 202602,
+            columnValues: [
+              { id: 'c1', name: '工资', amount: 10000, isEdited: false },
+              { id: 'c2', name: '育儿', amount: -2000, isEdited: true },
+            ],
+            totalFlow: 8000, investReturn: 120,
+            monthlyIncome: 10120, monthlyExpense: 2000, monthlyBalance: 8120, cumSavings: 18220,
+          }),
+        ],
+      },
+    })
+    expect(rowText(wrapper, '年收入')).toEqual(['年收入', '20,220'])
+    expect(rowText(wrapper, '年支出')).toEqual(['年支出', '2,000'])
+    expect(rowText(wrapper, '年度结余')).toEqual(['年度结余', '18,220'])
   })
 })
 
