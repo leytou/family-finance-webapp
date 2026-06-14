@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useClickOutside } from '../composables/useClickOutside'
 import { formatMonthZh } from '../utils/month'
+import { computePopoverX } from '../utils/popover'
 
 defineProps<{ inputId?: string }>()
 const model = defineModel<number>({ required: true })
@@ -29,7 +30,12 @@ watch(open, async (isOpen) => {
   panelYear.value = selectedYear.value
   const rect = triggerRef.value?.getBoundingClientRect()
   if (rect) {
-    panelStyle.value = { left: `${rect.left}px`, top: `${rect.bottom}px` }
+    // 面板左边对齐触发按钮（rect.left），传 margin:0 保持原对齐；
+    // 仅在右侧放不下时整体左移。面板约 3 列月份网格，估宽 224
+    panelStyle.value = {
+      left: `${computePopoverX(rect.left, { expectedWidth: 224, margin: 0 })}px`,
+      top: `${rect.bottom}px`,
+    }
   }
   await nextTick()
   panelRef.value?.focus()

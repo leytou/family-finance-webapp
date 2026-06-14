@@ -76,7 +76,8 @@ function eventInfo(month: number) {
 // 事件编辑器状态
 const eventEditor = ref<{ month: number; x: number; y: number } | null>(null)
 function openEventEditor(month: number, event: MouseEvent) {
-  eventEditor.value = { month, x: event.clientX, y: event.clientY }
+  // 编辑器宽约 min-w-64(256)，估 288；靠右时整体左移避免溢出视口
+  eventEditor.value = { month, x: computePopoverX(event.clientX, { expectedWidth: 288 }), y: event.clientY }
   // 打开编辑器时收起悬浮明细，避免两者叠加
   eventPopover.value = null
 }
@@ -99,7 +100,7 @@ function hideEventDetail() {
 // 公积金流水编辑器状态
 const fundFlowEditor = ref<{ month: number; x: number; y: number } | null>(null)
 function openFundFlowEditor(month: number, event: MouseEvent) {
-  fundFlowEditor.value = { month, x: event.clientX, y: event.clientY }
+  fundFlowEditor.value = { month, x: computePopoverX(event.clientX, { expectedWidth: 288 }), y: event.clientY }
 }
 function closeFundFlowEditor() {
   fundFlowEditor.value = null
@@ -365,7 +366,8 @@ function clearCurrentValue(columnId: string, month: number): void {
 
 // 打开右键菜单
 function openContextMenu(columnId: string, month: number, event: MouseEvent): void {
-  contextMenu.value = { columnId, month, x: event.clientX, y: event.clientY }
+  // 菜单项最长约「同步到下方每年此月」，估 192；靠右时整体左移避免溢出视口
+  contextMenu.value = { columnId, month, x: computePopoverX(event.clientX, { expectedWidth: 192 }), y: event.clientY }
 }
 
 // 当前右键菜单的菜单项
