@@ -11,8 +11,9 @@ import FinanceChart from './components/FinanceChart.vue'
 import { calculate } from './composables/useCalculation'
 import { useStore } from './composables/useStore'
 import { useHistory } from './composables/useHistory'
+import { monthDiff } from './utils/month'
 
-const { data, setStartMonth } = useStore()
+const { data, setStartMonth, setEndMonth } = useStore()
 const { undo, redo, canUndo, canRedo } = useHistory()
 
 // 失焦当前输入框（触发进行中编辑的失焦提交），再执行撤销/重做
@@ -56,10 +57,42 @@ function setActiveView(view: ActiveView) {
   activeView.value = view
 }
 
-// 起始月份：双向绑定桥接到 store 受控入口 setStartMonth（选出的值恒合法，原样写入）
+const periodError = ref('')
+
+// 起始月份：双向绑定桥接到 store 受控入口 setStartMonth；非法时显示内联提示、不写入
 const startMonth = computed({
   get: () => data.value.systemParams.startMonth,
-  set: (v: number) => { setStartMonth(v) },
+  set: (v: number) => {
+    if (setStartMonth(v)) {
+      periodError.value = ''
+    } else {
+      periodError.value = '起始月需早于结束月，且期限不超过 30 年'
+    }
+  },
+})
+
+// 结束月份：桥接到 setEndMonth；非法时显示内联提示、不写入
+const endMonth = computed({
+  get: () => data.value.systemParams.endMonth,
+  set: (v: number) => {
+    if (setEndMonth(v)) {
+      periodError.value = ''
+    } else {
+      periodError.value = '结束月需晚于起始月，且期限不超过 30 年'
+    }
+  },
+})
+
+// 期限提示：「共 X 年」「共 X 年 Y 个月」「共 Y 个月」
+const projectionText = computed(() => {
+  const start = data.value.systemParams.startMonth
+  const end = data.value.systemParams.endMonth
+  const total = Math.max(1, monthDiff(start, end) + 1)
+  const years = Math.floor(total / 12)
+  const months = total % 12
+  if (years === 0) return `共 ${months} 个月`
+  if (months === 0) return `共 ${years} 年`
+  return `共 ${years} 年 ${months} 个月`
 })
 </script>
 
@@ -111,6 +144,12 @@ const startMonth = computed({
             <label for="start-month" class="text-xs whitespace-nowrap">起始月份</label>
             <MonthPicker v-model="startMonth" input-id="start-month" />
           </div>
+          <div class="flex items-center gap-2">
+            <label for="end-month" class="text-xs whitespace-nowrap">结束月份</label>
+            <MonthPicker v-model="endMonth" input-id="end-month" />
+            <span data-testid="projection-text" class="text-xs text-neutral-400 whitespace-nowrap">{{ projectionText }}</span>
+          </div>
+          <span v-if="periodError" data-testid="end-month-error" class="text-xs text-negative-600 whitespace-nowrap">{{ periodError }}</span>
           <div class="flex items-center gap-2">
             <label class="text-xs whitespace-nowrap">年化收益率(%)</label>
             <input
