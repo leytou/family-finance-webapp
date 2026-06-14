@@ -64,6 +64,21 @@ describe('FinanceChart', () => {
     expect(option.series.map(s => s.name)).toEqual(['收入', '支出', '总资产'])
   })
 
+  it('标题区高亮当前总资产（与主线同名，万元格式）', async () => {
+    const results = [
+      makeResult({ month: 202601, cumSavings: 50000, totalAssets: 80000 }),
+      makeResult({ month: 202602, cumSavings: 55000, totalAssets: 1234567 }),
+    ]
+    const wrapper = mount(FinanceChart, { props: { results } })
+    await nextTick()
+
+    // 取最末月 totalAssets（1234567 → 123.5万），标签为「总资产」与主线同名
+    const title = wrapper.find('.text-base.font-bold.text-brand-600')
+    expect(title.text()).toBe('¥ 123.5万')
+    expect(wrapper.text()).toContain('总资产')
+    expect(wrapper.text()).not.toContain('累计储蓄')
+  })
+
   it('点击「按年」切换粒度并以年份为 x 轴刷新 option', async () => {
     const wrapper = mount(FinanceChart, { props: { results: sampleResults() } })
     await nextTick()
