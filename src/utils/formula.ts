@@ -4,7 +4,7 @@ import { formatMonth } from './month'
 
 export type MonthFormulaField =
   | 'investReturn' | 'monthlyIncome' | 'monthlyExpense' | 'monthlyBalance' | 'cumSavings'
-  | 'fundOffset' | 'fundBalance' | 'fundInterest' | 'totalAssets'
+  | 'fundOffset' | 'fundOffsetShortfall' | 'fundBalance' | 'fundInterest' | 'totalAssets'
 
 export interface MonthFormulaContext {
   /** 年利率，小数（0.03 表示 3%） */
@@ -32,6 +32,7 @@ const MONTH_LABELS: Record<MonthFormulaField, string> = {
   monthlyBalance: '结余',
   cumSavings: '存款',
   fundOffset: '月冲',
+  fundOffsetShortfall: '存款补扣',
   fundBalance: '公积金',
   fundInterest: '结息',
   totalAssets: '总资产',
@@ -98,6 +99,11 @@ export function buildMonthFormula(
       line = ctx.offsetAutoLinked
         ? `月冲 = 房贷月供(${formatCurrency(ctx.mortgageAbs ?? 0)}) [自动联动] = ${v}`
         : `月冲 = 手填值(${v}) = ${v}`
+      break
+    }
+    case 'fundOffsetShortfall': {
+      // 房贷月供中公积金月冲没盖住、改由可支配存款承担的部分（≥0）
+      line = `存款补扣 = 房贷月供(${formatCurrency(ctx.mortgageAbs ?? 0)}) - 公积金月冲(${formatCurrency(result.fundOffset)}) = ${formatCurrency(result.fundOffsetShortfall)}`
       break
     }
     case 'fundBalance': {

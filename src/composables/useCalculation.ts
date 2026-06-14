@@ -217,7 +217,7 @@ export function calculate(plan: PlanData): MonthResult[] {
 
     // —— 公积金部分 ——
     let fundBalance = 0, fundInterest = 0, fundContribution = 0
-    let fundOffset = 0, fundWithdrawal = 0, fundOutflow = 0, isFundAnchor = false
+    let fundOffset = 0, fundOffsetShortfall = 0, fundWithdrawal = 0, fundOutflow = 0, isFundAnchor = false
     if (fund) {
       const prevFundBalance = index === 0 ? fundInitialBalance : results[index - 1].fundBalance
       const fr = processFund(fund, month, prevFundBalance, fundAccrual, fundRate, fundInterestMonth)
@@ -229,6 +229,8 @@ export function calculate(plan: PlanData): MonthResult[] {
       fundWithdrawal = fr.fundWithdrawal
       fundOutflow = fr.fundOutflow
       isFundAnchor = fr.isFundAnchor
+      // 房贷月供中公积金月冲没冲满、改由可支配存款承担的缺口（≥0）
+      fundOffsetShortfall = Math.max(0, Math.abs(mortgageValue) - fundOffset)
     }
 
     // —— 汇总（公积金转出抵扣可支配）——
@@ -251,6 +253,7 @@ export function calculate(plan: PlanData): MonthResult[] {
       fundInterest,
       fundContribution,
       fundOffset,
+      fundOffsetShortfall,
       fundWithdrawal,
       fundOutflow,
       isFundAnchor,

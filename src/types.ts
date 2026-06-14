@@ -84,6 +84,7 @@ export interface MonthResult {
   fundInterest: number      // 当月入账结息（仅结息月非 0）
   fundContribution: number  // 当月缴存额（展示用）
   fundOffset: number        // 当月月冲额（实际扣取，已截断）
+  fundOffsetShortfall: number  // 房贷月供 − 公积金实际月冲（≥0）：月冲没冲满、改由可支配存款承担的部分
   fundWithdrawal: number    // 当月提取额（实际扣取，已截断）
   fundOutflow: number       // 当月转出到可支配合计 = fundOffset + fundWithdrawal
   isFundAnchor: boolean     // 该月公积金余额是否被锚点覆盖

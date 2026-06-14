@@ -1036,12 +1036,13 @@ describe('MonthlyTable · 公积金专区', () => {
     expect(wrapper.text()).toContain('5,000')
   })
 
-  it('月冲未手填时显示房贷月供绝对值且淡灰（自动联动）', async () => {
+  it('月冲未手填时自动联动（淡灰），余额充足时实际扣取额=房贷月供', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
     store.data.value.systemParams.startMonth = 202601
     store.enableFund()
     store.updateFundEntry('mortgage', 202601, -5000)
+    store.updateFundEntry('contribution', 202601, 5000)   // 缴存补足，月冲能冲满（实际=目标=5000）
     const results = calculate(store.data.value)
 
     const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
@@ -1096,6 +1097,7 @@ describe('MonthlyTable · 公积金专区', () => {
     store.data.value.systemParams.startMonth = 202601
     store.updateFundEntry('mortgage', 202601, -5000)
     store.updateFundEntry('monthlyOffset', 202601, 3000)
+    store.updateFundEntry('contribution', 202601, 10000)   // 缴存补足，月冲能冲满手填值（实际=3000）
     const results = calculate(store.data.value)
 
     const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
@@ -1105,6 +1107,29 @@ describe('MonthlyTable · 公积金专区', () => {
     expect(cell.exists()).toBe(true)
     expect(cell.classes()).toContain('bg-brand-50')
     expect(cell.text()).toContain('3,000')
+  })
+
+  it('月冲因余额不足截断：月冲列显示实际扣取额，存款补扣列显示差额并标告警色', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('mortgage', 202601, -5000)
+    store.updateFundEntry('contribution', 202601, 2000)   // 缴存仅 2000，月冲目标 5000 被截断到 2000
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    // 月冲列显示实际扣取额（被余额截断到 2,000），不再是目标 5,000
+    const offsetCell = wrapper.find('[data-fund-offset-auto="202601"]')
+    expect(offsetCell.text()).toContain('2,000')
+
+    // 存款补扣列显示差额 5,000 − 2,000 = 3,000，并标告警色
+    const shortfallCell = wrapper.find('[data-fund-shortfall="202601"]')
+    expect(shortfallCell.exists()).toBe(true)
+    expect(shortfallCell.text()).toContain('3,000')
+    expect(shortfallCell.classes()).toContain('text-warning-600')
   })
 
   it('月冲手填编辑写回 monthlyOffset', async () => {

@@ -202,6 +202,7 @@ const formulaLabels: Record<MonthFormulaField, string> = {
   monthlyBalance: '结余',
   cumSavings: '存款',
   fundOffset: '月冲',
+  fundOffsetShortfall: '存款补扣',
   fundBalance: '公积金',
   fundInterest: '结息',
   totalAssets: '总资产',
@@ -743,6 +744,7 @@ function getValueClass(value: number): string {
             <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap border-l-2 border-neutral-400">房贷月供</th>
             <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">公积金缴存</th>
             <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">公积金月冲</th>
+            <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">存款补扣</th>
             <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">公积金</th>
             <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">总资产</th>
           </template>
@@ -986,7 +988,20 @@ function getValueClass(value: number): string {
                 @click="startEditFundCell('monthlyOffset', result.month)"
                 @mouseenter="showFormula(result, 'fundOffset', $event)"
                 @mouseleave="popover = null"
-              >{{ formatCurrency(fundOffsetDisplay(result.month).value) }}</span>
+              >{{ formatCurrency(result.fundOffset) }}</span>
+            </td>
+            <!-- 存款补扣：房贷月供 − 公积金实际月冲（≥0），由可支配存款承担；缺口>0 标告警色 -->
+            <td
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+              :class="{ 'text-warning-600': result.fundOffsetShortfall > 0 }"
+              :data-fund-shortfall="result.month"
+            >
+              <span
+                class="block w-full"
+                :aria-label="getFormulaAriaLabel(result, 'fundOffsetShortfall')"
+                @mouseenter="showFormula(result, 'fundOffsetShortfall', $event)"
+                @mouseleave="popover = null"
+              >{{ formatCurrency(result.fundOffsetShortfall) }}</span>
             </td>
             <!-- 公积金余额（左键开 FundFlowEditor / 右键锚点菜单 / hover 余额公式） -->
             <td

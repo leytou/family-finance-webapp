@@ -970,6 +970,70 @@ describe('calculate', () => {
   })
 })
 
+describe('存款补扣 fundOffsetShortfall（= 房贷月供 − 公积金实际月冲，由可支配存款承担）', () => {
+  it('月冲充足冲满房贷 → shortfall 为 0', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 5000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },   // 默认联动房贷 5000
+        withdrawals: [], anchors: [],
+      },
+    }))
+    expect(results[0].fundOffset).toBe(5000)
+    expect(results[0].fundOffsetShortfall).toBe(0)
+  })
+
+  it('月冲因余额不足被截断 → shortfall = 房贷月供 − 实际月冲', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 2000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },   // 联动 5000，但余额只够 2000
+        withdrawals: [], anchors: [],
+      },
+    }))
+    expect(results[0].fundOffset).toBe(2000)
+    expect(results[0].fundOffsetShortfall).toBe(3000)
+  })
+
+  it('无房贷月供 → shortfall 为 0', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: {} },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 1000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [], anchors: [],
+      },
+    }))
+    expect(results[0].fundOffsetShortfall).toBe(0)
+  })
+
+  it('月冲手填且小于房贷月供 → shortfall = 房贷月供 − 实际月冲', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 10000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 3000 } },   // 手填 3000
+        withdrawals: [], anchors: [],
+      },
+    }))
+    expect(results[0].fundOffset).toBe(3000)
+    expect(results[0].fundOffsetShortfall).toBe(2000)
+  })
+
+  it('无 fund → shortfall 为 0', () => {
+    const results = calculate(makePlan({
+      columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000 } }],
+    }))
+    expect(results[0].fundOffsetShortfall).toBe(0)
+  })
+})
+
 describe('calculate 与专项事件', () => {
   it('单月单笔负数事件：净额计入支出与累计，columnValues 含专项虚拟值', () => {
     const results = calculate(
