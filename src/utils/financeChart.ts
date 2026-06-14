@@ -41,7 +41,7 @@ export interface ChartOption {
   }
   yAxis: {
     type: string; alignTicks: boolean
-    splitLine?: { show?: boolean; lineStyle: { color: string } }
+    splitLine?: { show?: boolean; lineStyle?: { color: string } }
     axisLabel?: { formatter: (v: number) => string }
   }[]
   series: ChartSeries[]
