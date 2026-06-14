@@ -210,10 +210,9 @@ export function calculate(plan: PlanData): MonthResult[] {
     const activeValues = columnValues.filter(col => col.enabled !== false)
     const totalFlow = activeValues.reduce((sum, col) => sum + col.amount, 0) + mortgageValue
     const investReturn = (prevCum * plan.systemParams.annualRate) / 12
-    const monthlyIncome = activeValues.reduce((sum, col) => col.amount > 0 ? sum + col.amount : sum, 0)
-      + (mortgageValue > 0 ? mortgageValue : 0)
-    const monthlyExpense = activeValues.reduce((sum, col) => col.amount < 0 ? sum + Math.abs(col.amount) : sum, 0)
-      + (mortgageValue < 0 ? Math.abs(mortgageValue) : 0)
+    // 现金流正负项分流（房贷由公积金专区 shortfall 单独计入支出，不再并入此处）
+    const flowIncome = activeValues.reduce((sum, col) => col.amount > 0 ? sum + col.amount : sum, 0)
+    const flowExpense = activeValues.reduce((sum, col) => col.amount < 0 ? sum + Math.abs(col.amount) : sum, 0)
 
     // —— 公积金部分 ——
     let fundBalance = 0, fundInterest = 0, fundContribution = 0
@@ -233,8 +232,11 @@ export function calculate(plan: PlanData): MonthResult[] {
       fundOffsetShortfall = Math.max(0, Math.abs(mortgageValue) - fundOffset)
     }
 
-    // —— 汇总（公积金转出抵扣可支配）——
-    const monthlyBalance = totalFlow + investReturn + fundOutflow
+    // —— 汇总（新口径：收入含理财+公积金提取，支出含存款补扣，结余=收入−支出）——
+    // 数值上与旧口径 totalFlow + investReturn + fundOutflow 完全等价（累计储蓄不变）
+    const monthlyIncome = flowIncome + investReturn + fundWithdrawal
+    const monthlyExpense = flowExpense + fundOffsetShortfall
+    const monthlyBalance = monthlyIncome - monthlyExpense
     const anchor = plan.anchors.find(item => item.month === month)
     const cumSavings = anchor ? anchor.actualSavings : prevCum + monthlyBalance
     const totalAssets = cumSavings + fundBalance

@@ -791,7 +791,7 @@ describe('calculate', () => {
     )
 
     expect(results[0].totalFlow).toBe(0)
-    expect(results[0].monthlyIncome).toBe(0)
+    expect(results[0].monthlyIncome).toBe(1000)   // 全部列禁用，但理财 1000 计入收入
     expect(results[0].monthlyExpense).toBe(0)
     // 初始存款 100000 参与理财：100000 * 0.12 / 12 = 1000；月末 = 101000
     expect(results[0].investReturn).toBe(1000)
@@ -890,7 +890,7 @@ describe('calculate', () => {
     expect(r.fundContribution).toBe(5000)
     expect(r.fundOffset).toBe(5000)
     expect(r.fundBalance).toBe(0)
-    expect(r.monthlyExpense).toBe(5000)
+    expect(r.monthlyExpense).toBe(0)   // shortfall = 5000 − 5000 = 0
     expect(r.fundOutflow).toBe(5000)
     expect(r.cumSavings).toBe(0)
   })
@@ -967,6 +967,51 @@ describe('calculate', () => {
     expect(results[1].fundBalance).toBe(2000)
     expect(results[2]).toMatchObject({ month: 202603, fundBalance: 500000, isFundAnchor: true })
     expect(results[3].fundBalance).toBe(501000)
+  })
+
+  it('收入含理财收益与公积金提取（新口径）', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0.12, fundRate: 0, fundInterestMonth: 7 },
+      columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000 } }],
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: {} },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 50000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        withdrawals: [{ id: 'w1', name: '买房提取', month: 202602, amount: 30000 }],
+        anchors: [],
+      },
+    }))
+    // 202601：工资 10000，理财 0（首月无上月存款），无提取 → 收入 = 10000
+    expect(results[0].monthlyIncome).toBe(10000)
+    // 202602：工资 10000 + 理财(上月存款10000*0.12/12=100) + 提取 30000 = 40100
+    expect(results[1].monthlyIncome).toBe(40100)
+  })
+
+  it('支出用存款补扣而非房贷全额（月冲抵房贷）', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 2000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} }, // 默认联动 5000，余额只够 2000
+        withdrawals: [], anchors: [],
+      },
+    }))
+    // shortfall = 房贷 5000 − 月冲 2000 = 3000；支出 = 3000
+    expect(results[0].monthlyExpense).toBe(3000)
+  })
+
+  it('结余 = 收入 − 支出（新口径，数值与旧口径等价）', () => {
+    const results = calculate(makePlan({
+      systemParams: { startMonth: 202601, annualRate: 0.12, fundRate: 0, fundInterestMonth: 7 },
+      columns: [
+        { id: 'col1', name: '工资', entries: { 202601: 10000 } },
+        { id: 'col2', name: '房租', entries: { 202601: -3000 } },
+      ],
+    }))
+    for (const r of results) {
+      expect(r.monthlyBalance).toBe(r.monthlyIncome - r.monthlyExpense)
+    }
   })
 })
 
