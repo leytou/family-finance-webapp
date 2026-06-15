@@ -103,4 +103,59 @@ describe('FundFlowEditor', () => {
     expect(wrapper.attributes('style')).toContain('left: 80px')
     expect(wrapper.attributes('style')).toContain('top: 90px')
   })
+
+  it('填实际余额并完成，写入公积金锚点', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    const FundFlowEditor = await loadFundFlowEditor()
+    const wrapper = mount(FundFlowEditor, {
+      props: { month: 202602, result: makeResult(), prevFundBalance: 2000, withdrawals: [], x: 10, y: 10 },
+    })
+    await wrapper.find('input[data-anchor-input]').setValue('12345')
+    await wrapper.find('[aria-label="完成"]').trigger('click')
+
+    const anchor = store.data.value.fund!.anchors.find(a => a.month === 202602)
+    expect(anchor?.actualBalance).toBe(12345)
+  })
+
+  it('清空修正框并完成，移除公积金锚点', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.addFundAnchor(202602, 12345)
+    const FundFlowEditor = await loadFundFlowEditor()
+    const wrapper = mount(FundFlowEditor, {
+      props: { month: 202602, result: makeResult(), prevFundBalance: 2000, withdrawals: [], x: 10, y: 10, anchorBalance: 12345 },
+    })
+    await wrapper.find('input[data-anchor-input]').setValue('')
+    await wrapper.find('[aria-label="完成"]').trigger('click')
+
+    expect(store.data.value.fund!.anchors.find(a => a.month === 202602)).toBeUndefined()
+  })
+
+  it('已修正时修正框预填实际余额', async () => {
+    const FundFlowEditor = await loadFundFlowEditor()
+    const wrapper = mount(FundFlowEditor, {
+      props: { month: 202602, result: makeResult(), prevFundBalance: 2000, withdrawals: [], x: 10, y: 10, anchorBalance: 9999 },
+    })
+    expect((wrapper.find('input[data-anchor-input]').element as HTMLInputElement).value).toBe('9999')
+  })
+
+  it('值未变化不重复写入锚点', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.addFundAnchor(202602, 5000)
+    const FundFlowEditor = await loadFundFlowEditor()
+    const wrapper = mount(FundFlowEditor, {
+      props: { month: 202602, result: makeResult(), prevFundBalance: 2000, withdrawals: [], x: 10, y: 10, anchorBalance: 5000 },
+    })
+    // 不改动，直接完成
+    await wrapper.find('[aria-label="完成"]').trigger('click')
+
+    // 锚点仍存在且值不变（未触发重写/抖动）
+    const anchor = store.data.value.fund!.anchors.find(a => a.month === 202602)
+    expect(anchor?.actualBalance).toBe(5000)
+  })
 })
