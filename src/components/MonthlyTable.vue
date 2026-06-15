@@ -367,14 +367,19 @@ function isCurrentCellEdited(columnId: string, month: number): boolean {
   if (columnId === BALANCE_COLUMN_ID) {
     return props.results.find(r => r.month === month)?.isAnchor ?? false
   }
+  const fundField = fundFieldFromColumnId(columnId)
+  if (fundField) return isFundEntryEdited(fundField, month)
   const column = columns.value.find(c => c.id === columnId)
   return column ? String(month) in column.entries : false
 }
 
 // 清除当前格的编辑值
 function clearCurrentValue(columnId: string, month: number): void {
+  const fundField = fundFieldFromColumnId(columnId)
   if (columnId === BALANCE_COLUMN_ID) {
     store.removeAnchor(month)
+  } else if (fundField) {
+    store.updateFundEntry(fundField, month, null)
   } else {
     store.updateColumnEntry(columnId, month, null)
   }

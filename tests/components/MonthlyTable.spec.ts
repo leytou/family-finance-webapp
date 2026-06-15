@@ -1305,4 +1305,69 @@ describe('MonthlyTable · 公积金专区', () => {
     const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到下方每年此月')!
     expect(syncItem.attributes('aria-disabled')).toBe('true')
   })
+
+  it('房贷月供右键「清除该值」删除当前格手填值，他月保留', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('mortgage', 202601, -5000)
+    store.updateFundEntry('mortgage', 202602, -6000)
+    const results = calculate(store.data.value).slice(0, 2)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-mortgage="202601"]').trigger('contextmenu')
+    const item = wrapper
+      .findComponent({ name: 'ContextMenu' })
+      .findAll('[role="menuitem"]')
+      .find(i => i.text() === '清除该值')!
+    await item.trigger('click')
+
+    expect(store.data.value.fund!.mortgage.entries[202601]).toBeUndefined()
+    expect(store.data.value.fund!.mortgage.entries[202602]).toBe(-6000)
+  })
+
+  it('公积金缴存右键「清除该值」删除当前格手填值', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('contribution', 202601, 2000)
+    store.updateFundEntry('contribution', 202602, 3000)
+    const results = calculate(store.data.value).slice(0, 2)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-contribution="202601"]').trigger('contextmenu')
+    const item = wrapper
+      .findComponent({ name: 'ContextMenu' })
+      .findAll('[role="menuitem"]')
+      .find(i => i.text() === '清除该值')!
+    await item.trigger('click')
+
+    expect(store.data.value.fund!.contribution.entries[202601]).toBeUndefined()
+    expect(store.data.value.fund!.contribution.entries[202602]).toBe(3000)
+  })
+
+  it('房贷月供未手填格「清除该值」禁用', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    // 202601 不填任何 mortgage entry
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-mortgage="202601"]').trigger('contextmenu')
+    const item = wrapper
+      .findComponent({ name: 'ContextMenu' })
+      .findAll('[role="menuitem"]')
+      .find(i => i.text() === '清除该值')!
+    expect(item.attributes('aria-disabled')).toBe('true')
+  })
 })
