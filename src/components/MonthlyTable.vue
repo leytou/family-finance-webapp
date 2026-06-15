@@ -54,6 +54,10 @@ function fundPrevBalance(month: number): number {
 function fundWithdrawalsByMonth(month: number): FundWithdrawal[] {
   return fund.value?.withdrawals.filter(w => w.month === month) ?? []
 }
+// 该月公积金余额锚点（实际余额）；undefined=未修正
+function fundAnchorBalance(month: number): number | undefined {
+  return fund.value?.anchors.find(an => an.month === month)?.actualBalance
+}
 // FundFlowEditor 的该月 result：fundFlowEditor 打开的月份必在 results 内（余额单元格由 results v-for 渲染），
 // 断言集中在此 computed，避免模板内联 results.find(...)! 散落。
 const fundFlowEditorResult = computed<MonthResult>(() =>
@@ -372,6 +376,9 @@ function isCurrentCellEdited(columnId: string, month: number): boolean {
   if (columnId === BALANCE_COLUMN_ID) {
     return props.results.find(r => r.month === month)?.isAnchor ?? false
   }
+  if (columnId === FUND_BALANCE_COLUMN_ID) {
+    return props.results.find(r => r.month === month)?.isFundAnchor ?? false
+  }
   const fundField = fundFieldFromColumnId(columnId)
   if (fundField) return isFundEntryEdited(fundField, month)
   const column = columns.value.find(c => c.id === columnId)
@@ -383,6 +390,8 @@ function clearCurrentValue(columnId: string, month: number): void {
   const fundField = fundFieldFromColumnId(columnId)
   if (columnId === BALANCE_COLUMN_ID) {
     store.removeAnchor(month)
+  } else if (columnId === FUND_BALANCE_COLUMN_ID) {
+    store.removeFundAnchor(month)
   } else if (fundField) {
     store.updateFundEntry(fundField, month, null)
   } else {
@@ -1137,6 +1146,7 @@ function getValueClass(value: number): string {
     :result="fundFlowEditorResult"
     :prev-fund-balance="fundPrevBalance(fundFlowEditor.month)"
     :withdrawals="fundWithdrawalsByMonth(fundFlowEditor.month)"
+    :anchor-balance="fundAnchorBalance(fundFlowEditor.month)"
     :x="fundFlowEditor.x"
     :y="fundFlowEditor.y"
     @close="closeFundFlowEditor"

@@ -668,6 +668,100 @@ describe('MonthlyTable', () => {
         .map(i => i.text())
       expect(labels).toEqual(['同步到下方每年此月', '清除该值', '清除下方编辑值'])
     })
+
+    it('点击「清除该值」删除当前格公积金余额锚点', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.enableFund()
+      store.addColumn('测试列')
+      store.addFundAnchor(202601, 8000)
+      store.addFundAnchor(202602, 9000)
+      const results = calculate(store.data.value).slice(0, 2)
+
+      const wrapper = mount(MonthlyTable, { props: { results } })
+
+      await wrapper.find('[data-fund-balance="202601"]').trigger('contextmenu')
+
+      const menuItem = wrapper
+        .findComponent({ name: 'ContextMenu' })
+        .findAll('[role="menuitem"]')
+        .find(i => i.text() === '清除该值')!
+      await menuItem.trigger('click')
+
+      const months = store.data.value.fund!.anchors.map(a => a.month)
+      expect(months).not.toContain(202601)
+      expect(months).toContain(202602)
+    })
+
+    it('公积金余额列未修正时「清除该值」禁用', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.enableFund()
+      store.addColumn('测试列')
+      const results = calculate(store.data.value).slice(0, 2)
+
+      const wrapper = mount(MonthlyTable, { props: { results } })
+      await wrapper.find('[data-fund-balance="202601"]').trigger('contextmenu')
+
+      const menuItem = wrapper
+        .findComponent({ name: 'ContextMenu' })
+        .findAll('[role="menuitem"]')
+        .find(i => i.text() === '清除该值')!
+      expect(menuItem.attributes('aria-disabled')).toBe('true')
+    })
+
+    it('公积金余额列已修正时「清除该值」启用', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.enableFund()
+      store.addColumn('测试列')
+      store.addFundAnchor(202601, 8000)
+      const results = calculate(store.data.value).slice(0, 1)
+
+      const wrapper = mount(MonthlyTable, { props: { results } })
+      await wrapper.find('[data-fund-balance="202601"]').trigger('contextmenu')
+
+      const menuItem = wrapper
+        .findComponent({ name: 'ContextMenu' })
+        .findAll('[role="menuitem"]')
+        .find(i => i.text() === '清除该值')!
+      expect(menuItem.attributes('aria-disabled')).toBe('false')
+    })
+  })
+
+  it('打开公积金小窗时传入该月已修正余额', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    store.enableFund()
+    store.addColumn('测试列')
+    store.addFundAnchor(202601, 7777)
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    await wrapper.find('[data-fund-balance="202601"]').trigger('click')
+
+    const editor = wrapper.findComponent({ name: 'FundFlowEditor' })
+    expect(editor.exists()).toBe(true)
+    expect(editor.props('anchorBalance')).toBe(7777)
+  })
+
+  it('打开未修正月份的小窗，anchorBalance 为 undefined', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    store.enableFund()
+    store.addColumn('测试列')
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    await wrapper.find('[data-fund-balance="202601"]').trigger('click')
+
+    const editor = wrapper.findComponent({ name: 'FundFlowEditor' })
+    expect(editor.props('anchorBalance')).toBeUndefined()
   })
 
   it('渲染快照工具条与封存按钮', async () => {

@@ -13,6 +13,7 @@ const props = defineProps<{
   withdrawals: FundWithdrawal[]  // 该月提取（初始化草稿）
   x: number
   y: number
+  anchorBalance?: number         // 该月已修正的实际余额（公积金锚点）；undefined=未修正
 }>()
 
 const emit = defineEmits<{ close: [] }>()
@@ -26,6 +27,8 @@ const rows = ref<DraftRow[]>(
   props.withdrawals.map(w => ({ key: nextDraftKey(), name: w.name, amount: String(w.amount) })),
 )
 const dirty = ref(false)
+// 修正为实际余额（锚点）草稿：打开时取已存实际余额，未修正则空（0 视为有效值保留）
+const draftAnchor = ref<string>(props.anchorBalance != null ? String(props.anchorBalance) : '')
 function markDirty() { dirty.value = true }
 const rootRef = ref<HTMLElement | null>(null)
 
@@ -42,6 +45,16 @@ function commit() {
       .filter(r => r.name !== '' && Number.isFinite(r.amount))
       .map(r => ({ name: r.name, amount: Math.round(r.amount) }))
     store.replaceMonthWithdrawals(props.month, items)
+  }
+  // 修正为实际余额（锚点）：留空=移除修正；非空且变化=写入；值未变化不写
+  const trimmed = draftAnchor.value.trim()
+  if (trimmed === '') {
+    store.removeFundAnchor(props.month)
+  } else {
+    const num = Math.round(Number(trimmed))
+    if (Number.isFinite(num) && num !== props.anchorBalance) {
+      store.addFundAnchor(props.month, num)
+    }
   }
   emit('close')
 }
@@ -120,6 +133,19 @@ onMounted(() => { rootRef.value?.focus() })
     <div class="mt-1 flex items-center justify-between gap-4 border-t pt-1 font-semibold">
       <span>= 期末余额</span>
       <span class="tabular-nums">{{ formatCurrency(result.fundBalance) }}</span>
+    </div>
+
+    <!-- 修正为实际余额（锚点）：留空=用上方流水余额，后续月份从此值继续累计 -->
+    <div class="mt-1 flex items-center justify-between gap-4">
+      <span class="text-neutral-500">修正为实际余额</span>
+      <input
+        v-model="draftAnchor"
+        type="text"
+        inputmode="numeric"
+        data-anchor-input
+        class="w-28 border rounded px-1 text-right text-[12px]"
+        placeholder="留空=流水余额"
+      />
     </div>
 
     <div class="mt-2 flex justify-end">
