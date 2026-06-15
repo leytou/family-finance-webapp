@@ -5,6 +5,7 @@ import AnnualTable from './components/AnnualTable.vue'
 import MonthlyTable from './components/MonthlyTable.vue'
 import ScenarioTabs from './components/ScenarioTabs.vue'
 import ComparisonView from './components/ComparisonView.vue'
+import CalculatorView from './components/CalculatorView.vue'
 import ToolsMenu from './components/ToolsMenu.vue'
 import MonthPicker from './components/MonthPicker.vue'
 import FinanceChart from './components/FinanceChart.vue'
@@ -58,7 +59,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 const results = computed(() => calculate(data.value))
 
 // 视图切换：table（默认） / chart（财务趋势图） / comparison（多方案对比），三态互斥
-type ActiveView = 'table' | 'chart' | 'comparison'
+type ActiveView = 'table' | 'chart' | 'comparison' | 'calculator'
 const activeView = ref<ActiveView>('table')
 
 // 显式切换：三按钮各点击直接设置目标视图（取代旧 toggle）
@@ -158,6 +159,16 @@ function onFundToggle(e: Event) {
           </button>
           <div class="border-l h-5 mx-2" />
           <button
+            data-testid="calc-view-btn"
+            class="px-3 py-1 border rounded text-sm"
+            :class="activeView === 'calculator' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
+            type="button"
+            @click="setActiveView('calculator')"
+          >
+            🧮 计算器
+          </button>
+          <div class="border-l h-5 mx-2" />
+          <button
             data-testid="undo-btn"
             class="px-3 py-1 border rounded text-sm whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
             :class="canUndo ? 'hover:bg-neutral-50' : ''"
@@ -184,7 +195,7 @@ function onFundToggle(e: Event) {
         </div>
       </div>
       <!-- 第二行 · 参数层：参数标签 + 参数输入 / 撤销·重做（字体与表格同 11px，整体紧凑）-->
-      <div class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-neutral-50 border-t">
+      <div v-if="activeView !== 'calculator'" data-testid="param-row" class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-neutral-50 border-t">
         <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
           <span data-testid="param-row-label" class="text-[10px] uppercase tracking-wide text-neutral-400 border-r pr-3">参数</span>
           <div class="flex items-center gap-2">
@@ -270,6 +281,11 @@ function onFundToggle(e: Event) {
       <template v-else-if="activeView === 'chart'">
         <div class="flex-1">
           <FinanceChart :results="results" />
+        </div>
+      </template>
+      <template v-else-if="activeView === 'calculator'">
+        <div class="flex-1 overflow-auto">
+          <CalculatorView />
         </div>
       </template>
       <template v-else>
