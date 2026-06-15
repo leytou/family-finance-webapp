@@ -33,6 +33,7 @@ describe('App', () => {
     MonthlyTable: true,
     ScenarioTabs: true,
     ComparisonView: true,
+    CalculatorView: true,
     ToolsMenu: true,
     FinanceChart: true,
   }
@@ -346,5 +347,29 @@ describe('App', () => {
     await wrapper.get('[data-testid="fund-enable-toggle"]').setValue(false)
 
     expect(store.data.value.fund).toBeDefined()
+  })
+
+  it('计算器按钮存在且点击切换到计算器视图', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    expect(wrapper.find('[data-testid="calc-view-btn"]').exists()).toBe(true)
+    expect(wrapper.findComponent({ name: 'CalculatorView' }).exists()).toBe(false)
+
+    await wrapper.get('[data-testid="calc-view-btn"]').trigger('click')
+
+    expect(wrapper.findComponent({ name: 'CalculatorView' }).exists()).toBe(true)
+  })
+
+  it('计算器视图下隐藏规划参数行', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    // 默认表格视图：参数行可见
+    expect(wrapper.find('[data-testid="param-row"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="calc-view-btn"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="param-row"]').exists()).toBe(false)
   })
 })
