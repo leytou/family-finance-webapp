@@ -1309,4 +1309,20 @@ describe('MonthlyTable · 公积金专区', () => {
     expect(editor.exists()).toBe(true)
     expect(editor.props('anchorBalance')).toBe(7777)
   })
+
+  it('打开未修正月份的小窗，anchorBalance 为 undefined', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    store.enableFund()
+    store.addColumn('测试列')
+    // 不设公积金锚点（该月未修正）
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    await wrapper.find('[data-fund-balance="202601"]').trigger('click')
+
+    const editor = wrapper.findComponent({ name: 'FundFlowEditor' })
+    expect(editor.props('anchorBalance')).toBeUndefined()
+  })
 })
