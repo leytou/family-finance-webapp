@@ -2,6 +2,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import type { MonthResult, FundWithdrawal } from '../../src/types'
 
+// 全局 spy：捕获每次 useStore() 返回对象的 addFundAnchor 调用。
+// useStore() 每次返回独立的新对象，直接 spyOn(测试自身的 store) 抓不到组件内部的调用，
+// 故用 vi.mock 包装，给每个返回对象都装上同一个 spy。
+const { addFundAnchorSpy } = vi.hoisted(() => ({ addFundAnchorSpy: vi.fn() }))
+vi.mock('../../src/composables/useStore', async () => {
+  const actual = await vi.importActual<typeof import('../../src/composables/useStore')>('../../src/composables/useStore')
+  return {
+    ...actual,
+    useStore: () => {
+      const store = actual.useStore()
+      // 仅在尚未替换时挂 spy（避免重复包裹导致递归）
+      if (!(store.addFundAnchor as unknown as { __spied?: boolean }).__spied) {
+        const original = store.addFundAnchor.bind(store)
+        ;(store.addFundAnchor as unknown as { __spied?: boolean }).__spied = true
+        store.addFundAnchor = (month: number, actualBalance: number) => {
+          addFundAnchorSpy(month, actualBalance)
+          return original(month, actualBalance)
+        }
+      }
+      return store
+    },
+  }
+})
+
 async function loadFundFlowEditor() {
   return (await import('../../src/components/FundFlowEditor.vue')).default
 }
@@ -26,6 +50,7 @@ describe('FundFlowEditor', () => {
     vi.useRealTimers()
     localStorage.clear()
     vi.resetModules()
+    addFundAnchorSpy.mockClear()
   })
   afterEach(() => {
     vi.clearAllMocks()
@@ -147,14 +172,17 @@ describe('FundFlowEditor', () => {
     const store = useStore()
     store.enableFund()
     store.addFundAnchor(202602, 5000)
+    addFundAnchorSpy.mockClear()   // 忽略上面初始化写入的调用，仅观察「完成」之后的
     const FundFlowEditor = await loadFundFlowEditor()
     const wrapper = mount(FundFlowEditor, {
       props: { month: 202602, result: makeResult(), prevFundBalance: 2000, withdrawals: [], x: 10, y: 10, anchorBalance: 5000 },
     })
-    // 不改动，直接完成
+    // 不改动修正框，直接完成
     await wrapper.find('[aria-label="完成"]').trigger('click')
 
-    // 锚点仍存在且值不变（未触发重写/抖动）
+    // 值未变化 → 不应调用 addFundAnchor（真正锁住"跳过写入"契约）
+    expect(addFundAnchorSpy).not.toHaveBeenCalled()
+    // 锚点仍存在且值不变
     const anchor = store.data.value.fund!.anchors.find(a => a.month === 202602)
     expect(anchor?.actualBalance).toBe(5000)
   })
