@@ -352,6 +352,9 @@ function isCurrentCellEdited(columnId: string, month: number): boolean {
   if (columnId === BALANCE_COLUMN_ID) {
     return props.results.find(r => r.month === month)?.isAnchor ?? false
   }
+  if (columnId === FUND_BALANCE_COLUMN_ID) {
+    return props.results.find(r => r.month === month)?.isFundAnchor ?? false
+  }
   const column = columns.value.find(c => c.id === columnId)
   return column ? String(month) in column.entries : false
 }
@@ -360,6 +363,8 @@ function isCurrentCellEdited(columnId: string, month: number): boolean {
 function clearCurrentValue(columnId: string, month: number): void {
   if (columnId === BALANCE_COLUMN_ID) {
     store.removeAnchor(month)
+  } else if (columnId === FUND_BALANCE_COLUMN_ID) {
+    store.removeFundAnchor(month)
   } else {
     store.updateColumnEntry(columnId, month, null)
   }
