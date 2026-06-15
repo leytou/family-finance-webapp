@@ -46,6 +46,10 @@ function fundPrevBalance(month: number): number {
   if (idx <= 0) return store.data.value.systemParams.fundInitialBalance ?? 0
   return props.results[idx - 1].fundBalance
 }
+// 该月公积金余额锚点（实际余额）；undefined=未修正
+function fundAnchorBalance(month: number): number | undefined {
+  return fund.value?.anchors.find(an => an.month === month)?.actualBalance
+}
 // 当月公积金提取列表（FundFlowEditor 初始化草稿用）
 function fundWithdrawalsByMonth(month: number): FundWithdrawal[] {
   return fund.value?.withdrawals.filter(w => w.month === month) ?? []
@@ -1105,6 +1109,7 @@ function getValueClass(value: number): string {
     :result="fundFlowEditorResult"
     :prev-fund-balance="fundPrevBalance(fundFlowEditor.month)"
     :withdrawals="fundWithdrawalsByMonth(fundFlowEditor.month)"
+    :anchor-balance="fundAnchorBalance(fundFlowEditor.month)"
     :x="fundFlowEditor.x"
     :y="fundFlowEditor.y"
     @close="closeFundFlowEditor"

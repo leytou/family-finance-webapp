@@ -1292,4 +1292,21 @@ describe('MonthlyTable · 公积金专区', () => {
     await wrapper.find('[data-fund-balance="202601"] span').trigger('mouseenter')
     expect(wrapper.text()).toContain('上月余额')
   })
+
+  it('打开公积金小窗时传入该月已修正余额', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    store.enableFund()
+    store.addColumn('测试列')
+    store.addFundAnchor(202601, 7777)
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    await wrapper.find('[data-fund-balance="202601"]').trigger('click')
+
+    const editor = wrapper.findComponent({ name: 'FundFlowEditor' })
+    expect(editor.exists()).toBe(true)
+    expect(editor.props('anchorBalance')).toBe(7777)
+  })
 })
