@@ -337,10 +337,12 @@ const contextMenu = ref<{ columnId: string; month: number; x: number; y: number 
 
 // 返回某列在指定月份"严格下方"所有编辑过值的行
 function editedBelowRows(columnId: string, month: number): MonthResult[] {
+  const fundField = fundFieldFromColumnId(columnId)
   return props.results.filter(r =>
     r.month > month &&
     (columnId === BALANCE_COLUMN_ID ? r.isAnchor
       : columnId === FUND_BALANCE_COLUMN_ID ? r.isFundAnchor
+      : fundField ? isFundEntryEdited(fundField, r.month)
       : getColumnValue(r, columnId).isEdited))
 }
 
@@ -351,11 +353,14 @@ function countEditedBelow(columnId: string, month: number): number {
 
 // 清除某列在指定月份"严格下方"所有编辑过的值
 function clearEditedBelow(columnId: string, month: number): void {
+  const fundField = fundFieldFromColumnId(columnId)
   editedBelowRows(columnId, month).forEach(r => {
     if (columnId === BALANCE_COLUMN_ID) {
       store.removeAnchor(r.month)
     } else if (columnId === FUND_BALANCE_COLUMN_ID) {
       store.removeFundAnchor(r.month)
+    } else if (fundField) {
+      store.updateFundEntry(fundField, r.month, null)
     } else {
       store.updateColumnEntry(columnId, r.month, null)
     }

@@ -1370,4 +1370,76 @@ describe('MonthlyTable · 公积金专区', () => {
       .find(i => i.text() === '清除该值')!
     expect(item.attributes('aria-disabled')).toBe('true')
   })
+
+  it('房贷月供右键「清除下方编辑值」删除下方，当前及上方保留', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('mortgage', 202601, -5000)
+    store.updateFundEntry('mortgage', 202602, -6000)
+    store.updateFundEntry('mortgage', 202603, -7000)
+    const results = calculate(store.data.value).slice(0, 3)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    // 在 202602 右键
+    await wrapper.find('[data-fund-mortgage="202602"]').trigger('contextmenu')
+    const item = wrapper
+      .findComponent({ name: 'ContextMenu' })
+      .findAll('[role="menuitem"]')
+      .find(i => i.text() === '清除下方编辑值')!
+    await item.trigger('click')
+
+    // 202601、202602 保留，202603（严格下方）被清除
+    expect(store.data.value.fund!.mortgage.entries[202601]).toBe(-5000)
+    expect(store.data.value.fund!.mortgage.entries[202602]).toBe(-6000)
+    expect(store.data.value.fund!.mortgage.entries[202603]).toBeUndefined()
+  })
+
+  it('公积金缴存右键「清除下方编辑值」删除下方', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('contribution', 202601, 2000)
+    store.updateFundEntry('contribution', 202602, 3000)
+    store.updateFundEntry('contribution', 202603, 4000)
+    const results = calculate(store.data.value).slice(0, 3)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-contribution="202602"]').trigger('contextmenu')
+    const item = wrapper
+      .findComponent({ name: 'ContextMenu' })
+      .findAll('[role="menuitem"]')
+      .find(i => i.text() === '清除下方编辑值')!
+    await item.trigger('click')
+
+    expect(store.data.value.fund!.contribution.entries[202601]).toBe(2000)
+    expect(store.data.value.fund!.contribution.entries[202602]).toBe(3000)
+    expect(store.data.value.fund!.contribution.entries[202603]).toBeUndefined()
+  })
+
+  it('房贷月供下方无编辑值时「清除下方编辑值」禁用', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('mortgage', 202603, -7000) // 仅最后一行有值
+    const results = calculate(store.data.value).slice(0, 3)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    // 在最后一行（202603）右键，下方无行
+    await wrapper.find('[data-fund-mortgage="202603"]').trigger('contextmenu')
+    const item = wrapper
+      .findComponent({ name: 'ContextMenu' })
+      .findAll('[role="menuitem"]')
+      .find(i => i.text() === '清除下方编辑值')!
+    expect(item.attributes('aria-disabled')).toBe('true')
+  })
 })
