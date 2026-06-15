@@ -32,6 +32,10 @@ function fundMortgageAbs(month: number): number {
 function fundContribution(month: number): number {
   return resolveColumnValue(fund.value!.contribution, month).amount
 }
+// 房贷月供 / 公积金缴存：该月是否手填过（用于浅蓝底与右键判断）
+function isFundEntryEdited(field: 'mortgage' | 'contribution', month: number): boolean {
+  return fund.value ? String(month) in fund.value[field].entries : false
+}
 // 月冲：手填用手填值，否则自动联动房贷月供（返回 { value, auto }）
 function fundOffsetDisplay(month: number): { value: number; auto: boolean } {
   if (!fund.value) return { value: 0, auto: false }
@@ -911,7 +915,11 @@ function getValueClass(value: number): string {
             <!-- 房贷月供（可编辑；输入正数存负数，显示绝对值） -->
             <td
               class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l-2 border-neutral-400 relative"
-              :class="getValueClass(-fundMortgageAbs(result.month))"
+              :data-fund-mortgage="result.month"
+              :class="[
+                getValueClass(-fundMortgageAbs(result.month)),
+                { 'bg-brand-50': isFundEntryEdited('mortgage', result.month) },
+              ]"
             >
               <input
                 v-if="editingFundCell?.field === 'mortgage' && editingFundCell?.month === result.month"
@@ -936,7 +944,11 @@ function getValueClass(value: number): string {
               >{{ formatCurrency(fundMortgageAbs(result.month)) }}</span>
             </td>
             <!-- 公积金缴存（可编辑） -->
-            <td class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative">
+            <td
+              class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative"
+              :data-fund-contribution="result.month"
+              :class="{ 'bg-brand-50': isFundEntryEdited('contribution', result.month) }"
+            >
               <input
                 v-if="editingFundCell?.field === 'contribution' && editingFundCell?.month === result.month"
                 :data-fund-edit-input="fundEditKey('contribution', result.month)"

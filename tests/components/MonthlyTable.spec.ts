@@ -1229,4 +1229,40 @@ describe('MonthlyTable · 公积金专区', () => {
     await wrapper.find('[data-fund-balance="202601"] span').trigger('mouseenter')
     expect(wrapper.text()).toContain('上月余额')
   })
+
+  it('房贷月供手填后单元格浅蓝底，未手填无', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('mortgage', 202601, -5000) // 202601 手填，202602 未填
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    const edited = wrapper.find('[data-fund-mortgage="202601"]')
+    expect(edited.exists()).toBe(true)
+    expect(edited.classes()).toContain('bg-brand-50')
+
+    const untouched = wrapper.find('[data-fund-mortgage="202602"]')
+    expect(untouched.exists()).toBe(true)
+    expect(untouched.classes()).not.toContain('bg-brand-50')
+  })
+
+  it('公积金缴存手填后单元格浅蓝底', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('contribution', 202601, 2000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    const cell = wrapper.find('[data-fund-contribution="202601"]')
+    expect(cell.exists()).toBe(true)
+    expect(cell.classes()).toContain('bg-brand-50')
+  })
 })
