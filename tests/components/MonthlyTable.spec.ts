@@ -675,6 +675,25 @@ describe('MonthlyTable', () => {
       expect(menuItem.attributes('aria-disabled')).toBe('true')
     })
 
+    it('公积金余额列已修正时「清除该值」启用', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.data.value.systemParams.startMonth = 202601
+      store.enableFund()
+      store.addColumn('测试列')
+      store.addFundAnchor(202601, 8000)
+      const results = calculate(store.data.value).slice(0, 1)
+
+      const wrapper = mount(MonthlyTable, { props: { results } })
+      await wrapper.find('[data-fund-balance="202601"]').trigger('contextmenu')
+
+      const menuItem = wrapper
+        .findComponent({ name: 'ContextMenu' })
+        .findAll('[role="menuitem"]')
+        .find(i => i.text() === '清除该值')!
+      expect(menuItem.attributes('aria-disabled')).toBe('false')
+    })
+
     it('未编辑的现金流格，「清除该值」禁用', async () => {
       const store = useSharedStore()
       store.reset()
