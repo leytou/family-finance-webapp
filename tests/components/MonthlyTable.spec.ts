@@ -1265,4 +1265,44 @@ describe('MonthlyTable · 公积金专区', () => {
     expect(cell.exists()).toBe(true)
     expect(cell.classes()).toContain('bg-brand-50')
   })
+
+  it('房贷月供右键菜单含三项且「同步」项恒禁用', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('mortgage', 202601, -5000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-mortgage="202601"]').trigger('contextmenu')
+    const menu = wrapper.findComponent({ name: 'ContextMenu' })
+    expect(menu.exists()).toBe(true)
+
+    const items = menu.findAll('[role="menuitem"]')
+    const labels = items.map(i => i.text())
+    expect(labels).toEqual(['同步到下方每年此月', '清除该值', '清除下方编辑值'])
+
+    const syncItem = items.find(i => i.text() === '同步到下方每年此月')!
+    expect(syncItem.attributes('aria-disabled')).toBe('true')
+  })
+
+  it('公积金缴存右键菜单「同步」项恒禁用', async () => {
+    const useStore = await loadUseStore()
+    const store = useStore()
+    store.enableFund()
+    store.data.value.systemParams.startMonth = 202601
+    store.updateFundEntry('contribution', 202601, 2000)
+    const results = calculate(store.data.value)
+
+    const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
+    const wrapper = mount(MonthlyTable, { props: { results } })
+
+    await wrapper.find('[data-fund-contribution="202601"]').trigger('contextmenu')
+    const menu = wrapper.findComponent({ name: 'ContextMenu' })
+    const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到下方每年此月')!
+    expect(syncItem.attributes('aria-disabled')).toBe('true')
+  })
 })

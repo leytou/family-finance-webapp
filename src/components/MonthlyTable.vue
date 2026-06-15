@@ -321,6 +321,17 @@ const BALANCE_COLUMN_ID = '__balance__'
 // 公积金余额列在右键菜单逻辑中的特殊列标识
 const FUND_BALANCE_COLUMN_ID = '__fund_balance__'
 
+// 房贷月供 / 公积金缴存列在右键菜单逻辑中的特殊列标识
+const FUND_MORTGAGE_COLUMN_ID = '__fund_mortgage__'
+const FUND_CONTRIBUTION_COLUMN_ID = '__fund_contribution__'
+
+// 标识 → fund 字段名；非专区固定列返回 null
+function fundFieldFromColumnId(columnId: string): 'mortgage' | 'contribution' | null {
+  if (columnId === FUND_MORTGAGE_COLUMN_ID) return 'mortgage'
+  if (columnId === FUND_CONTRIBUTION_COLUMN_ID) return 'contribution'
+  return null
+}
+
 // 右键菜单状态：columnId 为现金流列 id，或 BALANCE_COLUMN_ID 表示余额列
 const contextMenu = ref<{ columnId: string; month: number; x: number; y: number } | null>(null)
 
@@ -382,14 +393,16 @@ const contextMenuItems = computed(() => {
   const items: { label: string; disabled?: boolean; onClick: () => void }[] = []
 
   const isBalanceColumn = ctx.columnId === BALANCE_COLUMN_ID || ctx.columnId === FUND_BALANCE_COLUMN_ID
+  // 专区固定列（房贷月供/公积金缴存）：「同步」项恒置灰
+  const isFundFixed = fundFieldFromColumnId(ctx.columnId) !== null
 
-  // 同步到下方每年此月：仅现金流列，且该月存在直接编辑值时启用
+  // 同步到下方每年此月：余额列不显示；专区固定列显示但恒置灰；动态列按是否有直接值
   if (!isBalanceColumn) {
     const column = columns.value.find(c => c.id === ctx.columnId)
     const hasDirectEntry = column ? String(ctx.month) in column.entries : false
     items.push({
       label: '同步到下方每年此月',
-      disabled: !hasDirectEntry,
+      disabled: isFundFixed ? true : !hasDirectEntry,
       onClick: () => store.syncYearly(ctx.columnId, ctx.month),
     })
   }
@@ -920,6 +933,7 @@ function getValueClass(value: number): string {
                 getValueClass(-fundMortgageAbs(result.month)),
                 { 'bg-brand-50': isFundEntryEdited('mortgage', result.month) },
               ]"
+              @contextmenu.prevent="openContextMenu(FUND_MORTGAGE_COLUMN_ID, result.month, $event)"
             >
               <input
                 v-if="editingFundCell?.field === 'mortgage' && editingFundCell?.month === result.month"
@@ -948,6 +962,7 @@ function getValueClass(value: number): string {
               class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative"
               :data-fund-contribution="result.month"
               :class="{ 'bg-brand-50': isFundEntryEdited('contribution', result.month) }"
+              @contextmenu.prevent="openContextMenu(FUND_CONTRIBUTION_COLUMN_ID, result.month, $event)"
             >
               <input
                 v-if="editingFundCell?.field === 'contribution' && editingFundCell?.month === result.month"
