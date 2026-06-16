@@ -8,7 +8,6 @@ export interface ChartData {
   income: number[]
   expense: number[]      // 正值（不再取负）
   cumSavings: number[]
-  totalAssets: number[]  // 总资产（cumSavings + fundBalance）
   fundBalance: number[]  // 公积金余额
 }
 
@@ -49,11 +48,11 @@ export interface ChartOption {
   series: ChartSeries[]
 }
 
-// 配色（中式柔和：收入朱砂 / 支出竹青 / 总资产靛蓝 / 公积金琥珀），与表格语义同源
+// 配色（中式柔和：收入朱砂 / 支出竹青 / 存款靛蓝 / 公积金琥珀），与表格语义同源
 const COLOR_INCOME = '#c0504d'   // zhusha-600
 const COLOR_EXPENSE = '#6b8e7b'  // zhuqing-500（柱用柔和阶）
 const COLOR_NET_NEG = '#5e8270'  // zhuqing-600 净结余赤字
-const COLOR_CUM = '#4f46e5'      // 总资产主线
+const COLOR_CUM = '#4f46e5'      // 存款主线（cumSavings）
 const COLOR_FUND = '#d97706'     // 公积金余额副线（琥珀）
 // 中性轴/网格（slate），网格更淡
 const COLOR_AXIS = '#cbd5e1'
@@ -83,7 +82,6 @@ export function buildChartData(results: MonthResult[], granularity: Granularity)
       income: years.map(p => p.income),
       expense: years.map(p => p.expense),
       cumSavings: years.map(p => p.cumSavings),
-      totalAssets: years.map(p => p.totalAssets),
       fundBalance: years.map(p => p.fundBalance),
     }
   }
@@ -93,20 +91,19 @@ export function buildChartData(results: MonthResult[], granularity: Granularity)
     income: results.map(r => r.monthlyIncome),
     expense: results.map(r => r.monthlyExpense),
     cumSavings: results.map(r => r.cumSavings),
-    totalAssets: results.map(r => r.totalAssets),
     fundBalance: results.map(r => r.fundBalance),
   }
 }
 
 /**
- * 由 ChartData 构造 ECharts option：收入/支支柱状（左轴）+ 总资产渐变面积折线（右轴）。
+ * 由 ChartData 构造 ECharts option：收入/支支柱状（左轴）+ 存款渐变面积折线（右轴）。
  * fundEnabled 时叠加公积金余额副线（右轴）；否则退化仅三系列。
  * 字段名遵循 ECharts option 规范，组件内以 `as any` 桥接第三方类型。
  */
 export function buildChartOption(data: ChartData, fundEnabled: boolean): ChartOption {
   const legendData = fundEnabled
-    ? ['收入', '支出', '总资产', '公积金余额']
-    : ['收入', '支出', '总资产']
+    ? ['收入', '支出', '存款', '公积金余额']
+    : ['收入', '支出', '存款']
 
   const series: ChartSeries[] = [
     {
@@ -120,7 +117,7 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean): ChartOp
       barCategoryGap: '40%',
     },
     {
-      name: '总资产', type: 'line', yAxisIndex: 1, data: data.totalAssets,
+      name: '存款', type: 'line', yAxisIndex: 1, data: data.cumSavings,
       smooth: true, showSymbol: false,
       lineStyle: { color: COLOR_CUM, width: 2.5 },
       itemStyle: { color: COLOR_CUM },
@@ -156,7 +153,7 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean): ChartOp
         const get = (name: string) => params.find(p => p.seriesName === name)?.value ?? 0
         const income = get('收入')
         const expense = get('支出')
-        const total = get('总资产')
+        const total = get('存款')
         const fund = get('公积金余额')
         const net = income - expense
         const netColor = net >= 0 ? COLOR_INCOME : COLOR_NET_NEG   // 盈余朱砂 / 赤字竹青
@@ -167,7 +164,7 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean): ChartOp
         let html = row('收入', income) + row('支出', expense)
           + row('净结余', net, netColor)
           + `<div style="height:1px;background:#e2e8f0;margin:4px 0"></div>`
-          + row('总资产', total)
+          + row('存款', total)
         if (fundEnabled) html += row('公积金余额', fund)
         return html
       },

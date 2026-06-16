@@ -28,10 +28,10 @@ const fundEnabled = computed(() => !!store.data.value.fund)
 // 由纯函数产出当前数据；粒度或 results 变化即重算
 const chartData = computed(() => buildChartData(props.results, granularity.value))
 
-// 当前总资产（取最末月），万元化展示，作为标题区高亮（与主线「总资产」同名同源）
+// 当前存款（取最末月 cumSavings），万元化展示，作为标题区高亮（与主线「存款」同名同源）
 const currentTotalAssetsLabel = computed(() => {
   const last = props.results[props.results.length - 1]
-  return last ? `¥ ${formatAxisAmount(last.totalAssets)}` : '—'
+  return last ? `¥ ${formatAxisAmount(last.cumSavings)}` : '—'
 })
 
 function render() {
@@ -63,7 +63,7 @@ onUnmounted(() => {
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-baseline gap-2">
         <h2 class="text-sm font-bold whitespace-nowrap">财务趋势图</h2>
-        <span class="text-xs text-neutral-400">总资产</span>
+        <span class="text-xs text-neutral-400">存款</span>
         <span class="text-base font-bold text-brand-600">{{ currentTotalAssetsLabel }}</span>
       </div>
       <div class="flex border rounded overflow-hidden text-xs">
