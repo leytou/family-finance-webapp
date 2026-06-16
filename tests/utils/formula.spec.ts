@@ -285,16 +285,4 @@ describe('buildYearFormula · 公积金字段', () => {
     } as any)
     expect(lines[0]).toContain('年末公积金')
   })
-
-  it('年末总资产公式', () => {
-    const summary: YearSummary = {
-      year: 2026, startSavings: 0, columnSummaries: [], totalFlow: 0,
-      investReturn: 0, yearBalance: 0, endSavings: 5000,
-    }
-    const { lines } = buildYearFormula(summary, 'totalAssets', {
-      isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 0,
-      prevYearEndSavings: 0, events: [],
-    } as any)
-    expect(lines[0]).toContain('年末总资产')
-  })
 })

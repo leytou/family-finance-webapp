@@ -483,13 +483,13 @@ describe('AnnualTable', () => {
   })
 })
 
-describe('AnnualTable · 公积金/总资产', () => {
+describe('AnnualTable · 公积金', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.resetModules()
   })
 
-  it('未启用 fund 时不渲染公积金/总资产行', async () => {
+  it('未启用 fund 时不渲染公积金行', async () => {
     const useStore = (await import('../../src/composables/useStore')).useStore
     useStore()
     const AnnualTable = (await import('../../src/components/AnnualTable.vue')).default
@@ -500,7 +500,7 @@ describe('AnnualTable · 公积金/总资产', () => {
     expect(rowLabels).not.toContain('总资产')
   })
 
-  it('启用 fund 后渲染公积金与总资产行（年末值）', async () => {
+  it('启用 fund 后渲染公积金行、不出现总资产行', async () => {
     const useStore = (await import('../../src/composables/useStore')).useStore
     const store = useStore()
     store.enableFund()
@@ -511,7 +511,7 @@ describe('AnnualTable · 公积金/总资产', () => {
     const wrapper = mount(AnnualTable, { props: { results } })
     const rowLabels = wrapper.findAll('tbody td:first-child').map(td => td.text())
     expect(rowLabels).toContain('公积金')
-    expect(rowLabels).toContain('总资产')
+    expect(rowLabels).not.toContain('总资产')
   })
 
   it('aggregateByYear 含 totalAssets/fundBalance 年末值', async () => {

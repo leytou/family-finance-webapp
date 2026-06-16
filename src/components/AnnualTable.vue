@@ -51,7 +51,6 @@ function showYearFormula(summary: YearSummary, field: YearFormulaField, event: M
     prevYearEndSavings: idx > 0 ? yearSummaries.value[idx - 1].endSavings : 0,
     events: eventsByYear.value.get(summary.year) ?? [],
     yearEndFundBalance: summary.fundBalance ?? 0,
-    yearEndTotalAssets: summary.totalAssets ?? 0,
     yearMortgage: summary.yearMortgage ?? 0,
     yearFundInflow: summary.yearFundInflow ?? 0,
   }
@@ -302,20 +301,6 @@ function getColumnTotal(summary: YearSummary, name: string): number {
                 @mouseenter="showYearFormula(summary, 'fundBalance', $event)"
                 @mouseleave="popover = null"
               >{{ formatCurrency(summary.fundBalance ?? 0) }}</span>
-            </td>
-          </tr>
-          <tr class="border-b bg-neutral-50 font-bold">
-            <td class="px-1 py-0 whitespace-nowrap">总资产</td>
-            <td
-              v-for="summary in yearSummaries"
-              :key="`total-${summary.year}`"
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
-            >
-              <span
-                class="block w-full"
-                @mouseenter="showYearFormula(summary, 'totalAssets', $event)"
-                @mouseleave="popover = null"
-              >{{ formatCurrency(summary.totalAssets ?? 0) }}</span>
             </td>
           </tr>
         </template>

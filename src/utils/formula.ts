@@ -151,7 +151,7 @@ export function buildMonthFormula(
   return { title, lines: [line] }
 }
 
-export type YearFormulaField = 'startSavings' | 'investReturn' | 'yearBalance' | 'endSavings' | 'events' | 'fundBalance' | 'totalAssets'
+export type YearFormulaField = 'startSavings' | 'investReturn' | 'yearBalance' | 'endSavings' | 'events' | 'fundBalance'
 
 export interface YearFormulaContext {
   isFirstYear: boolean
@@ -161,8 +161,6 @@ export interface YearFormulaContext {
   events: { name: string; amount: number }[]
   /** 年末公积金余额（fundBalance 公式用） */
   yearEndFundBalance?: number
-  /** 年末总资产（totalAssets 公式用） */
-  yearEndTotalAssets?: number
   /** 年度房贷月供合计（公积金专区列，未计入 columnSummaries；负数=支出） */
   yearMortgage?: number
   /** 年度公积金转入可支配合计（月冲+提取，正数） */
@@ -176,7 +174,6 @@ const YEAR_LABELS: Record<YearFormulaField, string> = {
   endSavings: '年末存款',
   events: '专项',
   fundBalance: '年末公积金',
-  totalAssets: '年末总资产',
 }
 
 export function buildYearFormula(
@@ -215,9 +212,6 @@ export function buildYearFormula(
     }
     case 'fundBalance':
       line = `年末公积金 = ${formatCurrency(ctx.yearEndFundBalance ?? 0)}`
-      break
-    case 'totalAssets':
-      line = `年末总资产 = ${formatCurrency(ctx.yearEndTotalAssets ?? 0)}`
       break
   }
 
