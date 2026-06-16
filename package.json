@@ -1,7 +1,23 @@
 {
   "name": "family-finance-app",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
+  "license": "MIT",
+  "description": "一个跑在浏览器里的家庭财务规划模拟器：模拟收入/支出/投资收益随时间的变化，直观看到未来几年累计储蓄走势。数据只存本地，不上传任何服务器。",
+  "keywords": [
+    "family-finance",
+    "budget",
+    "savings-planner",
+    "personal-finance",
+    "vue3",
+    "typescript"
+  ],
+  "author": "Leytou",
+  "homepage": "https://github.com/Leytou/family-finance-app#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Leytou/family-finance-app.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
