@@ -764,21 +764,21 @@ describe('MonthlyTable', () => {
     expect(editor.props('anchorBalance')).toBeUndefined()
   })
 
-  it('渲染快照工具条与封存按钮', async () => {
+  it('渲染快照工具条与保存快照按钮', async () => {
     const useStore = await loadUseStore()
     useStore()
     const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
-    expect(wrapper.find('[aria-label="封存当前计划"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="保存计划快照"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="选择对比快照"]').exists()).toBe(true)
   })
 
-  it('点击封存按钮新增一份快照并自动选中', async () => {
+  it('点击保存快照按钮新增一份快照并自动选中', async () => {
     const store = useSharedStore()
     store.reset()
     store.data.value.systemParams.startMonth = 202601
     const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601, cumSavings: 5000 })] } })
 
-    await wrapper.find('[aria-label="封存当前计划"]').trigger('click')
+    await wrapper.find('[aria-label="保存计划快照"]').trigger('click')
     await nextTick()
 
     expect(store.data.value.snapshots).toHaveLength(1)

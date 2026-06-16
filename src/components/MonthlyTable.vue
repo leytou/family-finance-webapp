@@ -650,6 +650,14 @@ function getValueClass(value: number): string {
   <div class="h-full flex flex-col">
     <!-- 快照对比工具条 -->
     <div class="flex-none flex items-center gap-2 px-2 py-1 border-b bg-neutral-50 text-[12px]">
+      <button
+        type="button"
+        class="ml-auto px-2 py-0.5 border rounded hover:bg-white"
+        aria-label="保存计划快照"
+        @click="handleAddSnapshot"
+      >
+        保存计划快照
+      </button>
       <span class="text-neutral-500">计划对比</span>
       <!-- 命名编辑态 -->
       <input
@@ -680,14 +688,6 @@ function getValueClass(value: number): string {
         <button type="button" class="text-brand-600 hover:text-brand-700" aria-label="重命名快照" @click="startSnapshotRename">重命名</button>
         <button type="button" class="text-danger-600 hover:text-danger-800" aria-label="删除快照" @click="handleRemoveSnapshot">删除</button>
       </template>
-      <button
-        type="button"
-        class="ml-auto px-2 py-0.5 border rounded hover:bg-white"
-        aria-label="封存当前计划"
-        @click="handleAddSnapshot"
-      >
-        封存当前计划
-      </button>
     </div>
 
     <!-- 原表格容器 -->
