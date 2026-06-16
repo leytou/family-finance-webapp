@@ -1124,7 +1124,7 @@ describe('MonthlyTable · 公积金专区', () => {
     expect(headers).toContain('公积金缴存')
     expect(headers).toContain('公积金月冲')
     expect(headers).toContain('公积金')
-    expect(headers).toContain('总资产')
+    expect(headers).not.toContain('总资产')
 
     // 房贷月供显示绝对值 5,000
     expect(wrapper.text()).toContain('5,000')

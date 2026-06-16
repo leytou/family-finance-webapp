@@ -215,7 +215,6 @@ const formulaLabels: Record<MonthFormulaField, string> = {
   fundOffsetShortfall: '存款补扣',
   fundBalance: '公积金',
   fundInterest: '结息',
-  totalAssets: '总资产',
 }
 
 // 现金流列单元格编辑状态
@@ -786,7 +785,6 @@ function getValueClass(value: number): string {
             <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">公积金月冲</th>
             <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">存款补扣</th>
             <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">公积金</th>
-            <th class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">总资产</th>
           </template>
           <!-- 对比列表头 -->
           <th v-if="selectedSnapshot" class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap">当时预计</th>
@@ -1067,15 +1065,6 @@ function getValueClass(value: number): string {
                 @mouseenter="showFormula(result, 'fundBalance', $event)"
                 @mouseleave="popover = null"
               >{{ formatCurrency(result.fundBalance) }}</span>
-            </td>
-            <!-- 总资产（只读，加粗，hover 公式） -->
-            <td class="px-1 py-0 text-right tabular-nums whitespace-nowrap font-bold">
-              <span
-                class="block w-full"
-                :aria-label="getFormulaAriaLabel(result, 'totalAssets')"
-                @mouseenter="showFormula(result, 'totalAssets', $event)"
-                @mouseleave="popover = null"
-              >{{ formatCurrency(result.totalAssets) }}</span>
             </td>
           </template>
           <!-- 对比列：当时预计 -->

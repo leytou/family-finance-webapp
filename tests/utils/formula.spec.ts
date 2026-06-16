@@ -263,16 +263,6 @@ describe('buildMonthFormula · 公积金字段', () => {
     expect(lines[0]).toContain('= 2,000')
   })
 
-  it('总资产公式', () => {
-    const r = makeResult({ cumSavings: 5000, fundBalance: 3000, totalAssets: 8000 })
-    const { lines } = buildMonthFormula(r, 'totalAssets', {
-      annualRate: 0.03, prevCum: 0,
-    })
-    expect(lines[0]).toContain('存款(5,000)')
-    expect(lines[0]).toContain('公积金(3,000)')
-    expect(lines[0]).toContain('= 8,000')
-  })
-
   it('结息公式（结息月）', () => {
     const r = makeResult({ fundInterest: 2800 })
     const { lines } = buildMonthFormula(r, 'fundInterest', {

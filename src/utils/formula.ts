@@ -4,7 +4,7 @@ import { formatMonth } from './month'
 
 export type MonthFormulaField =
   | 'investReturn' | 'monthlyIncome' | 'monthlyExpense' | 'monthlyBalance' | 'cumSavings'
-  | 'fundOffset' | 'fundOffsetShortfall' | 'fundBalance' | 'fundInterest' | 'totalAssets'
+  | 'fundOffset' | 'fundOffsetShortfall' | 'fundBalance' | 'fundInterest'
 
 export interface MonthFormulaContext {
   /** 年利率，小数（0.03 表示 3%） */
@@ -37,7 +37,6 @@ const MONTH_LABELS: Record<MonthFormulaField, string> = {
   fundOffsetShortfall: '存款补扣',
   fundBalance: '公积金',
   fundInterest: '结息',
-  totalAssets: '总资产',
 }
 
 /**
@@ -145,10 +144,6 @@ export function buildMonthFormula(
     case 'fundInterest': {
       const ratePct = +((ctx.fundRate ?? 0) * 100).toFixed(1)
       line = `结息 = 应计利息(${formatCurrency(result.fundInterest)}) [年利率 ${ratePct}%]`
-      break
-    }
-    case 'totalAssets': {
-      line = `总资产 = 存款(${formatCurrency(result.cumSavings)}) + 公积金(${formatCurrency(result.fundBalance)}) = ${formatCurrency(result.totalAssets)}`
       break
     }
   }
