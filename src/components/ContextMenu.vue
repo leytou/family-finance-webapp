@@ -39,7 +39,7 @@ onMounted(() => {
   <div
     ref="menuRef"
     role="menu"
-    class="fixed z-50 min-w-32 border rounded bg-white py-1 text-[11px] shadow-lg"
+    class="fixed z-50 min-w-32 overflow-hidden rounded-xl border border-line bg-surface py-1 text-[11px] text-ink shadow-[0_18px_50px_-20px_rgba(26,34,51,0.25)]"
     :style="{ left: `${x}px`, top: `${y}px` }"
     tabindex="-1"
     @keyup.escape="emit('close')"
@@ -49,7 +49,7 @@ onMounted(() => {
       :key="idx"
       type="button"
       role="menuitem"
-      class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400 disabled:hover:bg-transparent"
+      class="block w-full px-3 py-1 text-left whitespace-nowrap text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:text-ink-3 disabled:hover:bg-transparent"
       :disabled="item.disabled"
       :aria-disabled="item.disabled ? 'true' : 'false'"
       @click="handleItemClick(item)"

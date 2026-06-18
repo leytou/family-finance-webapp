@@ -25,7 +25,7 @@ describe('FormulaPopover', () => {
       props: { title: '标题', lines: ['第一行', '第二行'], x: 0, y: 0 },
     })
 
-    expect(wrapper.findAll('.text-neutral-700')).toHaveLength(2)
+    expect(wrapper.findAll('.formula-line')).toHaveLength(2)
   })
 
   it('鼠标移出时触发 close 事件', async () => {

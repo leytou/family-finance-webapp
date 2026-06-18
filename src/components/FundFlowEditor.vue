@@ -66,30 +66,31 @@ onMounted(() => { rootRef.value?.focus() })
 <template>
   <div
     ref="rootRef"
-    class="fixed z-50 min-w-64 border rounded bg-white p-2 text-[12px] shadow-lg"
+    class="fixed z-50 min-w-64 rounded-xl border border-line bg-surface p-3 text-[12px] text-ink shadow-[0_18px_50px_-20px_rgba(26,34,51,0.25)]"
     :style="{ left: `${x}px`, top: `${y}px` }"
     tabindex="-1"
     @keyup.escape="commit"
   >
-    <div class="mb-2 font-semibold">{{ formatMonth(month) }} 公积金</div>
+    <!-- 统一浮层标题样式（等宽小号大写） -->
+    <div class="mb-2 font-mono text-[10.5px] tracking-[0.16em] uppercase text-ink-2">{{ formatMonth(month) }} 公积金</div>
 
     <!-- 流水：期初 / 缴存 / 提取（可编辑）/ 月冲 / 结息 / 期末 -->
     <div class="flex items-center justify-between gap-4">
-      <span class="text-neutral-500">期初余额</span>
+      <span class="text-ink-3">期初余额</span>
       <span class="tabular-nums">{{ formatCurrency(prevFundBalance) }}</span>
     </div>
     <div class="flex items-center justify-between gap-4">
-      <span class="text-neutral-500">+ 缴存</span>
+      <span class="text-ink-3">+ 缴存</span>
       <span class="tabular-nums">{{ formatCurrency(result.fundContribution) }}</span>
     </div>
 
-    <div class="mt-1 text-neutral-500">- 提取</div>
-    <div v-if="rows.length === 0" class="mb-1 text-neutral-400">暂无提取，点下方「添加」</div>
-    <div v-for="(row, idx) in rows" :key="row.key" class="mb-1 flex items-center gap-1 pl-2">
+    <div class="mt-1 text-ink-3">- 提取</div>
+    <div v-if="rows.length === 0" class="mb-1 text-ink-3">暂无提取，点下方「添加」</div>
+    <div v-for="(row, idx) in rows" :key="row.key" class="mb-1.5 flex items-center gap-1.5 pl-2">
       <input
         v-model="row.name"
         type="text"
-        class="flex-1 border rounded px-1 text-[12px]"
+        class="flex-1 rounded-lg border border-line bg-surface px-2 py-1 text-[12px] text-ink focus:border-brand focus:ring-2 focus:ring-brand/30"
         placeholder="名称"
         @input="markDirty"
       />
@@ -97,10 +98,11 @@ onMounted(() => { rootRef.value?.focus() })
         v-model="row.amount"
         type="text"
         inputmode="numeric"
-        class="w-24 border rounded px-1 text-right text-[12px]"
+        class="w-24 rounded-lg border border-line bg-surface px-2 py-1 text-right text-[12px] text-ink focus:border-brand focus:ring-2 focus:ring-brand/30"
         placeholder="金额"
         @input="markDirty"
       />
+      <!-- 删除按钮保留 danger 语义色 -->
       <button
         type="button"
         class="text-danger-600 hover:text-danger-800"
@@ -108,6 +110,7 @@ onMounted(() => { rootRef.value?.focus() })
         @click="removeRow(idx)"
       >×</button>
     </div>
+    <!-- 添加按钮保留 brand 语义色 -->
     <button
       type="button"
       class="text-brand-600 hover:text-brand-700"
@@ -115,43 +118,43 @@ onMounted(() => { rootRef.value?.focus() })
       @click="addRow"
     >+ 添加</button>
 
-    <!-- 截断提示：请求总额 ≠ 实际 fundWithdrawal -->
+    <!-- 截断提示：请求总额 ≠ 实际 fundWithdrawal（保留 warning 语义色） -->
     <div
       v-if="requestedTotal() !== result.fundWithdrawal"
       class="mt-1 text-[11px] text-warning-600"
     >已截断：请求 {{ formatCurrency(requestedTotal()) }}，实际提取 {{ formatCurrency(result.fundWithdrawal) }}</div>
 
     <div class="mt-1 flex items-center justify-between gap-4">
-      <span class="text-neutral-500">- 月冲</span>
+      <span class="text-ink-3">- 月冲</span>
       <span class="tabular-nums">{{ formatCurrency(result.fundOffset) }}</span>
     </div>
     <div v-if="result.fundInterest !== 0" class="flex items-center justify-between gap-4">
-      <span class="text-neutral-500">+ 结息</span>
+      <span class="text-ink-3">+ 结息</span>
       <span class="tabular-nums">{{ formatCurrency(result.fundInterest) }}</span>
     </div>
 
-    <div class="mt-1 flex items-center justify-between gap-4 border-t pt-1 font-semibold">
+    <div class="mt-1 flex items-center justify-between gap-4 border-t border-line-soft pt-1 font-semibold">
       <span>= 期末余额</span>
       <span class="tabular-nums">{{ formatCurrency(result.fundBalance) }}</span>
     </div>
 
     <!-- 修正为实际余额（锚点）：留空=用上方流水余额，后续月份从此值继续累计 -->
     <div class="mt-1 flex items-center justify-between gap-4">
-      <span class="text-neutral-500">修正为实际余额</span>
+      <span class="text-ink-3">修正为实际余额</span>
       <input
         v-model="draftAnchor"
         type="text"
         inputmode="numeric"
         data-anchor-input
-        class="w-28 border rounded px-1 text-right text-[12px]"
+        class="w-28 rounded-lg border border-line bg-surface px-2 py-1 text-right text-[12px] text-ink focus:border-brand focus:ring-2 focus:ring-brand/30"
         placeholder="留空=流水余额"
       />
     </div>
 
-    <div class="mt-2 flex justify-end">
+    <div class="mt-3 flex justify-end border-t border-line-soft pt-2">
       <button
         type="button"
-        class="border rounded px-2 py-0.5 hover:bg-neutral-50"
+        class="rounded-lg border border-line bg-surface px-2 py-0.5 text-ink hover:bg-surface-2"
         aria-label="完成"
         @click="commit"
       >完成</button>

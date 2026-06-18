@@ -69,20 +69,21 @@ onMounted(() => {
 <template>
   <div
     ref="rootRef"
-    class="fixed z-50 min-w-64 border rounded bg-white p-2 text-[12px] shadow-lg"
+    class="fixed z-50 min-w-64 rounded-xl border border-line bg-surface p-3 text-[12px] text-ink shadow-[0_18px_50px_-20px_rgba(26,34,51,0.25)]"
     :style="{ left: `${x}px`, top: `${y}px` }"
     tabindex="-1"
     @keyup.escape="commit"
   >
-    <div class="mb-2 font-semibold">{{ formatMonth(month) }} 专项</div>
+    <!-- 统一浮层标题样式（等宽小号大写） -->
+    <div class="mb-2 font-mono text-[10.5px] tracking-[0.16em] uppercase text-ink-2">{{ formatMonth(month) }} 专项</div>
 
-    <div v-if="rows.length === 0" class="mb-2 text-neutral-400">暂无事件，点下方「添加」</div>
+    <div v-if="rows.length === 0" class="mb-2 text-ink-3">暂无事件，点下方「添加」</div>
 
-    <div v-for="(row, idx) in rows" :key="row.key" class="mb-1 flex items-center gap-1">
+    <div v-for="(row, idx) in rows" :key="row.key" class="mb-1.5 flex items-center gap-1.5">
       <input
         v-model="row.name"
         type="text"
-        class="flex-1 border rounded px-1 text-[12px]"
+        class="flex-1 rounded-lg border border-line bg-surface px-2 py-1 text-[12px] text-ink focus:border-brand focus:ring-2 focus:ring-brand/30"
         placeholder="名称"
         @input="markDirty"
       />
@@ -90,10 +91,11 @@ onMounted(() => {
         v-model="row.amount"
         type="text"
         inputmode="numeric"
-        class="w-24 border rounded px-1 text-right text-[12px]"
+        class="w-24 rounded-lg border border-line bg-surface px-2 py-1 text-right text-[12px] text-ink focus:border-brand focus:ring-2 focus:ring-brand/30"
         placeholder="金额"
         @input="markDirty"
       />
+      <!-- 删除按钮保留 danger 语义色 -->
       <button
         type="button"
         class="text-danger-600 hover:text-danger-800"
@@ -102,6 +104,7 @@ onMounted(() => {
       >×</button>
     </div>
 
+    <!-- 添加按钮保留 brand 语义色 -->
     <button
       type="button"
       class="mt-1 text-brand-600 hover:text-brand-700"
@@ -109,10 +112,10 @@ onMounted(() => {
       @click="addRow"
     >+ 添加</button>
 
-    <div class="mt-2 flex justify-end">
+    <div class="mt-3 flex justify-end border-t border-line-soft pt-2">
       <button
         type="button"
-        class="border rounded px-2 py-0.5 hover:bg-neutral-50"
+        class="rounded-lg border border-line bg-surface px-2 py-0.5 text-ink hover:bg-surface-2"
         aria-label="完成"
         @click="commit"
       >完成</button>

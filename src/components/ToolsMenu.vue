@@ -77,44 +77,46 @@ function handleReset() {
 
 <template>
   <div ref="menuRef" class="relative">
+    <!-- 触发按钮：统一输入框/按钮风格 -->
     <button
-      class="px-2 py-1 border rounded text-sm hover:bg-neutral-50"
+      class="rounded-lg border border-line bg-surface px-2 py-1 text-sm text-ink hover:bg-surface-2"
       type="button"
       @click="toggleMenu"
     >
       更多
     </button>
+    <!-- 下拉菜单：统一浮窗外壳规范（绝对定位逻辑不动） -->
     <div
       v-if="open"
-      class="absolute right-0 top-full mt-1 min-w-32 border rounded bg-white py-1 text-[11px] shadow-lg z-50"
+      class="absolute right-0 top-full mt-1 min-w-32 overflow-hidden rounded-xl border border-line bg-surface py-1 text-[11px] text-ink shadow-[0_18px_50px_-20px_rgba(26,34,51,0.25)] z-50"
     >
       <button
         type="button"
-        class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-neutral-100"
+        class="block w-full px-3 py-1 text-left whitespace-nowrap text-ink-2 hover:bg-surface-2"
         @click="handleExport"
       >
         📤 导出数据
       </button>
       <button
         type="button"
-        class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-neutral-100"
+        class="block w-full px-3 py-1 text-left whitespace-nowrap text-ink-2 hover:bg-surface-2"
         @click="triggerImport"
       >
         📥 导入数据
       </button>
-      <div class="my-1 border-t" />
+      <div class="my-1 border-t border-line-soft" />
       <button
         type="button"
-        class="block w-full px-3 py-1 text-left whitespace-nowrap hover:bg-neutral-100"
+        class="block w-full px-3 py-1 text-left whitespace-nowrap text-ink-2 hover:bg-surface-2"
         @click="handleReset"
       >
         🔄 重置数据
       </button>
     </div>
-    <!-- 导入状态提示 -->
+    <!-- 导入状态提示：保留 success/danger 语义色 -->
     <div
       v-if="importStatus"
-      class="absolute right-0 top-full mt-1 px-3 py-1 rounded text-[11px] shadow-lg z-50 border"
+      class="absolute right-0 top-full mt-1 px-3 py-1 rounded-lg text-[11px] shadow-[0_18px_50px_-20px_rgba(26,34,51,0.25)] z-50 border"
       :class="importStatus.success ? 'bg-success-50 text-success-700 border-success-200' : 'bg-danger-50 text-danger-700 border-danger-200'"
     >
       {{ importStatus.message }}
