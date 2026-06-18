@@ -128,20 +128,20 @@ describe('MonthlyTable', () => {
     const investCell0 = cells0[cells0.length - 5]
     const netCell0 = cells0[cells0.length - 2]
 
-    // 理财收益正值 - 无斜体
-    expect(investCell0.classes()).not.toContain('italic')
-    // 结余负值 - 斜体
-    expect(netCell0.classes()).toContain('italic')
+    // 理财收益正值 - 无负向色
+    expect(investCell0.classes()).not.toContain('text-negative-600')
+    // 结余负值 - 负向竹青色
+    expect(netCell0.classes()).toContain('text-negative-600')
 
     // 第二行
     const cells1 = rows[1].findAll('td')
     const investCell1 = cells1[cells1.length - 5]
     const netCell1 = cells1[cells1.length - 2]
 
-    // 理财收益负值 - 斜体
-    expect(investCell1.classes()).toContain('italic')
-    // 结余正值 - 无斜体
-    expect(netCell1.classes()).not.toContain('italic')
+    // 理财收益负值 - 负向竹青色
+    expect(investCell1.classes()).toContain('text-negative-600')
+    // 结余正值 - 无负向色
+    expect(netCell1.classes()).not.toContain('text-negative-600')
   })
 
   it('锚点行高亮显示', async () => {
@@ -386,7 +386,7 @@ describe('MonthlyTable', () => {
     const thead = wrapper.get('thead')
     expect(thead.classes()).toContain('sticky')
     expect(thead.classes()).toContain('top-0')
-    expect(thead.classes()).toContain('bg-neutral-50')
+    expect(thead.classes()).toContain('bg-surface-2')
   })
 
   it('右键现金流单元格弹出菜单', async () => {
@@ -1144,7 +1144,7 @@ describe('MonthlyTable · 公积金专区', () => {
 
     const autoCell = wrapper.find('[data-fund-offset-auto="202601"]')
     expect(autoCell.exists()).toBe(true)
-    expect(autoCell.classes()).toContain('text-neutral-400')
+    expect(autoCell.classes()).toContain('text-ink-3')
     expect(autoCell.text()).toContain('5,000')
   })
 
