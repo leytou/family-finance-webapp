@@ -155,7 +155,7 @@ describe('buildChartOption · 退化模式（fundEnabled=false）', () => {
     const option = buildChartOption(data, false)
 
     expect(option.tooltip.backgroundColor).toBe('#ffffff')
-    expect(option.tooltip.borderColor).toBe('#e2e8f0')
+    expect(option.tooltip.borderColor).toBe('#e4e8f1')
     expect(option.tooltip.textStyle?.color).toBe('#0f172a')
 
     const html = (option.tooltip.formatter as (p: Array<{ seriesName: string; value: number }>) => string)([

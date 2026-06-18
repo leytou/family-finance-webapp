@@ -63,22 +63,22 @@ onUnmounted(() => {
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-baseline gap-2">
         <h2 class="text-sm font-bold whitespace-nowrap">财务趋势图</h2>
-        <span class="text-xs text-neutral-400">存款</span>
-        <span class="text-base font-bold text-brand-600">{{ currentTotalAssetsLabel }}</span>
+        <span class="text-xs text-ink-3">存款</span>
+        <span class="text-base font-mono font-bold text-brand-600">{{ currentTotalAssetsLabel }}</span>
       </div>
-      <div class="flex border rounded overflow-hidden text-xs">
+      <div class="flex border border-line rounded overflow-hidden text-xs">
         <button
           type="button"
           class="px-3 py-1"
-          :class="granularity === 'month' ? 'bg-brand-50' : 'hover:bg-neutral-50'"
+          :class="granularity === 'month' ? 'bg-brand-50 text-brand-700' : 'text-ink-3 hover:bg-surface-2'"
           @click="granularity = 'month'"
         >
           按月
         </button>
         <button
           type="button"
-          class="px-3 py-1 border-l"
-          :class="granularity === 'year' ? 'bg-brand-50' : 'hover:bg-neutral-50'"
+          class="px-3 py-1 border-l border-line"
+          :class="granularity === 'year' ? 'bg-brand-50 text-brand-700' : 'text-ink-3 hover:bg-surface-2'"
           @click="granularity = 'year'"
         >
           按年
