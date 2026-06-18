@@ -1154,12 +1154,12 @@ function getValueClass(value: number): string {
 tbody tr:nth-child(even) {
   background-color: rgb(100 116 139 / 0.04);
 }
-/* 行 hover：整行变淡绿（green-50），带温感、特异性高于斑马纹故能覆盖 */
+/* 行 hover：统一中性 surface-2（与 hover:bg-surface-2 一致），特异性高于斑马纹故能覆盖 */
 tbody tr:hover {
-  background-color: #f0fdf4;
+  background-color: #f8fafc;
 }
-/* hover 行内单元格同步变淡绿，覆盖已编辑/锚点的高亮 */
+/* hover 行内单元格同步变 surface-2，覆盖已编辑/锚点的高亮 */
 tbody tr:hover td {
-  background-color: #f0fdf4;
+  background-color: #f8fafc;
 }
 </style>

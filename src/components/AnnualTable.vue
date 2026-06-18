@@ -186,7 +186,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             v-for="summary in yearSummaries"
             :key="`start-${summary.year}`"
             class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
-            :class="{ 'italic': summary.startSavings < 0 }"
+            :class="{ 'text-negative-600': summary.startSavings < 0 }"
           >
             <span
               class="block w-full"
@@ -203,7 +203,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             :key="`col-${summary.year}-${name}`"
             class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
             :class="{
-              'italic': getColumnTotal(summary, name) < 0
+              'text-negative-600': getColumnTotal(summary, name) < 0
             }"
           >
             <span
@@ -222,7 +222,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             v-for="summary in yearSummaries"
             :key="`invest-${summary.year}`"
             class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
-            :class="{ 'italic': summary.investReturn < 0 }"
+            :class="{ 'text-negative-600': summary.investReturn < 0 }"
           >
             <span
               class="block w-full"
@@ -238,7 +238,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             v-for="summary in yearSummaries"
             :key="`income-${summary.year}`"
             class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
-            :class="{ 'italic': summary.yearIncome < 0 }"
+            :class="{ 'text-negative-600': summary.yearIncome < 0 }"
           >
             <span class="block w-full">{{ formatCurrency(summary.yearIncome) }}</span>
           </td>
@@ -250,7 +250,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             v-for="summary in yearSummaries"
             :key="`expense-${summary.year}`"
             class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
-            :class="{ 'italic': summary.yearExpense < 0 }"
+            :class="{ 'text-negative-600': summary.yearExpense < 0 }"
           >
             <span class="block w-full">{{ formatCurrency(summary.yearExpense) }}</span>
           </td>
@@ -262,7 +262,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             v-for="summary in yearSummaries"
             :key="`balance-${summary.year}`"
             class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
-            :class="{ 'italic': summary.yearBalance < 0 }"
+            :class="{ 'text-negative-600': summary.yearBalance < 0 }"
           >
             <span
               class="block w-full"
@@ -278,7 +278,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             v-for="summary in yearSummaries"
             :key="`end-${summary.year}`"
             class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
-            :class="{ 'italic': summary.endSavings < 0 }"
+            :class="{ 'text-negative-600': summary.endSavings < 0 }"
           >
             <span
               class="block w-full"
@@ -322,12 +322,12 @@ function getColumnTotal(summary: YearSummary, name: string): number {
 tbody tr:nth-child(even):not(:last-child) {
   background-color: rgb(100 116 139 / 0.04);
 }
-/* 行 hover：整行变淡绿（green-50），覆盖斑马纹与汇总行灰底 */
+/* 行 hover：统一中性 surface-2（与 hover:bg-surface-2 一致），覆盖斑马纹与汇总行灰底 */
 tbody tr:hover {
-  background-color: #f0fdf4;
+  background-color: #f8fafc;
 }
-/* hover 行内单元格同步变淡绿，覆盖单元格背景 */
+/* hover 行内单元格同步变 surface-2，覆盖单元格背景 */
 tbody tr:hover td {
-  background-color: #f0fdf4;
+  background-color: #f8fafc;
 }
 </style>

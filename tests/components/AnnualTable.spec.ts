@@ -232,9 +232,9 @@ describe('AnnualTable', () => {
       },
     })
 
-    // 房租行（负值）应该有斜体
+    // 房租行（负值）应为竹青色（与月度表一致的负向色）
     const rentRow = wrapper.findAll('tbody tr').find((row) => row.find('td').text() === '房租')
-    expect(rentRow?.findAll('td')[1].classes()).toContain('italic')
+    expect(rentRow?.findAll('td')[1].classes()).toContain('text-negative-600')
   })
 
   it('年初余额为负时显示红色', () => {
@@ -250,7 +250,7 @@ describe('AnnualTable', () => {
     })
 
     const startSavingsCell = wrapper.findAll('tbody tr')[0].findAll('td')[1]
-    expect(startSavingsCell.classes()).toContain('italic')
+    expect(startSavingsCell.classes()).toContain('text-negative-600')
   })
 
   it('禁用列不出现在年度表、不计入年度总额', () => {
