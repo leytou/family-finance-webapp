@@ -165,15 +165,15 @@ function getColumnTotal(summary: YearSummary, name: string): number {
 </script>
 
 <template>
-  <div class="h-full overflow-auto border rounded bg-white">
+  <div class="h-full overflow-auto border border-line rounded bg-surface">
     <table class="min-w-full border-collapse text-[11px] leading-tight">
-      <thead class="sticky top-0 z-1 bg-neutral-50">
+      <thead class="sticky top-0 z-1 bg-surface-2">
         <tr class="border-b">
-          <th class="px-1 py-0 text-left font-semibold whitespace-nowrap">项目</th>
+          <th class="px-1 py-0 text-left font-mono font-semibold whitespace-nowrap">项目</th>
           <th
             v-for="summary in yearSummaries"
             :key="summary.year"
-            class="px-1 py-0 text-right tabular-nums font-semibold whitespace-nowrap"
+            class="px-1 py-0 text-right font-mono tabular-nums font-semibold whitespace-nowrap"
           >
             {{ summary.year }}
           </th>
@@ -185,7 +185,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           <td
             v-for="summary in yearSummaries"
             :key="`start-${summary.year}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.startSavings < 0 }"
           >
             <span
@@ -201,7 +201,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           <td
             v-for="summary in yearSummaries"
             :key="`col-${summary.year}-${name}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
             :class="{
               'italic': getColumnTotal(summary, name) < 0
             }"
@@ -221,7 +221,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           <td
             v-for="summary in yearSummaries"
             :key="`invest-${summary.year}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.investReturn < 0 }"
           >
             <span
@@ -237,7 +237,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           <td
             v-for="summary in yearSummaries"
             :key="`income-${summary.year}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.yearIncome < 0 }"
           >
             <span class="block w-full">{{ formatCurrency(summary.yearIncome) }}</span>
@@ -249,7 +249,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           <td
             v-for="summary in yearSummaries"
             :key="`expense-${summary.year}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.yearExpense < 0 }"
           >
             <span class="block w-full">{{ formatCurrency(summary.yearExpense) }}</span>
@@ -261,7 +261,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           <td
             v-for="summary in yearSummaries"
             :key="`balance-${summary.year}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.yearBalance < 0 }"
           >
             <span
@@ -272,12 +272,12 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           </td>
         </tr>
 
-        <tr class="border-b bg-neutral-50 font-bold">
+        <tr class="border-b bg-surface-2 font-bold">
           <td class="px-1 py-0 whitespace-nowrap">年末存款</td>
           <td
             v-for="summary in yearSummaries"
             :key="`end-${summary.year}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
             :class="{ 'italic': summary.endSavings < 0 }"
           >
             <span
@@ -294,7 +294,7 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             <td
               v-for="summary in yearSummaries"
               :key="`fund-${summary.year}`"
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+              class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
             >
               <span
                 class="block w-full"
