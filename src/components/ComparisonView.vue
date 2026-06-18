@@ -75,42 +75,47 @@ const comparisonRows = computed<ComparisonRow[]>(() => {
 <template>
   <div class="h-full overflow-auto p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-bold">方案对比</h2>
+      <!-- 标题使用等宽字体，呼应「金融终端」风格 -->
+      <h2 class="text-lg font-bold font-mono text-ink">方案对比</h2>
       <button
         type="button"
         data-test="close-comparison"
-        class="px-3 py-1 border rounded text-sm hover:bg-neutral-50"
+        class="px-3 py-1 border border-line rounded text-sm text-ink-2 hover:bg-surface-2"
         @click="emit('close')"
       >
         关闭
       </button>
     </div>
 
-    <!-- 方案选择 -->
-    <div class="flex gap-4 mb-4">
+    <!-- 方案选择：选中态用语义色 pill 呈现，未选中保持终端中性风 -->
+    <div class="flex gap-2 mb-4">
       <label
         v-for="scenario in scenarios"
         :key="scenario.id"
-        class="flex items-center gap-1 text-sm"
+        class="flex items-center gap-1 px-2 py-1 rounded-full text-sm cursor-pointer border transition-colors"
+        :class="selectedIds.includes(scenario.id)
+          ? 'bg-brand-50 text-brand-700 border-brand-200'
+          : 'bg-surface text-ink-2 border-line-soft hover:bg-surface-2'"
       >
         <input
           v-model="selectedIds"
           type="checkbox"
           :value="scenario.id"
+          class="accent-brand-500"
         />
         {{ scenario.name || '未命名' }}
       </label>
     </div>
 
-    <!-- 对比表 -->
+    <!-- 对比表：表头/边框采用终端中性基底，数字用等宽字体 -->
     <table v-if="canCompare" class="min-w-full border-collapse text-sm">
       <thead>
         <tr>
-          <th class="px-3 py-2 text-left border bg-neutral-50 font-semibold">指标</th>
+          <th class="px-3 py-2 text-left border border-line bg-surface-2 font-semibold text-ink-2">指标</th>
           <th
             v-for="metrics in metricsList"
             :key="metrics.scenarioId"
-            class="px-3 py-2 text-right border bg-neutral-50 font-semibold"
+            class="px-3 py-2 text-right border border-line bg-surface-2 font-semibold text-ink-2"
           >
             {{ metrics.scenarioName || '未命名' }}
           </th>
@@ -120,18 +125,19 @@ const comparisonRows = computed<ComparisonRow[]>(() => {
         <tr
           v-for="row in comparisonRows"
           :key="row.label"
-          class="hover:bg-neutral-50"
+          class="hover:bg-surface-2"
         >
-          <td class="px-3 py-2 border whitespace-nowrap">{{ row.label }}</td>
+          <td class="px-3 py-2 border border-line whitespace-nowrap text-ink-2">{{ row.label }}</td>
           <td
             v-for="(metrics, idx) in metricsList"
             :key="metrics.scenarioId"
-            class="px-3 py-2 text-right border tabular-nums whitespace-nowrap"
+            class="px-3 py-2 text-right border border-line font-mono tabular-nums whitespace-nowrap text-ink"
           >
             <span>{{ formatCurrency(row.getValues(metrics)[0]) }}</span>
+            <!-- 差额保留语义色（正绿/负红），不随终端改版变化 -->
             <span
               v-if="idx > 0 && baseline"
-              class="ml-1 text-xs"
+              class="ml-1 text-xs font-mono tabular-nums"
               :class="formatDiff(row.getValues(metrics)[0], row.getValues(baseline)[0]).class"
             >
               {{ formatDiff(row.getValues(metrics)[0], row.getValues(baseline)[0]).text }}
@@ -141,7 +147,7 @@ const comparisonRows = computed<ComparisonRow[]>(() => {
       </tbody>
     </table>
 
-    <p v-else class="text-neutral-500 text-sm">
+    <p v-else class="text-ink-3 text-sm">
       请至少选择 2 个方案进行对比
     </p>
   </div>
