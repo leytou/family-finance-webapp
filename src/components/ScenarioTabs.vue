@@ -74,8 +74,8 @@ function handleRemove(id: string, name: string) {
       v-for="scenario in scenarios"
       :key="scenario.id"
       data-test="scenario-tab"
-      class="group flex items-center gap-1 px-3 py-1 border rounded text-sm cursor-pointer select-none"
-      :class="scenario.id === activeId ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
+      class="group flex items-center gap-1 px-3 py-1 border rounded text-sm font-mono cursor-pointer select-none"
+      :class="scenario.id === activeId ? 'bg-brand-50 border-brand-200 text-brand-700' : 'hover:bg-surface-2 text-ink-2'"
       @click="handleSwitch(scenario.id)"
     >
       <!-- 重命名输入框 -->

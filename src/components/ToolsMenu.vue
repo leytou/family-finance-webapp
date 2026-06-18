@@ -95,14 +95,16 @@ function handleReset() {
         class="block w-full px-3 py-1 text-left whitespace-nowrap text-ink-2 hover:bg-surface-2"
         @click="handleExport"
       >
-        📤 导出数据
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="inline-block align-middle"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+        导出数据
       </button>
       <button
         type="button"
         class="block w-full px-3 py-1 text-left whitespace-nowrap text-ink-2 hover:bg-surface-2"
         @click="triggerImport"
       >
-        📥 导入数据
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="inline-block align-middle"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+        导入数据
       </button>
       <div class="my-1 border-t border-line-soft" />
       <button
@@ -110,7 +112,8 @@ function handleReset() {
         class="block w-full px-3 py-1 text-left whitespace-nowrap text-ink-2 hover:bg-surface-2"
         @click="handleReset"
       >
-        🔄 重置数据
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="inline-block align-middle"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
+        重置数据
       </button>
     </div>
     <!-- 导入状态提示：保留 success/danger 语义色 -->
