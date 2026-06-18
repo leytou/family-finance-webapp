@@ -55,6 +55,13 @@ export function normalizeMonth(value: number): number | null {
   return isValidYyyyMm(value) ? addMonths(value, 0) : null
 }
 
+/** YYYYMM → 'YYYY·MM'，用于关键指标副标题展示 */
+export function monthToLabel(month: number): string {
+  const y = Math.floor(month / 100)
+  const m = month % 100
+  return `${y}·${String(m).padStart(2, '0')}`
+}
+
 /**
  * YYYYMM → 「2026年1月」中文友好格式（紧凑显示与面板头部共用）。
  * 与 formatMonth（YYYY-MM）并存：快照名等仍用 formatMonth。

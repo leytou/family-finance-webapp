@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import AnnualTable from './components/AnnualTable.vue'
 import MonthlyTable from './components/MonthlyTable.vue'
+import KeyMetricsBar from './components/KeyMetricsBar.vue'
 import ScenarioTabs from './components/ScenarioTabs.vue'
 import ComparisonView from './components/ComparisonView.vue'
 import CalculatorView from './components/CalculatorView.vue'
@@ -107,6 +108,13 @@ const projectionText = computed(() => {
 
 // 公积金启用开关：勾选→enableFund，取消→disableFund（二次确认防误删）
 const fundEnabled = computed(() => !!data.value.fund)
+
+// 关键指标条入参（results/fundEnabled 已声明，这里只聚合 + 取初始存款兜底）
+const keyMetricsProps = computed(() => ({
+  results: results.value,
+  fundEnabled: fundEnabled.value,
+  initialDeposit: data.value.systemParams.initialDeposit ?? 0,
+}))
 function onFundToggle(e: Event) {
   const checked = (e.target as HTMLInputElement).checked
   if (checked) {
@@ -122,7 +130,7 @@ function onFundToggle(e: Event) {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col px-8 bg-white text-neutral-900">
+  <div class="h-screen flex flex-col px-8 bg-canvas text-ink">
     <header class="border-b flex-none">
       <!-- 第一行 · 导航层：标题 / 方案标签 / 视图三按钮 / 更多 -->
       <div class="h-12 flex items-center justify-between px-4">
@@ -134,24 +142,24 @@ function onFundToggle(e: Event) {
         </div>
         <div class="flex items-center gap-2">
           <button
-            class="px-3 py-1 border rounded text-sm"
-            :class="activeView === 'table' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
+            class="px-3 py-1 border rounded text-sm font-mono"
+            :class="activeView === 'table' ? 'bg-brand-50 border-brand-200' : 'hover:bg-surface-2'"
             type="button"
             @click="setActiveView('table')"
           >
             表格
           </button>
           <button
-            class="px-3 py-1 border rounded text-sm"
-            :class="activeView === 'chart' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
+            class="px-3 py-1 border rounded text-sm font-mono"
+            :class="activeView === 'chart' ? 'bg-brand-50 border-brand-200' : 'hover:bg-surface-2'"
             type="button"
             @click="setActiveView('chart')"
           >
             图表
           </button>
           <button
-            class="px-3 py-1 border rounded text-sm"
-            :class="activeView === 'comparison' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
+            class="px-3 py-1 border rounded text-sm font-mono"
+            :class="activeView === 'comparison' ? 'bg-brand-50 border-brand-200' : 'hover:bg-surface-2'"
             type="button"
             @click="setActiveView('comparison')"
           >
@@ -160,8 +168,8 @@ function onFundToggle(e: Event) {
           <div class="border-l h-5 mx-2" />
           <button
             data-testid="calc-view-btn"
-            class="px-3 py-1 border rounded text-sm"
-            :class="activeView === 'calculator' ? 'bg-brand-50 border-brand-200' : 'hover:bg-neutral-50'"
+            class="px-3 py-1 border rounded text-sm font-mono"
+            :class="activeView === 'calculator' ? 'bg-brand-50 border-brand-200' : 'hover:bg-surface-2'"
             type="button"
             @click="setActiveView('calculator')"
           >
@@ -170,8 +178,8 @@ function onFundToggle(e: Event) {
           <div class="border-l h-5 mx-2" />
           <button
             data-testid="undo-btn"
-            class="px-3 py-1 border rounded text-sm whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
-            :class="canUndo ? 'hover:bg-neutral-50' : ''"
+            class="px-3 py-1 border rounded text-sm whitespace-nowrap font-mono disabled:cursor-not-allowed disabled:opacity-40"
+            :class="canUndo ? 'hover:bg-surface-2' : ''"
             type="button"
             :disabled="!canUndo"
             title="撤销 (Ctrl+Z)"
@@ -181,8 +189,8 @@ function onFundToggle(e: Event) {
           </button>
           <button
             data-testid="redo-btn"
-            class="px-3 py-1 border rounded text-sm whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
-            :class="canRedo ? 'hover:bg-neutral-50' : ''"
+            class="px-3 py-1 border rounded text-sm whitespace-nowrap font-mono disabled:cursor-not-allowed disabled:opacity-40"
+            :class="canRedo ? 'hover:bg-surface-2' : ''"
             type="button"
             :disabled="!canRedo"
             title="重做 (Ctrl+Shift+Z)"
@@ -195,21 +203,21 @@ function onFundToggle(e: Event) {
         </div>
       </div>
       <!-- 第二行 · 参数层：参数标签 + 参数输入 / 撤销·重做（字体与表格同 11px，整体紧凑）-->
-      <div v-if="activeView !== 'calculator'" data-testid="param-row" class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-neutral-50 border-t">
+      <div v-if="activeView !== 'calculator'" data-testid="param-row" class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-surface-2 border-t">
         <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-          <span data-testid="param-row-label" class="text-[10px] uppercase tracking-wide text-neutral-400 border-r pr-3">参数</span>
+          <span data-testid="param-row-label" class="text-[10px] uppercase tracking-wide font-mono text-ink-3 border-r pr-3">参数</span>
           <div class="flex items-center gap-2">
-            <label for="start-month" class="text-[11px] whitespace-nowrap">起始月份</label>
+            <label for="start-month" class="text-[11px] whitespace-nowrap font-mono">起始月份</label>
             <MonthPicker v-model="startMonth" input-id="start-month" />
           </div>
           <div class="flex items-center gap-2">
-            <label for="end-month" class="text-[11px] whitespace-nowrap">结束月份</label>
+            <label for="end-month" class="text-[11px] whitespace-nowrap font-mono">结束月份</label>
             <MonthPicker v-model="endMonth" input-id="end-month" />
-            <span data-testid="projection-text" class="text-[11px] text-neutral-400 whitespace-nowrap">{{ projectionText }}</span>
+            <span data-testid="projection-text" class="text-[11px] text-ink-3 whitespace-nowrap">{{ projectionText }}</span>
           </div>
           <span v-if="periodError" data-testid="end-month-error" class="text-[11px] text-negative-600 whitespace-nowrap">{{ periodError }}</span>
           <div class="flex items-center gap-2">
-            <label class="text-[11px] whitespace-nowrap">年化收益率(%)</label>
+            <label class="text-[11px] whitespace-nowrap font-mono">年化收益率(%)</label>
             <input
               :value="(data.systemParams.annualRate * 100).toFixed(3)"
               @input="(e: Event) => { const target = e.target as HTMLInputElement; data.systemParams.annualRate = Number(target.value) / 100 }"
@@ -219,7 +227,7 @@ function onFundToggle(e: Event) {
             />
           </div>
           <div class="flex items-center gap-2">
-            <label class="text-[11px] whitespace-nowrap">初始存款</label>
+            <label class="text-[11px] whitespace-nowrap font-mono">初始存款</label>
             <input
               v-model.number="data.systemParams.initialDeposit"
               type="number"
@@ -229,7 +237,7 @@ function onFundToggle(e: Event) {
           </div>
           <!-- 公积金子分组：另起一行展示；仅 fund 启用时显示 3 输入 -->
           <div class="flex items-center gap-2 w-full">
-            <label class="text-[11px] whitespace-nowrap flex items-center gap-1">
+            <label class="text-[11px] whitespace-nowrap font-mono flex items-center gap-1">
               <input
                 data-testid="fund-enable-toggle"
                 type="checkbox"
@@ -239,7 +247,7 @@ function onFundToggle(e: Event) {
               公积金
             </label>
             <template v-if="fundEnabled">
-              <label class="text-[11px] whitespace-nowrap">年利率(%)</label>
+              <label class="text-[11px] whitespace-nowrap font-mono">年利率(%)</label>
               <input
                 data-testid="fund-rate-input"
                 :value="(data.systemParams.fundRate * 100).toFixed(1)"
@@ -248,7 +256,7 @@ function onFundToggle(e: Event) {
                 step="0.1"
                 class="border rounded px-2 py-0.5 text-[11px] w-[85px]"
               />
-              <label class="text-[11px] whitespace-nowrap">结息月</label>
+              <label class="text-[11px] whitespace-nowrap font-mono">结息月</label>
               <input
                 data-testid="fund-interest-month-input"
                 :value="data.systemParams.fundInterestMonth"
@@ -258,7 +266,7 @@ function onFundToggle(e: Event) {
                 max="12"
                 class="border rounded px-2 py-0.5 text-[11px] w-12"
               />
-              <label class="text-[11px] whitespace-nowrap">初始余额</label>
+              <label class="text-[11px] whitespace-nowrap font-mono">初始余额</label>
               <input
                 data-testid="fund-initial-balance-input"
                 :value="data.systemParams.fundInitialBalance ?? 0"
@@ -271,6 +279,13 @@ function onFundToggle(e: Event) {
           </div>
         </div>
       </div>
+      <!-- 关键指标条：计算器/对比视图不显示 -->
+      <KeyMetricsBar
+        v-if="activeView !== 'calculator' && activeView !== 'comparison'"
+        :results="keyMetricsProps.results"
+        :fund-enabled="keyMetricsProps.fundEnabled"
+        :initial-deposit="keyMetricsProps.initialDeposit"
+      />
     </header>
     <main class="flex-1 flex flex-col overflow-hidden">
       <template v-if="activeView === 'comparison'">
@@ -289,10 +304,16 @@ function onFundToggle(e: Event) {
         </div>
       </template>
       <template v-else>
-        <div class="flex-none max-h-[35%] overflow-auto border-b">
+        <div class="flex-none max-h-[35%] overflow-auto border-b border-line">
+          <div class="font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2 px-4 py-1.5 flex items-center gap-2 bg-surface">
+            <span class="text-brand-600 font-bold">01</span> 年度汇总
+          </div>
           <AnnualTable :results="results" />
         </div>
         <div class="flex-1 overflow-auto">
+          <div class="font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2 px-4 py-1.5 flex items-center gap-2 bg-surface sticky top-0 z-1">
+            <span class="text-brand-600 font-bold">02</span> 月度流水
+          </div>
           <MonthlyTable :results="results" />
         </div>
       </template>

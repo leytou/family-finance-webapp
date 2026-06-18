@@ -148,7 +148,7 @@ describe('App', () => {
     expect(store.data.value.systemParams.annualRate).toBeCloseTo(0.035)
   })
 
-  it('整体布局结构正确（两行 header）', async () => {
+  it('整体布局结构正确（导航/参数/指标条）', async () => {
     const App = await loadApp()
     const wrapper = mount(App, { global: { stubs: globalStubs } })
 
@@ -157,12 +157,13 @@ describe('App', () => {
     const header = wrapper.get('header')
     expect(header.classes()).toContain('border-b')
 
-    // 两行：第一行 h-12（导航），第二行 min-h-8 淡灰底（参数，公积金启用时增高）
+    // 三段：第一行 h-12（导航），第二行 min-h-8（参数行），第三行 关键指标条
     const rows = header.findAll(':scope > div')
-    expect(rows).toHaveLength(2)
+    expect(rows).toHaveLength(3)
     expect(rows[0].classes()).toContain('h-12')
     expect(rows[1].classes()).toContain('min-h-8')
-    expect(rows[1].classes()).toContain('bg-neutral-50')
+    expect(rows[1].classes()).toContain('bg-surface-2')
+    expect(rows[2].classes()).toContain('grid')
 
     const main = wrapper.get('main')
     expect(main.classes()).toContain('flex-1')
