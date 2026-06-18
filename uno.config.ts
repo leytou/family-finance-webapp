@@ -51,6 +51,16 @@ export default defineConfig({
       danger: red,        // 操作失败/删除（固定标准红）
       warning: amber,     // 告警/注意（如公积金提取截断提示）
       neutral: slate,     // 中性
+      // —— UI 重设计「浅色金融终端」基底别名（与上述色阶并列，互不影响）——
+      canvas: { DEFAULT: '#f3f5fa' },           // 画布底色（应用最外层背景）
+      surface: { DEFAULT: '#ffffff', 2: '#f8fafc' }, // 卡片/面板表面色（2 为次级）
+      line: { DEFAULT: '#e4e8f1', soft: '#eef1f7' }, // 描边/分隔线（soft 为更柔和的分割）
+      ink: { DEFAULT: '#1a2233', 2: '#5b6678', 3: '#8a93a6' }, // 文字色阶（2/3 为次级/占位）
+    },
+    // 字体族：mono 用于等宽数字（终端感），sans 用于正文（中文优先）
+    fontFamily: {
+      mono: ['JetBrains Mono', 'Cascadia Code', 'Consolas', 'ui-monospace', 'monospace'],
+      sans: ['PingFang SC', 'Microsoft YaHei', 'system-ui', 'sans-serif'],
     },
   },
 })
