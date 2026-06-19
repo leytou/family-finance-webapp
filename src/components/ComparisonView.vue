@@ -65,9 +65,9 @@ const comparisonRows = computed<ComparisonRow[]>(() => {
     ...yearRows,
     { label: '全程总收入', getValues: m => [m.totalIncome] },
     { label: '全程总支出', getValues: m => [m.totalExpense] },
-    { label: '全程净储蓄', getValues: m => [m.netSavings] },
-    { label: '最终累计储蓄', getValues: m => [m.finalCumSavings] },
-    { label: '期间最低储蓄', getValues: m => [m.minCumSavings] },
+    { label: '全程结余', getValues: m => [m.netSavings] },
+    { label: '期末存款', getValues: m => [m.finalCumSavings] },
+    { label: '期间最低余额', getValues: m => [m.minCumSavings] },
   ]
 })
 </script>

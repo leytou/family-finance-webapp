@@ -97,9 +97,9 @@ describe('ComparisonView', () => {
     expect(labels).toContain('第5年末')
     expect(labels).toContain('全程总收入')
     expect(labels).toContain('全程总支出')
-    expect(labels).toContain('全程净储蓄')
-    expect(labels).toContain('最终累计储蓄')
-    expect(labels).toContain('期间最低储蓄')
+    expect(labels).toContain('全程结余')
+    expect(labels).toContain('期末存款')
+    expect(labels).toContain('期间最低余额')
   })
 
   it('对比表年末行数跟随期限：默认 5 年显示 5 个年末行', async () => {
@@ -120,7 +120,7 @@ describe('ComparisonView', () => {
     const text = wrapper.text()
     expect(text).toContain('全程总收入')
     expect(text).toContain('全程总支出')
-    expect(text).toContain('全程净储蓄')
+    expect(text).toContain('全程结余')
     expect(text).not.toContain('5年总收入')
   })
 

@@ -147,7 +147,7 @@ describe('buildChartOption · 退化模式（fundEnabled=false）', () => {
     expect(option.xAxis.axisLabel?.interval).toBe('auto')
   })
 
-  it('tooltip 为浅色卡片，formatter 含收入/支出/净结余/存款且金额万元化', () => {
+  it('tooltip 为浅色卡片，formatter 含收入/支出/结余/存款且金额万元化', () => {
     const data = {
       categories: ['26/08'],
       income: [15800], expense: [9200], cumSavings: [1234567], fundBalance: [0],
@@ -165,7 +165,7 @@ describe('buildChartOption · 退化模式（fundEnabled=false）', () => {
     ])
     expect(html).toContain('收入')
     expect(html).toContain('支出')
-    expect(html).toContain('净结余')
+    expect(html).toContain('结余')
     expect(html).toContain('存款')
     expect(html).toContain('1.6万')        // 收入 15800
     expect(html).toContain('9,200')        // 支出 9200（<1万 千分位）

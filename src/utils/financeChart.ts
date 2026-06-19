@@ -162,7 +162,7 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean): ChartOp
           + `<span style="color:#64748b">${label}</span>`
           + `<span style="color:${color};font-weight:600">${formatAxisAmount(val)}</span></div>`
         let html = row('收入', income) + row('支出', expense)
-          + row('净结余', net, netColor)
+          + row('结余', net, netColor)
           + `<div style="height:1px;background:#e2e8f0;margin:4px 0"></div>`
           + row('存款', total)
         if (fundEnabled) html += row('公积金余额', fund)
