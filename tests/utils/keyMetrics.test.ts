@@ -42,10 +42,16 @@ describe('computeKeyMetrics', () => {
     expect(computeKeyMetrics(r, false).totalExpense).toBe(28500)
   })
 
+  it('累计总收入 = monthlyIncome 求和（不含初始本金）', () => {
+    const r = [mk(202601, { monthlyIncome: 18000 }), mk(202602, { monthlyIncome: 18500 })]
+    expect(computeKeyMetrics(r, false).totalIncome).toBe(36500)
+  })
+
   it('空结果返回 0 且不抛错', () => {
     const m = computeKeyMetrics([], false)
     expect(m.finalCum).toBe(0)
     expect(m.minMonth).toBe(0)
+    expect(m.totalIncome).toBe(0)
   })
 
   it('fundEnabled 时返回末月公积金余额，否则为 null', () => {

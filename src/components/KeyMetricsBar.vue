@@ -36,8 +36,9 @@ const cells = computed<Cell[]>(() => {
       sub: m.value.minMonth ? monthToLabel(m.value.minMonth) : undefined,
       tone: minIsWarn.value ? 'warn' : '',
     },
-    { label: '累计理财收益', value: formatCurrency(m.value.totalReturn), tone: 'pos' },
+    { label: '累计总收入', value: formatCurrency(m.value.totalIncome), tone: 'pos' },
     { label: '累计总支出', value: formatCurrency(m.value.totalExpense), tone: 'neg' },
+    { label: '累计理财收益', value: formatCurrency(m.value.totalReturn), tone: 'pos' },
   ]
   if (m.value.fundBalance !== null) {
     base.push({ label: '公积金期末余额', value: formatCurrency(m.value.fundBalance), tone: 'warn' })
