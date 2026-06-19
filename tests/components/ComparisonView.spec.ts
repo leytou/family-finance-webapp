@@ -99,7 +99,7 @@ describe('ComparisonView', () => {
     expect(labels).toContain('全程总支出')
     expect(labels).toContain('全程结余')
     expect(labels).toContain('期末存款')
-    expect(labels).toContain('期间最低余额')
+    expect(labels).toContain('期间最低存款')
   })
 
   it('对比表年末行数跟随期限：默认 5 年显示 5 个年末行', async () => {

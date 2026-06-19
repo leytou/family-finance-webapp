@@ -31,7 +31,7 @@ const cells = computed<Cell[]>(() => {
       tone: '',
     },
     {
-      label: '期间最低余额',
+      label: '期间最低存款',
       value: formatCurrency(m.value.minCum),
       sub: m.value.minMonth ? monthToLabel(m.value.minMonth) : undefined,
       tone: minIsWarn.value ? 'warn' : '',
