@@ -13,9 +13,6 @@ const props = defineProps<{
 
 const m = computed(() => computeKeyMetrics(props.results, props.fundEnabled))
 
-// 期间最低是否低于初始存款（告警色判定）
-const minIsWarn = computed(() => m.value.minCum < props.initialDeposit)
-
 interface Cell { label: string; value: string; sub?: string; tone: '' | 'pos' | 'neg' | 'warn' }
 const cells = computed<Cell[]>(() => {
   // 月均净存入 = (期末累计 − 初始本金 − 理财收益) ÷ 月数，即平均每月靠结余存下的钱
@@ -34,7 +31,7 @@ const cells = computed<Cell[]>(() => {
       label: '期间最低存款',
       value: formatCurrency(m.value.minCum),
       sub: m.value.minMonth ? monthToLabel(m.value.minMonth) : undefined,
-      tone: minIsWarn.value ? 'warn' : '',
+      tone: '',
     },
     { label: '累计总收入', value: formatCurrency(m.value.totalIncome), tone: 'pos' },
     { label: '累计总支出', value: formatCurrency(m.value.totalExpense), tone: 'neg' },
@@ -56,7 +53,7 @@ const cells = computed<Cell[]>(() => {
       <div class="font-mono text-[9.5px] tracking-[0.16em] uppercase text-ink-3 flex items-center gap-1.5">
         <span class="inline-block w-1.5 h-1.5 rounded-full"
               :class="{
-                'bg-brand': c.tone === '',
+                'bg-ink': c.tone === '',
                 'bg-positive-600': c.tone === 'pos',
                 'bg-negative-600': c.tone === 'neg',
                 'bg-warning-600': c.tone === 'warn',
