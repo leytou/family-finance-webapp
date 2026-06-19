@@ -18,13 +18,16 @@ const minIsWarn = computed(() => m.value.minCum < props.initialDeposit)
 
 interface Cell { label: string; value: string; sub?: string; tone: '' | 'pos' | 'neg' | 'warn' }
 const cells = computed<Cell[]>(() => {
+  // 月均净存入 = (期末累计 − 初始本金 − 理财收益) ÷ 月数，即平均每月靠结余存下的钱
+  const monthCount = props.results.length
+  const monthlyAvg = monthCount > 0
+    ? (m.value.finalCum - props.initialDeposit - m.value.totalReturn) / monthCount
+    : 0
   const base: Cell[] = [
     {
-      label: '最终累计',
+      label: '期末存款',
       value: formatCurrency(m.value.finalCum),
-      sub: props.initialDeposit > 0
-        ? `较初始 ${((m.value.finalCum - props.initialDeposit) / props.initialDeposit * 100).toFixed(1)}%`
-        : undefined,
+      sub: monthCount > 0 ? `月均净存入 ¥${formatCurrency(monthlyAvg)}` : undefined,
       tone: '',
     },
     {
