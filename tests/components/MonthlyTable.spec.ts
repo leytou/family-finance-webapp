@@ -389,6 +389,23 @@ describe('MonthlyTable', () => {
     expect(thead.classes()).toContain('bg-surface-2')
   })
 
+  it('表格单元格水平内边距收紧为 px-0.5（列多时降低总宽，便于窗口装下铺满）', async () => {
+    const useStore = await loadUseStore()
+    useStore()
+    const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+
+    const firstRowCells = wrapper.findAll('tbody tr')[0].findAll('td')
+    // 月份列单元格收紧
+    expect(firstRowCells[0].classes()).toContain('px-0.5')
+    expect(firstRowCells[0].classes()).not.toContain('px-1')
+    // 末列（存款）单元格同样收紧
+    expect(firstRowCells[firstRowCells.length - 1].classes()).toContain('px-0.5')
+
+    // 表头单元格同样收紧
+    const headerCells = wrapper.findAll('thead tr')[0].findAll('th')
+    expect(headerCells[0].classes()).toContain('px-0.5')
+  })
+
   it('右键现金流单元格弹出菜单', async () => {
     const store = useSharedStore()
     store.reset()

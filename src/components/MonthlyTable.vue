@@ -695,7 +695,7 @@ function getValueClass(value: number): string {
     <table class="min-w-full border-collapse text-[11px] leading-tight">
       <thead class="sticky top-0 z-1 bg-surface-2 font-mono">
         <tr class="border-b">
-          <th class="px-1 py-0 text-left font-mono font-semibold whitespace-nowrap">月份</th>
+          <th class="px-0.5 py-0 text-left font-mono font-semibold whitespace-nowrap">月份</th>
 
           <!-- 动态现金流列 -->
           <th
@@ -703,7 +703,7 @@ function getValueClass(value: number): string {
             :key="column.id"
             :draggable="renamingColumnId !== column.id"
             :class="[
-              'px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap relative group',
+              'px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap relative group',
               draggingColumnId === column.id ? 'opacity-50' : '',
               dropTarget?.columnId === column.id
                 ? (dropTarget.side === 'before' ? 'drag-line-left' : 'drag-line-right')
@@ -758,7 +758,7 @@ function getValueClass(value: number): string {
           </th>
 
           <!-- 添加列按钮 -->
-          <th class="px-1 py-0 text-center font-mono whitespace-nowrap">
+          <th class="px-0.5 py-0 text-center font-mono whitespace-nowrap">
             <button
               type="button"
               class="text-brand-600 hover:text-brand-700 font-bold text-lg leading-none"
@@ -770,25 +770,25 @@ function getValueClass(value: number): string {
           </th>
 
           <!-- 专项固定列 -->
-          <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l border-line">专项</th>
+          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l border-line">专项</th>
 
           <!-- 固定列 -->
-          <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">理财</th>
-          <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">收入</th>
-          <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">支出</th>
-          <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">结余</th>
-          <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">存款</th>
+          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">理财</th>
+          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">收入</th>
+          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">支出</th>
+          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">结余</th>
+          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">存款</th>
           <!-- 公积金专区表头（仅 fund 启用） -->
           <template v-if="fund">
-            <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l-2 border-brand-300">房贷月供</th>
-            <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">公积金缴存</th>
-            <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">公积金月冲</th>
-            <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">存款补扣</th>
-            <th class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">公积金</th>
+            <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l-2 border-brand-300">房贷月供</th>
+            <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">公积金缴存</th>
+            <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">公积金月冲</th>
+            <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">存款补扣</th>
+            <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">公积金</th>
           </template>
           <!-- 对比列表头 -->
-          <th v-if="selectedSnapshot" class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">当时预计</th>
-          <th v-if="selectedSnapshot" class="px-1 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">差额</th>
+          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">当时预计</th>
+          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">差额</th>
         </tr>
       </thead>
 
@@ -798,13 +798,13 @@ function getValueClass(value: number): string {
           :key="result.month"
           :class="result.month % 100 === 12 ? 'border-b-2 border-line' : 'border-b'"
         >
-          <td class="px-1 py-0 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
+          <td class="px-0.5 py-0 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
 
           <!-- 动态现金流列单元格 -->
           <td
             v-for="column in columns"
             :key="`${result.month}-${column.id}`"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap relative"
             :class="[
               getValueClass(getColumnValue(result, column.id).amount),
               { 'bg-brand-50': getColumnValue(result, column.id).isEdited },
@@ -841,11 +841,11 @@ function getValueClass(value: number): string {
           </td>
 
           <!-- 添加列占位 -->
-          <td class="px-1 py-0"></td>
+          <td class="px-0.5 py-0"></td>
 
           <!-- 专项单元格 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer border-l border-line"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer border-l border-line"
             :class="getValueClass(eventInfo(result.month).net)"
             :aria-label="`编辑 ${formatMonth(result.month)} 专项`"
             @click="openEventEditor(result.month, $event)"
@@ -859,7 +859,7 @@ function getValueClass(value: number): string {
 
           <!-- 理财列 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap"
             :class="getValueClass(result.investReturn)"
           >
             <span
@@ -871,7 +871,7 @@ function getValueClass(value: number): string {
           </td>
 
           <!-- 本月收入列 -->
-          <td class="px-1 py-0 text-right tabular-nums whitespace-nowrap">
+          <td class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap">
             <span
               class="block w-full"
               :aria-label="getFormulaAriaLabel(result, 'monthlyIncome')"
@@ -882,7 +882,7 @@ function getValueClass(value: number): string {
 
           <!-- 本月支出列 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap"
             :class="getValueClass(result.monthlyExpense)"
           >
             <span
@@ -895,7 +895,7 @@ function getValueClass(value: number): string {
 
           <!-- 本月结余列 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap"
             :class="getValueClass(result.monthlyBalance)"
           >
             <span
@@ -908,7 +908,7 @@ function getValueClass(value: number): string {
 
           <!-- 累计列 -->
           <td
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap font-bold relative"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap font-bold relative"
             :class="[
               getValueClass(result.cumSavings),
               { 'bg-brand-50': result.isAnchor }
@@ -944,7 +944,7 @@ function getValueClass(value: number): string {
           <template v-if="fund">
             <!-- 房贷月供（可编辑；输入正数存负数，显示绝对值） -->
             <td
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap border-l-2 border-brand-300 relative"
+              class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap border-l-2 border-brand-300 relative"
               :data-fund-mortgage="result.month"
               :class="[
                 getValueClass(-fundMortgageAbs(result.month)),
@@ -976,7 +976,7 @@ function getValueClass(value: number): string {
             </td>
             <!-- 公积金缴存（可编辑） -->
             <td
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative"
+              class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap relative"
               :data-fund-contribution="result.month"
               :class="{ 'bg-brand-50': isFundEntryEdited('contribution', result.month) }"
               @contextmenu.prevent="openContextMenu(FUND_CONTRIBUTION_COLUMN_ID, result.month, $event)"
@@ -1005,7 +1005,7 @@ function getValueClass(value: number): string {
             </td>
             <!-- 公积金月冲（可编辑 + 联动视觉：auto 淡灰 / 手填蓝底 + hover 公式） -->
             <td
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap relative"
+              class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap relative"
               :class="{
                 'text-ink-3': fundOffsetDisplay(result.month).auto,
                 'bg-brand-50': !fundOffsetDisplay(result.month).auto,
@@ -1040,7 +1040,7 @@ function getValueClass(value: number): string {
             </td>
             <!-- 存款补扣：房贷月供 − 公积金实际月冲（≥0），由可支配存款承担；缺口>0 标告警色 -->
             <td
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+              class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap"
               :class="{ 'text-warning-600': result.fundOffsetShortfall > 0 }"
               :data-fund-shortfall="result.month"
             >
@@ -1053,7 +1053,7 @@ function getValueClass(value: number): string {
             </td>
             <!-- 公积金余额（左键开 FundFlowEditor / 右键锚点菜单 / hover 余额公式） -->
             <td
-              class="px-1 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer"
+              class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer"
               :class="{ 'bg-brand-50': result.isFundAnchor }"
               :data-fund-balance="result.month"
               @click="openFundFlowEditor(result.month, $event)"
@@ -1070,7 +1070,7 @@ function getValueClass(value: number): string {
           <!-- 对比列：当时预计 -->
           <td
             v-if="selectedSnapshot"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap text-ink-2"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap text-ink-2"
           >
             <span v-if="getComparison(result.month).predicted !== null">
               {{ formatCurrency(getComparison(result.month).predicted as number) }}
@@ -1080,7 +1080,7 @@ function getValueClass(value: number): string {
           <!-- 对比列：差额 -->
           <td
             v-if="selectedSnapshot"
-            class="px-1 py-0 text-right tabular-nums whitespace-nowrap"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap"
             :class="getDiffClass(getComparison(result.month).diff)"
           >
             <span v-if="getComparison(result.month).diff !== null">
