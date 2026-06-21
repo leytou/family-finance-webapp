@@ -1360,6 +1360,28 @@ describe('fund 校验与迁移', () => {
     expect(store.data.value.fund?.withdrawals).toHaveLength(1)
   })
 
+  it('旧 v2 公积金三列 entries 迁移为 itemSets（migrateColumn 的 fund 分支）', async () => {
+    const plan = {
+      version: 2,
+      systemParams: { startMonth: 202601, annualRate: 0.03, fundRate: 0.015, fundInterestMonth: 7 },
+      columns: [], anchors: [], snapshots: [], events: [],
+      fund: {
+        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
+        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 2000 } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 3000 } },
+        withdrawals: [], anchors: [],
+      },
+    }
+    localStorage.setItem('family-finance-plan', JSON.stringify(plan))
+    const useStore = await loadUseStore()
+    const store = useStore()
+    const fund = store.data.value.fund!
+    expect(fund.mortgage.itemSets[202601][0].amount).toBe(-5000)
+    expect(fund.contribution.itemSets[202601][0].amount).toBe(2000)
+    expect(fund.monthlyOffset.itemSets[202601][0].amount).toBe(3000)
+    expect((fund.mortgage as any).entries).toBeUndefined()
+  })
+
   it('fund 内部结构非法（mortgage 非 FlowColumn）时整个 workspace 回退默认', async () => {
     const bad = {
       version: 2,
