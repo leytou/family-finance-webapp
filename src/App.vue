@@ -10,9 +10,11 @@ import CalculatorView from './components/CalculatorView.vue'
 import ToolsMenu from './components/ToolsMenu.vue'
 import MonthPicker from './components/MonthPicker.vue'
 import FinanceChart from './components/FinanceChart.vue'
+import CollapsibleSection from './components/CollapsibleSection.vue'
 import { calculate } from './composables/useCalculation'
 import { useStore } from './composables/useStore'
 import { useHistory } from './composables/useHistory'
+import { useUiPrefs } from './composables/useUiPrefs'
 import { monthDiff } from './utils/month'
 
 const {
@@ -26,6 +28,8 @@ const {
   setFundInitialBalance,
 } = useStore()
 const { undo, redo, canUndo, canRedo } = useHistory()
+// 解构到顶层：模板只对顶层 ref 自动解包，嵌套在普通对象里的 ref 不会解包
+const { params: paramsCollapsed, metrics: metricsCollapsed, annual: annualCollapsed, monthly: monthlyCollapsed } = useUiPrefs()
 
 // 失焦当前输入框（触发进行中编辑的失焦提交），再执行撤销/重做
 function blurActive() {
@@ -204,9 +208,14 @@ function onFundToggle(e: Event) {
         </div>
       </div>
       <!-- 第二行 · 参数层：参数标签 + 参数输入 / 撤销·重做（字体与表格同 11px，整体紧凑）-->
-      <div v-if="activeView !== 'calculator'" data-testid="param-row" class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-surface-2 border-t">
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-          <span data-testid="param-row-label" class="text-[10px] uppercase tracking-wide font-mono text-ink-3 border-r pr-3">参数</span>
+      <CollapsibleSection
+        v-if="activeView !== 'calculator'"
+        v-model:collapsed="paramsCollapsed"
+        title="参数"
+        data-testid="param-row"
+      >
+        <div class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-surface-2 border-t">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
           <div class="flex items-center gap-2">
             <label for="start-month" class="text-[11px] whitespace-nowrap font-mono">起始月份</label>
             <MonthPicker v-model="startMonth" input-id="start-month" />
@@ -278,15 +287,21 @@ function onFundToggle(e: Event) {
               />
             </template>
           </div>
+          </div>
         </div>
-      </div>
+      </CollapsibleSection>
       <!-- 关键指标条：计算器/对比视图不显示 -->
-      <KeyMetricsBar
+      <CollapsibleSection
         v-if="activeView !== 'calculator' && activeView !== 'comparison'"
-        :results="keyMetricsProps.results"
-        :fund-enabled="keyMetricsProps.fundEnabled"
-        :initial-deposit="keyMetricsProps.initialDeposit"
-      />
+        v-model:collapsed="metricsCollapsed"
+        title="指标"
+      >
+        <KeyMetricsBar
+          :results="keyMetricsProps.results"
+          :fund-enabled="keyMetricsProps.fundEnabled"
+          :initial-deposit="keyMetricsProps.initialDeposit"
+        />
+      </CollapsibleSection>
     </header>
     <main class="flex-1 flex flex-col overflow-hidden">
       <template v-if="activeView === 'comparison'">
@@ -306,20 +321,24 @@ function onFundToggle(e: Event) {
       </template>
       <template v-else>
         <div class="flex-1 overflow-auto">
-          <!-- 年度汇总：自然高度、无内部滚动；行少一屏可见，表头不必钉顶 -->
-          <div class="border-b border-line">
-            <div class="h-7 px-4 flex items-center gap-2 bg-surface font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2">
-              <span class="text-brand-600 font-bold">01</span> 年度汇总
-            </div>
+          <!-- 年度汇总：自然高度、无内部滚动；折叠头即分组标题，收起后内容隐藏 -->
+          <CollapsibleSection
+            v-model:collapsed="annualCollapsed"
+            title="年度汇总"
+            index="01"
+            class="border-b border-line"
+          >
             <AnnualTable :results="results" />
-          </div>
-          <!-- 月度流水：自然高度；分组标题钉顶(top-0)，列标题钉在分组标题正下方(top-7 = 分组标题高) -->
-          <div>
-            <div class="h-7 px-4 sticky top-0 z-1 flex items-center gap-2 bg-surface font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2">
-              <span class="text-brand-600 font-bold">02</span> 月度流水
-            </div>
+          </CollapsibleSection>
+          <!-- 月度流水：自然高度；折叠头钉顶(top-0) -->
+          <CollapsibleSection
+            v-model:collapsed="monthlyCollapsed"
+            title="月度流水"
+            index="02"
+            sticky
+          >
             <MonthlyTable :results="results" />
-          </div>
+          </CollapsibleSection>
         </div>
       </template>
     </main>

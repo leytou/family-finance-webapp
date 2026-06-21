@@ -157,24 +157,28 @@ describe('App', () => {
     const header = wrapper.get('header')
     expect(header.classes()).toContain('border-b')
 
-    // 三段：第一行 h-12（导航），第二行 min-h-8（参数行），第三行 关键指标条
+    // header 三段：导航行、参数折叠区、指标折叠区
     const rows = header.findAll(':scope > div')
     expect(rows).toHaveLength(3)
     expect(rows[0].classes()).toContain('h-12')
-    expect(rows[1].classes()).toContain('min-h-8')
-    expect(rows[1].classes()).toContain('bg-surface-2')
-    expect(rows[2].classes()).toContain('grid')
+
+    const headers = wrapper.findAll('[data-testid="collapse-header"]')
+    expect(headers.find(b => b.text().includes('参数'))).toBeDefined()
+    expect(headers.find(b => b.text().includes('指标'))).toBeDefined()
 
     const main = wrapper.get('main')
     expect(main.classes()).toContain('flex-1')
     expect(main.classes()).toContain('flex-col')
   })
 
-  it('第二行操作层含「参数」行标签', async () => {
+  it('参数折叠头含「参数」标题', async () => {
     const App = await loadApp()
     const wrapper = mount(App, { global: { stubs: globalStubs } })
 
-    expect(wrapper.get('[data-testid="param-row-label"]').text()).toBe('参数')
+    const headers = wrapper.findAll('[data-testid="collapse-header"]')
+    const paramHeader = headers.find(b => b.text().includes('参数'))
+    expect(paramHeader).toBeDefined()
+    expect(paramHeader!.text()).toContain('参数')
   })
 
   it('初始存款输入框正确绑定', async () => {
@@ -348,6 +352,57 @@ describe('App', () => {
     await wrapper.get('[data-testid="fund-enable-toggle"]').setValue(false)
 
     expect(store.data.value.fund).toBeDefined()
+  })
+
+  it('四个区块默认展开（四个折叠头 aria-expanded=true）', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+    const headers = wrapper.findAll('[data-testid="collapse-header"]')
+    expect(headers).toHaveLength(4)
+    headers.forEach(h => expect(h.attributes('aria-expanded')).toBe('true'))
+  })
+
+  it('点击参数折叠头收起，隐藏参数输入与公积金开关', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+
+    // 展开态：参数输入与公积金开关存在
+    expect(wrapper.findAll('input').find(i => i.attributes('step') === '0.001')).toBeDefined()
+    expect(wrapper.find('[data-testid="fund-enable-toggle"]').exists()).toBe(true)
+
+    const paramHeader = wrapper.findAll('[data-testid="collapse-header"]').find(b => b.text().includes('参数'))!
+    expect(paramHeader.attributes('aria-expanded')).toBe('true')
+
+    await paramHeader.trigger('click')
+
+    // 收起态：折叠头置 aria-expanded=false，内容容器被 v-show 隐藏（其内输入与开关随之不可见）
+    expect(paramHeader.attributes('aria-expanded')).toBe('false')
+    // CollapsibleSection 根 div 内直接子 div 即 v-show 内容容器
+    const contentDiv = wrapper.get('[data-testid="param-row"]').get(':scope > div')
+    expect(contentDiv.attributes('style') ?? '').toContain('display: none')
+  })
+
+  it('收起年度汇总后，月度流水容器仍为 flex-1（撑满）', async () => {
+    const App = await loadApp()
+    const wrapper = mount(App, { global: { stubs: globalStubs } })
+    const annualHeader = wrapper.findAll('[data-testid="collapse-header"]').find(b => b.text().includes('年度汇总'))!
+    await annualHeader.trigger('click')
+    const main = wrapper.get('main')
+    const divs = main.findAll(':scope > div')
+    expect(divs[1].classes()).toContain('flex-1')
+  })
+
+  it('收起参数后重新挂载仍保持收起（持久化）', async () => {
+    let App = await loadApp()
+    let wrapper = mount(App, { global: { stubs: globalStubs } })
+    const paramHeader = wrapper.findAll('[data-testid="collapse-header"]').find(b => b.text().includes('参数'))!
+    await paramHeader.trigger('click')
+
+    vi.resetModules()
+    App = await loadApp()
+    wrapper = mount(App, { global: { stubs: globalStubs } })
+    const paramH = wrapper.findAll('[data-testid="collapse-header"]').find(b => b.text().includes('参数'))!
+    expect(paramH.attributes('aria-expanded')).toBe('false')
   })
 
   it('计算器按钮存在且点击切换到计算器视图', async () => {
