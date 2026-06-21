@@ -1122,8 +1122,8 @@ function getValueClass(value: number): string {
 
   <EventDetailPopover
     v-if="eventPopover"
-    :month="eventPopover.month"
-    :events="eventInfo(eventPopover.month).events"
+    :title="`${formatMonth(eventPopover.month)} 专项`"
+    :items="eventInfo(eventPopover.month).events.map(e => ({ name: e.name, amount: e.amount }))"
     :net="eventInfo(eventPopover.month).net"
     :x="eventPopover.x"
     :y="eventPopover.y"
