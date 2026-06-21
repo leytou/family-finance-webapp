@@ -746,9 +746,9 @@ function getValueClass(value: number): string {
     </div>
 
     <!-- 原表格容器 -->
-    <div class="flex-1 overflow-auto border rounded bg-surface">
+    <div class="flex-1 border rounded bg-surface">
     <table class="min-w-full border-collapse text-[11px] leading-tight">
-      <thead class="sticky top-0 z-1 bg-surface-2 font-mono">
+      <thead class="sticky top-7 z-1 bg-surface-2 font-mono">
         <tr class="border-b">
           <th class="px-0.5 py-0 text-left font-mono font-semibold whitespace-nowrap">月份</th>
 

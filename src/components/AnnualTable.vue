@@ -165,9 +165,9 @@ function getColumnTotal(summary: YearSummary, name: string): number {
 </script>
 
 <template>
-  <div class="h-full overflow-auto border border-line rounded bg-surface">
+  <div class="border border-line rounded bg-surface">
     <table class="min-w-full border-collapse text-[11px] leading-tight">
-      <thead class="sticky top-0 z-1 bg-surface-2">
+      <thead class="bg-surface-2">
         <tr class="border-b">
           <th class="px-1 py-0 text-left font-mono font-semibold whitespace-nowrap">项目</th>
           <th

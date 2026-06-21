@@ -305,17 +305,21 @@ function onFundToggle(e: Event) {
         </div>
       </template>
       <template v-else>
-        <div class="flex-none max-h-[35%] overflow-auto border-b border-line">
-          <div class="font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2 px-4 py-1.5 flex items-center gap-2 bg-surface">
-            <span class="text-brand-600 font-bold">01</span> 年度汇总
-          </div>
-          <AnnualTable :results="results" />
-        </div>
         <div class="flex-1 overflow-auto">
-          <div class="font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2 px-4 py-1.5 flex items-center gap-2 bg-surface sticky top-0 z-1">
-            <span class="text-brand-600 font-bold">02</span> 月度流水
+          <!-- 年度汇总：自然高度、无内部滚动；行少一屏可见，表头不必钉顶 -->
+          <div class="border-b border-line">
+            <div class="h-7 px-4 flex items-center gap-2 bg-surface font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2">
+              <span class="text-brand-600 font-bold">01</span> 年度汇总
+            </div>
+            <AnnualTable :results="results" />
           </div>
-          <MonthlyTable :results="results" />
+          <!-- 月度流水：自然高度；分组标题钉顶(top-0)，列标题钉在分组标题正下方(top-7 = 分组标题高) -->
+          <div>
+            <div class="h-7 px-4 sticky top-0 z-1 flex items-center gap-2 bg-surface font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2">
+              <span class="text-brand-600 font-bold">02</span> 月度流水
+            </div>
+            <MonthlyTable :results="results" />
+          </div>
         </div>
       </template>
     </main>
