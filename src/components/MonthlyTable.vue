@@ -3,7 +3,7 @@ import { computed, nextTick, ref } from 'vue'
 import FormulaPopover from './FormulaPopover.vue'
 import { buildMonthFormula, type MonthFormulaField } from '../utils/formula'
 import ContextMenu from './ContextMenu.vue'
-import EventEditor from './EventEditor.vue'
+import ItemEditor from './ItemEditor.vue'
 import EventDetailPopover from './EventDetailPopover.vue'
 import FundFlowEditor from './FundFlowEditor.vue'
 import type { MonthResult, FlowColumn, MilestoneEvent, FundConfig, FundWithdrawal } from '../types'
@@ -1110,12 +1110,13 @@ function getValueClass(value: number): string {
     @close="contextMenu = null"
   />
 
-  <EventEditor
+  <ItemEditor
     v-if="eventEditor"
-    :month="eventEditor.month"
-    :events="eventInfo(eventEditor.month).events"
+    :title="`${formatMonth(eventEditor.month)} 专项`"
+    :items="eventInfo(eventEditor.month).events.map(e => ({ name: e.name, amount: e.amount }))"
     :x="eventEditor.x"
     :y="eventEditor.y"
+    @save="(items) => store.replaceMonthEvents(eventEditor.month, items)"
     @close="closeEventEditor"
   />
 

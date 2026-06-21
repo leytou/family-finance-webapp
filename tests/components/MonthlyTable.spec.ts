@@ -1062,7 +1062,7 @@ describe('MonthlyTable', () => {
       store.data.value.systemParams.startMonth = 202601
       const wrapper = mount(MonthlyTable, { props: { results: [createResult({ month: 202601 })] } })
       await wrapper.find('[aria-label="编辑 2026-01 专项"]').trigger('click', { clientX: 50, clientY: 60 })
-      const editor = wrapper.findComponent({ name: 'EventEditor' })
+      const editor = wrapper.findComponent({ name: 'ItemEditor' })
       expect(editor.exists()).toBe(true)
       expect(editor.text()).toContain('专项')
     })

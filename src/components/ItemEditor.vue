@@ -1,20 +1,18 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useClickOutside } from '../composables/useClickOutside'
-import { useStore } from '../composables/useStore'
-import { formatMonth } from '../utils/month'
-import type { MilestoneEvent } from '../types'
 
 const props = defineProps<{
-  month: number
-  events: MilestoneEvent[]
+  title: string
+  items: { name: string; amount: number }[]
   x: number
   y: number
 }>()
 
-const emit = defineEmits<{ close: [] }>()
-
-const store = useStore()
+const emit = defineEmits<{
+  save: [items: { name: string; amount: number }[]]
+  close: []
+}>()
 
 // 草稿行：金额用字符串以便输入框编辑
 interface DraftRow { key: string; name: string; amount: string }
@@ -26,11 +24,17 @@ function nextDraftKey(): string {
   return `draft-${draftKeySeq}`
 }
 
+// 打开时默认至少 3 行：已有项保留，不足补空行（补空不触发 dirty）
+const INITIAL_ROWS = 3
 const rows = ref<DraftRow[]>(
-  props.events.map((e) => ({ key: nextDraftKey(), name: e.name, amount: String(e.amount) })),
+  (() => {
+    const filled = props.items.map(e => ({ key: nextDraftKey(), name: e.name, amount: String(e.amount) }))
+    while (filled.length < INITIAL_ROWS) filled.push({ key: nextDraftKey(), name: '', amount: '' })
+    return filled
+  })(),
 )
 
-// 是否相对初始值有改动；未改动则关闭时不写回（避免 no-op 写入与事件 id 重建）
+// 是否相对初始值有改动；未改动则关闭时不 emit save（避免 no-op 写入与上层 id 重建）
 const dirty = ref(false)
 function markDirty() { dirty.value = true }
 
@@ -49,10 +53,10 @@ function removeRow(idx: number) {
 function commit() {
   if (dirty.value) {
     const items = rows.value
-      .map((r) => ({ name: r.name.trim(), amount: Number(r.amount) }))
-      .filter((r) => r.name !== '' && Number.isFinite(r.amount))
-      .map((r) => ({ name: r.name, amount: Math.round(r.amount) }))
-    store.replaceMonthEvents(props.month, items)
+      .map(r => ({ name: r.name.trim(), amount: Number(r.amount) }))
+      .filter(r => r.name !== '' && Number.isFinite(r.amount))
+      .map(r => ({ name: r.name, amount: Math.round(r.amount) }))
+    emit('save', items)
   }
   emit('close')
 }
@@ -74,10 +78,8 @@ onMounted(() => {
     tabindex="-1"
     @keyup.escape="commit"
   >
-    <!-- 统一浮层标题样式（等宽小号大写） -->
-    <div class="mb-2 font-mono text-[10.5px] tracking-[0.16em] uppercase text-ink-2">{{ formatMonth(month) }} 专项</div>
-
-    <div v-if="rows.length === 0" class="mb-2 text-ink-3">暂无事件，点下方「添加」</div>
+    <!-- 统一浮层标题样式（等宽小号大写），标题由父组件传入 -->
+    <div class="mb-2 font-mono text-[10.5px] tracking-[0.16em] uppercase text-ink-2">{{ title }}</div>
 
     <div v-for="(row, idx) in rows" :key="row.key" class="mb-1.5 flex items-center gap-1.5">
       <input
@@ -99,7 +101,7 @@ onMounted(() => {
       <button
         type="button"
         class="text-danger-600 hover:text-danger-800"
-        aria-label="删除该事件"
+        aria-label="删除该行"
         @click="removeRow(idx)"
       >×</button>
     </div>
@@ -108,7 +110,7 @@ onMounted(() => {
     <button
       type="button"
       class="mt-1 text-brand-600 hover:text-brand-700"
-      aria-label="添加事件"
+      aria-label="添加行"
       @click="addRow"
     >+ 添加</button>
 
