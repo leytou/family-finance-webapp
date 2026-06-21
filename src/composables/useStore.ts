@@ -1,5 +1,5 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
-import type { PlanData, FlowColumn, Scenario, Workspace, PlanSnapshot } from '../types'
+import type { PlanData, FlowColumn, ColumnItem, Scenario, Workspace, PlanSnapshot } from '../types'
 import { getCurrentMonth, formatMonth, addMonths, normalizeMonth, monthDiff, projectionMonths } from '../utils/month'
 import { calculate } from './useCalculation'
 
@@ -15,7 +15,7 @@ function generateId(): string {
 function createDefault(): PlanData {
   const startMonth = getCurrentMonth()
   return {
-    version: 2,
+    version: 3,
     systemParams: {
       startMonth,
       endMonth: addMonths(startMonth, 59),   // 默认 5 年期限
@@ -51,21 +51,45 @@ function isFiniteNumber(value: unknown): value is number {
 
 function isValidColumn(value: unknown): boolean {
   if (!isObject(value)) return false
-  if (typeof value.id !== 'string' || typeof value.name !== 'string') return false
-  if (!isObject(value.entries)) return false
-  for (const key in value.entries) {
-    const month = Number(key)
-    const amount = value.entries[key]
-    if (!Number.isInteger(month) || !isFiniteNumber(amount)) return false
-  }
-  if (value.yearlyMonths !== undefined) {
-    if (!isObject(value.yearlyMonths)) return false
-    for (const key in value.yearlyMonths) {
+  const col = value as Record<string, unknown>
+  if (typeof col.id !== 'string' || typeof col.name !== 'string') return false
+  if (col.mode !== undefined && col.mode !== 'single' && col.mode !== 'detail') return false
+  if (col.itemSets !== undefined) {
+    if (!isObject(col.itemSets)) return false
+    for (const key in col.itemSets) {
       if (!Number.isInteger(Number(key))) return false
+      const arr = (col.itemSets as Record<string, unknown>)[key]
+      if (!Array.isArray(arr)) return false
+      for (const it of arr) {
+        if (!isObject(it)) return false
+        const item = it as Record<string, unknown>
+        if (typeof item.id !== 'string' || typeof item.name !== 'string' || !isFiniteNumber(item.amount)) return false
+      }
     }
+    return true
   }
-  if (value.enabled !== undefined && typeof value.enabled !== 'boolean') return false
-  return true
+  if (col.entries !== undefined) {
+    if (!isObject(col.entries)) return false
+    for (const key in col.entries) {
+      if (!Number.isInteger(Number(key)) || !isFiniteNumber((col.entries as Record<string, number>)[key])) return false
+    }
+    return true
+  }
+  return false
+}
+
+/** 把旧 entries 结构的列升级为 itemSets（v2→v3）。幂等：已是新结构则只补 mode。 */
+function migrateColumn(col: Record<string, any>): void {
+  if (!col.itemSets) {
+    const entries = col.entries ?? {}
+    const itemSets: Record<number, ColumnItem[]> = {}
+    for (const key in entries) {
+      itemSets[key] = [{ id: generateId(), name: '', amount: entries[key] }]
+    }
+    col.itemSets = itemSets
+    delete col.entries
+  }
+  if (col.mode === undefined) col.mode = 'single'
 }
 
 function isValidAnchor(value: unknown): boolean {
@@ -121,7 +145,7 @@ function isValidFund(value: unknown): boolean {
 
 function isValidPlanData(value: unknown): value is PlanData {
   if (!isObject(value) || !isObject(value.systemParams)) return false
-  if (value.version !== 2) return false
+  if (value.version !== 2 && value.version !== 3) return false
   if ('snapshots' in value) {
     if (!Array.isArray(value.snapshots) || !value.snapshots.every(isValidSnapshot)) return false
   }
@@ -195,6 +219,14 @@ function normalizeWorkspace(ws: Workspace): Workspace {
       if (!Array.isArray(scenario.plan.fund.withdrawals)) scenario.plan.fund.withdrawals = []
       if (!Array.isArray(scenario.plan.fund.anchors)) scenario.plan.fund.anchors = []
     }
+    // 列与公积金三列：旧 entries 升级为 itemSets（v2→v3）
+    for (const col of scenario.plan.columns) migrateColumn(col as Record<string, any>)
+    if (scenario.plan.fund) {
+      migrateColumn(scenario.plan.fund.mortgage as Record<string, any>)
+      migrateColumn(scenario.plan.fund.contribution as Record<string, any>)
+      migrateColumn(scenario.plan.fund.monthlyOffset as Record<string, any>)
+    }
+    scenario.plan.version = 3
   }
   return ws
 }
@@ -317,7 +349,8 @@ export function useStore() {
     const column: FlowColumn = {
       id: generateId(),
       name: name ?? '新列',
-      entries: {},
+      itemSets: {},
+      mode: 'single',
     }
     plan.columns.push(column)
     return column
@@ -362,14 +395,39 @@ export function useStore() {
     const plan = getActivePlan()
     const column = plan.columns.find(col => col.id === colId)
     if (!column) return
-
+    if (!column.itemSets) column.itemSets = {}
     if (value === null) {
-      delete column.entries[month]
+      delete column.itemSets[month]
       // 联动清除年度标记：entry 已不存在，标记无意义且会残留
       if (column.yearlyMonths) delete column.yearlyMonths[month]
     } else {
-      column.entries[month] = value
+      column.itemSets[month] = [{ id: generateId(), name: '', amount: value }]
     }
+  }
+
+  // 整体替换某列某月的明细组：先丢弃「名称+金额」均无效的项，再写入合法项。
+  // 全部无效时删除该月组（等价于清空）。供明细编辑器关闭时提交。
+  function replaceColumnItems(colId: string, month: number, items: { name: string; amount: number }[]): void {
+    const plan = getActivePlan()
+    const column = plan.columns.find(col => col.id === colId)
+    if (!column) return
+    if (!column.itemSets) column.itemSets = {}
+    const valid = items
+      .map(it => ({ name: it.name.trim(), amount: Math.round(it.amount) }))
+      .filter(it => it.name !== '' && Number.isFinite(it.amount))
+    if (valid.length === 0) {
+      delete column.itemSets[month]
+    } else {
+      column.itemSets[month] = valid.map(it => ({ id: generateId(), name: it.name, amount: it.amount }))
+    }
+  }
+
+  // 切换列的展示模式：single=单值内联编辑；detail=明细弹窗编辑（仅控制 UI）
+  function setColumnMode(colId: string, mode: 'single' | 'detail'): void {
+    const plan = getActivePlan()
+    const column = plan.columns.find(col => col.id === colId)
+    if (!column) return
+    column.mode = mode
   }
 
   // 把指定月（须存在直接编辑值）的金额复制到「当前月及下方」所有同月，并标记为 yearly。
@@ -379,8 +437,8 @@ export function useStore() {
     const plan = getActivePlan()
     const column = plan.columns.find(col => col.id === colId)
     if (!column) return
-    const amount = column.entries[month]
-    if (amount === undefined) return                 // 无值不可同步
+    const template = column.itemSets?.[month]
+    if (!template) return                              // 无手填组不可同步
     if (!column.yearlyMonths) column.yearlyMonths = {}
     const moy = month % 100
     const start = plan.systemParams.startMonth
@@ -390,7 +448,7 @@ export function useStore() {
       const m = addMonths(start, i)
       // 仅当前月及下方（m >= month）：保护上方过去年份不被覆盖
       if (m % 100 === moy && m >= month) {
-        column.entries[m] = amount
+        column.itemSets[m] = template.map(it => ({ id: generateId(), name: it.name, amount: it.amount }))
         column.yearlyMonths[m] = true
       }
     }
@@ -426,7 +484,7 @@ export function useStore() {
 
   // —— 公积金操作 ——
   function emptyFlowColumn(name: string): FlowColumn {
-    return { id: generateId(), name, entries: {} }
+    return { id: generateId(), name, itemSets: {} }
   }
 
   function enableFund(): void {
@@ -454,11 +512,12 @@ export function useStore() {
     const plan = getActivePlan()
     if (!plan.fund) return
     const column = plan.fund[field]
+    if (!column.itemSets) column.itemSets = {}
     if (value === null) {
-      delete column.entries[month]
+      delete column.itemSets[month]
       if (column.yearlyMonths) delete column.yearlyMonths[month]
     } else {
-      column.entries[month] = value
+      column.itemSets[month] = [{ id: generateId(), name: '', amount: value }]
     }
   }
 
@@ -466,8 +525,8 @@ export function useStore() {
     const plan = getActivePlan()
     if (!plan.fund) return
     const column = plan.fund[field]
-    const amount = column.entries[month]
-    if (amount === undefined) return
+    const template = column.itemSets?.[month]
+    if (!template) return
     if (!column.yearlyMonths) column.yearlyMonths = {}
     const moy = month % 100
     const start = plan.systemParams.startMonth
@@ -476,7 +535,7 @@ export function useStore() {
     for (let i = 0; i < totalMonths; i++) {
       const m = addMonths(start, i)
       if (m % 100 === moy && m >= month) {
-        column.entries[m] = amount
+        column.itemSets[m] = template.map(it => ({ id: generateId(), name: it.name, amount: it.amount }))
         column.yearlyMonths[m] = true
       }
     }
@@ -630,6 +689,8 @@ export function useStore() {
     setColumnEnabled,
     moveColumn,
     updateColumnEntry,
+    replaceColumnItems,
+    setColumnMode,
     syncYearly,
     replaceMonthEvents,
     addAnchor,

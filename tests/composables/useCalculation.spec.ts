@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculate, resolveColumnValue, hasColumnValue, resolveFundOffset, buildComparison, aggregateByYear } from '../../src/composables/useCalculation'
+import { calculate, resolveColumnValue, resolveColumnItems, hasColumnValue, resolveFundOffset, buildComparison, aggregateByYear } from '../../src/composables/useCalculation'
 import type { PlanData, FlowColumn, MonthResult, PlanSnapshot, FundConfig } from '../../src/types'
 
 function makePlan(overrides: Partial<PlanData> = {}): PlanData {
@@ -47,7 +47,7 @@ describe('resolveColumnValue', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '工资',
-      entries: { 202601: 10000 },
+      itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] },
     }
 
     const result = resolveColumnValue(column, 202601)
@@ -65,7 +65,7 @@ describe('resolveColumnValue', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '工资',
-      entries: { 202601: 10000 },
+      itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] },
     }
 
     const result = resolveColumnValue(column, 202602)
@@ -83,7 +83,7 @@ describe('resolveColumnValue', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '工资',
-      entries: {},
+      itemSets: {},
     }
 
     const result = resolveColumnValue(column, 202601)
@@ -101,7 +101,7 @@ describe('resolveColumnValue', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '工资',
-      entries: { 202601: 10000, 202603: 0 },
+      itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }], 202603: [{ id: "i1", name: "", amount: 0 }] },
     }
 
     expect(resolveColumnValue(column, 202602)).toEqual({
@@ -133,7 +133,7 @@ describe('resolveColumnValue', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '工资',
-      entries: { 202601: 10000, 202603: 0, 202606: 15000 },
+      itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }], 202603: [{ id: "i1", name: "", amount: 0 }], 202606: [{ id: "i1", name: "", amount: 15000 }] },
     }
 
     expect(resolveColumnValue(column, 202604)).toEqual({
@@ -173,7 +173,7 @@ describe('resolveColumnValue', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '工资',
-      entries: { 202601: 5000, 202603: 10000, 202605: 15000 },
+      itemSets: { 202601: [{ id: "i1", name: "", amount: 5000 }], 202603: [{ id: "i1", name: "", amount: 10000 }], 202605: [{ id: "i1", name: "", amount: 15000 }] },
     }
 
     expect(resolveColumnValue(column, 202602)).toEqual({
@@ -205,7 +205,7 @@ describe('resolveColumnValue', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '年终奖',
-      entries: { 202612: 50000 },
+      itemSets: { 202612: [{ id: "i1", name: "", amount: 50000 }] },
       yearlyMonths: { 202612: true },
     }
 
@@ -225,7 +225,7 @@ describe('resolveColumnValue', () => {
 
   it('无 yearlyMonths 字段时延续行为不变（回归）', () => {
     const column: FlowColumn = {
-      id: 'col1', name: '工资', entries: { 202601: 10000 },
+      id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] },
     }
     expect(resolveColumnValue(column, 202602)).toEqual({
       id: 'col1', name: '工资', amount: 10000, isEdited: false, enabled: true,
@@ -236,7 +236,7 @@ describe('resolveColumnValue', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '混合',
-      entries: { 202601: 1000, 202612: 50000 },
+      itemSets: { 202601: [{ id: "i1", name: "", amount: 1000 }], 202612: [{ id: "i1", name: "", amount: 50000 }] },
       yearlyMonths: { 202612: true },
     }
     // 202602 延续非 yearly 的 202601
@@ -251,7 +251,7 @@ describe('resolveColumnValue', () => {
     const column: FlowColumn = {
       id: 'col1',
       name: '旅游',
-      entries: { 202601: 5000 },
+      itemSets: { 202601: [{ id: "i1", name: "", amount: 5000 }] },
       enabled: false,
     }
 
@@ -277,32 +277,32 @@ describe('resolveColumnValue', () => {
 
 describe('hasColumnValue', () => {
   it('该月有直接编辑值 → true', () => {
-    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202601: 100 } }
+    const column: FlowColumn = { id: 'c1', name: 'x', itemSets: { 202601: [{ id: "i1", name: "", amount: 100 }] } }
     expect(hasColumnValue(column, 202601)).toBe(true)
   })
 
   it('该月向前延续到非零 entry → true', () => {
-    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202601: 100 } }
+    const column: FlowColumn = { id: 'c1', name: 'x', itemSets: { 202601: [{ id: "i1", name: "", amount: 100 }] } }
     expect(hasColumnValue(column, 202603)).toBe(true)
   })
 
   it('该月向前延续到 0 entry → true（0 也是有效输入）', () => {
-    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202601: 0 } }
+    const column: FlowColumn = { id: 'c1', name: 'x', itemSets: { 202601: [{ id: "i1", name: "", amount: 0 }] } }
     expect(hasColumnValue(column, 202603)).toBe(true)
   })
 
   it('完全无任何 entry → false', () => {
-    const column: FlowColumn = { id: 'c1', name: 'x', entries: {} }
+    const column: FlowColumn = { id: 'c1', name: 'x', itemSets: {} }
     expect(hasColumnValue(column, 202601)).toBe(false)
   })
 
   it('仅有 yearly 标记月、其后非同月 → false（yearly 不作延续源）', () => {
-    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202612: 500 }, yearlyMonths: { 202612: true } }
+    const column: FlowColumn = { id: 'c1', name: 'x', itemSets: { 202612: [{ id: "i1", name: "", amount: 500 }] }, yearlyMonths: { 202612: true } }
     expect(hasColumnValue(column, 202701)).toBe(false)
   })
 
   it('yearly 月本身 → true', () => {
-    const column: FlowColumn = { id: 'c1', name: 'x', entries: { 202612: 500 }, yearlyMonths: { 202612: true } }
+    const column: FlowColumn = { id: 'c1', name: 'x', itemSets: { 202612: [{ id: "i1", name: "", amount: 500 }] }, yearlyMonths: { 202612: true } }
     expect(hasColumnValue(column, 202612)).toBe(true)
   })
 })
@@ -310,9 +310,9 @@ describe('hasColumnValue', () => {
 describe('resolveFundOffset', () => {
   function makeFund(overrides: Partial<FundConfig> = {}): FundConfig {
     return {
-      mortgage: { id: 'm', name: '房贷月供', entries: { 202601: 5000 } },
-      contribution: { id: 'c', name: '公积金缴存', entries: {} },
-      monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+      mortgage: { id: 'm', name: '房贷月供', itemSets: { 202601: [{ id: "i1", name: "", amount: 5000 }] } },
+      contribution: { id: 'c', name: '公积金缴存', itemSets: {} },
+      monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
       withdrawals: [],
       anchors: [],
       ...overrides,
@@ -326,18 +326,18 @@ describe('resolveFundOffset', () => {
   })
 
   it('月冲有直接编辑值 → 用月冲自身值', () => {
-    const fund = makeFund({ monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 3000 } } })
+    const fund = makeFund({ monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: { 202601: [{ id: "i1", name: "", amount: 3000 }] } } })
     expect(resolveFundOffset(fund, 202601)).toBe(3000)
   })
 
   it('月冲向前延续 → 用延续值', () => {
-    const fund = makeFund({ monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 3000 } } })
+    const fund = makeFund({ monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: { 202601: [{ id: "i1", name: "", amount: 3000 }] } } })
     expect(resolveFundOffset(fund, 202603)).toBe(3000)
   })
 
   it('月冲与房贷都无值 → 0', () => {
     const fund = makeFund({
-      mortgage: { id: 'm', name: '房贷月供', entries: {} },
+      mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
     })
     expect(resolveFundOffset(fund, 202601)).toBe(0)
   })
@@ -408,7 +408,7 @@ describe('calculate', () => {
           {
             id: 'col1',
             name: '工资',
-            entries: { 202601: 10000 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] },
           },
         ],
       }),
@@ -446,7 +446,7 @@ describe('calculate', () => {
           {
             id: 'col1',
             name: '工资',
-            entries: { 202601: 10000, 202604: 0 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }], 202604: [{ id: "i1", name: "", amount: 0 }] },
           },
         ],
       }),
@@ -490,7 +490,7 @@ describe('calculate', () => {
           {
             id: 'col1',
             name: '工资',
-            entries: { 202601: 10000, 202604: 0, 202607: 15000 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }], 202604: [{ id: "i1", name: "", amount: 0 }], 202607: [{ id: "i1", name: "", amount: 15000 }] },
           },
         ],
       }),
@@ -529,12 +529,12 @@ describe('calculate', () => {
           {
             id: 'col1',
             name: '工资',
-            entries: { 202601: 10000 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] },
           },
           {
             id: 'col2',
             name: '房租',
-            entries: { 202601: -3000 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: -3000 }] },
           },
         ],
       }),
@@ -572,7 +572,7 @@ describe('calculate', () => {
           {
             id: 'col1',
             name: '工资',
-            entries: { 202601: 10000 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] },
           },
         ],
       }),
@@ -598,7 +598,7 @@ describe('calculate', () => {
           {
             id: 'col1',
             name: '工资',
-            entries: { 202601: 10000 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] },
           },
         ],
         anchors: [{ month: 202603, actualSavings: 200000 }],
@@ -635,7 +635,7 @@ describe('calculate', () => {
           {
             id: 'col1',
             name: '工资',
-            entries: { 202601: 10000 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] },
           },
         ],
         anchors: [{ month: 202603, actualSavings: 50000 },
@@ -674,17 +674,17 @@ describe('calculate', () => {
           {
             id: 'col1',
             name: '工资',
-            entries: { 202601: 10000 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] },
           },
           {
             id: 'col2',
             name: '房租',
-            entries: { 202601: -5000 },
+            itemSets: { 202601: [{ id: "i1", name: "", amount: -5000 }] },
           },
           {
             id: 'col3',
             name: '投资亏损',
-            entries: { 202602: -2000 },
+            itemSets: { 202602: [{ id: "i1", name: "", amount: -2000 }] },
           },
         ],
       }),
@@ -762,8 +762,8 @@ describe('calculate', () => {
     const results = calculate(
       makePlan({
         columns: [
-          { id: 'col1', name: '工资', entries: { 202601: 10000 } },
-          { id: 'col2', name: '旅游', entries: { 202601: -3000 }, enabled: false },
+          { id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } },
+          { id: 'col2', name: '旅游', itemSets: { 202601: [{ id: "i1", name: "", amount: -3000 }] }, enabled: false },
         ],
       }),
     )
@@ -785,7 +785,7 @@ describe('calculate', () => {
       makePlan({
         systemParams: { startMonth: 202601, annualRate: 0.12, initialDeposit: 100000 },
         columns: [
-          { id: 'col1', name: '工资', entries: { 202601: 10000 }, enabled: false },
+          { id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] }, enabled: false },
         ],
       }),
     )
@@ -802,7 +802,7 @@ describe('calculate', () => {
     const results = calculate(
       makePlan({
         columns: [
-          { id: 'col1', name: '工资', entries: { 202601: 10000 } },
+          { id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } },
         ],
       }),
     )
@@ -812,7 +812,7 @@ describe('calculate', () => {
 
   it('无 fund 时公积金字段全为 0，totalAssets === cumSavings', () => {
     const results = calculate(makePlan({
-      columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000 } }],
+      columns: [{ id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } }],
     }))
     const r = results[0]
     expect(r.fundBalance).toBe(0)
@@ -825,9 +825,9 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0.015, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: {} },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 1000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 1000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [],
         anchors: [],
       },
@@ -841,9 +841,9 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: {} },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 1000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 1000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [],
         anchors: [],
       },
@@ -859,9 +859,9 @@ describe('calculate', () => {
       // fundRate=0.12 便于手算：每月应计 = 余额*0.01
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0.12, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: {} },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 10000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [],
         anchors: [],
       },
@@ -879,9 +879,9 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 5000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} }, // 未填，默认取房贷月供 5000
+        mortgage: { id: 'm', name: '房贷月供', itemSets: { 202601: [{ id: "i1", name: "", amount: -5000 }] } },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 5000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} }, // 未填，默认取房贷月供 5000
         withdrawals: [],
         anchors: [],
       },
@@ -899,9 +899,9 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 2000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        mortgage: { id: 'm', name: '房贷月供', itemSets: { 202601: [{ id: "i1", name: "", amount: -5000 }] } },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 2000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [],
         anchors: [],
       },
@@ -916,9 +916,9 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: {} },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 100000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 100000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [{ id: 'w1', name: '买房提取', month: 202602, amount: 30000 }],
         anchors: [],
       },
@@ -940,9 +940,9 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: {} },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 10000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [{ id: 'w1', name: '超额提取', month: 202602, amount: 999999 }],
         anchors: [],
       },
@@ -957,9 +957,9 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: {} },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 1000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 1000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [],
         anchors: [{ month: 202603, actualBalance: 500000 }],
       },
@@ -972,11 +972,11 @@ describe('calculate', () => {
   it('收入含理财收益与公积金提取（新口径）', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0.12, fundRate: 0, fundInterestMonth: 7 },
-      columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000 } }],
+      columns: [{ id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } }],
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: {} },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 50000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 50000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [{ id: 'w1', name: '买房提取', month: 202602, amount: 30000 }],
         anchors: [],
       },
@@ -991,9 +991,9 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 2000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} }, // 默认联动 5000，余额只够 2000
+        mortgage: { id: 'm', name: '房贷月供', itemSets: { 202601: [{ id: "i1", name: "", amount: -5000 }] } },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 2000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} }, // 默认联动 5000，余额只够 2000
         withdrawals: [], anchors: [],
       },
     }))
@@ -1005,8 +1005,8 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0.12, fundRate: 0, fundInterestMonth: 7 },
       columns: [
-        { id: 'col1', name: '工资', entries: { 202601: 10000 } },
-        { id: 'col2', name: '房租', entries: { 202601: -3000 } },
+        { id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } },
+        { id: 'col2', name: '房租', itemSets: { 202601: [{ id: "i1", name: "", amount: -3000 }] } },
       ],
     }))
     for (const r of results) {
@@ -1018,9 +1018,9 @@ describe('calculate', () => {
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -3000 } },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 100000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 5000 } }, // 手填 5000 > 房贷 3000
+        mortgage: { id: 'm', name: '房贷月供', itemSets: { 202601: [{ id: "i1", name: "", amount: -3000 }] } },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 100000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: { 202601: [{ id: "i1", name: "", amount: 5000 }] } }, // 手填 5000 > 房贷 3000
         withdrawals: [], anchors: [],
       },
     }))
@@ -1038,9 +1038,9 @@ describe('存款补扣 fundOffsetShortfall（= 房贷月供 − 公积金实际�
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 5000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },   // 默认联动房贷 5000
+        mortgage: { id: 'm', name: '房贷月供', itemSets: { 202601: [{ id: "i1", name: "", amount: -5000 }] } },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 5000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },   // 默认联动房贷 5000
         withdrawals: [], anchors: [],
       },
     }))
@@ -1052,9 +1052,9 @@ describe('存款补扣 fundOffsetShortfall（= 房贷月供 − 公积金实际�
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 2000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },   // 联动 5000，但余额只够 2000
+        mortgage: { id: 'm', name: '房贷月供', itemSets: { 202601: [{ id: "i1", name: "", amount: -5000 }] } },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 2000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },   // 联动 5000，但余额只够 2000
         withdrawals: [], anchors: [],
       },
     }))
@@ -1066,9 +1066,9 @@ describe('存款补扣 fundOffsetShortfall（= 房贷月供 − 公积金实际�
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: {} },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 1000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: {} },
+        mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 1000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [], anchors: [],
       },
     }))
@@ -1079,9 +1079,9 @@ describe('存款补扣 fundOffsetShortfall（= 房贷月供 − 公积金实际�
     const results = calculate(makePlan({
       systemParams: { startMonth: 202601, annualRate: 0, fundRate: 0, fundInterestMonth: 7 },
       fund: {
-        mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
-        contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 10000 } },
-        monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 3000 } },   // 手填 3000
+        mortgage: { id: 'm', name: '房贷月供', itemSets: { 202601: [{ id: "i1", name: "", amount: -5000 }] } },
+        contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } },
+        monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: { 202601: [{ id: "i1", name: "", amount: 3000 }] } },   // 手填 3000
         withdrawals: [], anchors: [],
       },
     }))
@@ -1091,7 +1091,7 @@ describe('存款补扣 fundOffsetShortfall（= 房贷月供 − 公积金实际�
 
   it('无 fund → shortfall 为 0', () => {
     const results = calculate(makePlan({
-      columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000 } }],
+      columns: [{ id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } }],
     }))
     expect(results[0].fundOffsetShortfall).toBe(0)
   })
@@ -1164,7 +1164,7 @@ describe('calculate 与专项事件', () => {
   it('事件不影响普通列携带延续', () => {
     const results = calculate(
       makePlan({
-        columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000 } }],
+        columns: [{ id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } }],
         events: [{ id: 'e1', name: '买房', month: 202602, amount: -500000 }],
       }),
     )
@@ -1268,5 +1268,78 @@ describe('aggregateByYear', () => {
 
   it('空数组返回空数组', () => {
     expect(aggregateByYear([])).toEqual([])
+  })
+})
+
+describe('resolveColumnValue 明细组合计', () => {
+  it('多笔明细取代数合计', () => {
+    const column: FlowColumn = {
+      id: 'col1', name: '奖金',
+      itemSets: { 202601: [
+        { id: 'a', name: '年终奖', amount: 8000 },
+        { id: 'b', name: '红包', amount: 3000 },
+      ] },
+    }
+    expect(resolveColumnValue(column, 202601).amount).toBe(11000)
+  })
+
+  it('正负混排按代数和归入合计', () => {
+    const column: FlowColumn = {
+      id: 'col1', name: '杂项',
+      itemSets: { 202601: [
+        { id: 'a', name: '进账', amount: 5000 },
+        { id: 'b', name: '支出', amount: -2000 },
+      ] },
+    }
+    expect(resolveColumnValue(column, 202601).amount).toBe(3000)
+  })
+
+  it('空组视为手填过：合计 0、isEdited=true', () => {
+    const column: FlowColumn = { id: 'col1', name: '奖金', itemSets: { 202601: [] } }
+    const r = resolveColumnValue(column, 202601)
+    expect(r.amount).toBe(0)
+    expect(r.isEdited).toBe(true)
+  })
+
+  it('延续整组：前月多笔，后月沿用其合计', () => {
+    const column: FlowColumn = {
+      id: 'col1', name: '奖金',
+      itemSets: { 202601: [
+        { id: 'a', name: '项目奖', amount: 5000 },
+        { id: 'b', name: '加班费', amount: 3000 },
+      ] },
+    }
+    expect(resolveColumnValue(column, 202602).amount).toBe(8000)
+    expect(resolveColumnValue(column, 202602).isEdited).toBe(false)
+  })
+
+  it('yearly 月不参与延续', () => {
+    const column: FlowColumn = {
+      id: 'col1', name: '奖金',
+      itemSets: { 202601: [{ id: 'a', name: '年度奖', amount: 9000 }] },
+      yearlyMonths: { 202601: true },
+    }
+    expect(resolveColumnValue(column, 202602).amount).toBe(0)
+  })
+})
+
+describe('resolveColumnItems', () => {
+  it('返回该月生效的整组明细（手填）', () => {
+    const column: FlowColumn = {
+      id: 'col1', name: '奖金',
+      itemSets: { 202601: [{ id: 'a', name: 'x', amount: 1 }] },
+    }
+    expect(resolveColumnItems(column, 202601)).toEqual([{ id: 'a', name: 'x', amount: 1 }])
+  })
+
+  it('返回沿用组（前月多笔）', () => {
+    const group = [{ id: 'a', name: 'x', amount: 1 }, { id: 'b', name: 'y', amount: 2 }]
+    const column: FlowColumn = { id: 'col1', name: '奖金', itemSets: { 202601: group } }
+    expect(resolveColumnItems(column, 202602)).toEqual(group)
+  })
+
+  it('无任何组返回空数组', () => {
+    const column: FlowColumn = { id: 'col1', name: '奖金', itemSets: {} }
+    expect(resolveColumnItems(column, 202601)).toEqual([])
   })
 })

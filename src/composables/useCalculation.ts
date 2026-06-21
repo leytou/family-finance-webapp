@@ -1,8 +1,14 @@
-import type { FlowColumn, FundConfig, MonthResult, PlanData, PlanSnapshot } from '../types'
+import type { FlowColumn, ColumnItem, FundConfig, MonthResult, PlanData, PlanSnapshot } from '../types'
 import { addMonths, projectionMonths } from '../utils/month'
 
 // 虚拟「专项」列值在 columnValues 中的固定 id（事件求和注入；非真实 FlowColumn）
 const EVENT_COLUMN_ID = '__events__'
+
+/** 一组明细的代数合计（正负混排求和） */
+function sumItems(items: { amount: number }[] | undefined): number {
+  if (!items || items.length === 0) return 0
+  return items.reduce((sum, it) => sum + it.amount, 0)
+}
 
 /**
  * 解析某列在指定月份的显示值
@@ -14,53 +20,24 @@ export function resolveColumnValue(
   column: FlowColumn,
   month: number,
 ): { id: string; name: string; amount: number; isEdited: boolean; enabled: boolean } {
-  const enabled = column.enabled !== false   // undefined / true → 启用；仅 false → 禁用
+  const enabled = column.enabled !== false
 
-  // 规则1: 若该月存在编辑值，直接返回
-  // 注意：entries 的键在 JavaScript 中是字符串，所以需要用 String(month) 检查
+  // 规则1: 该月有手填组（含空组）→ 用其合计，标记 isEdited
   const monthKey = String(month)
-  if (monthKey in column.entries) {
-    return {
-      id: column.id,
-      name: column.name,
-      amount: column.entries[month],
-      isEdited: true,
-      enabled,
-    }
+  if (monthKey in column.itemSets) {
+    return { id: column.id, name: column.name, amount: sumItems(column.itemSets[month]), isEdited: true, enabled }
   }
 
-  // 规则2: 向前查找最近的 entry（key < month），跳过被标记为 yearly 的月
-  // yearly 月是脉冲项，不向前延续；否则其后所有月会被错误蔓延
+  // 规则2: 向前找最近的、未被 yearly 标记的手填月 → 沿用其整组合计
   const isYearlyKey = (k: number) => Boolean(column.yearlyMonths?.[k])
-  const entryKeys = Object.keys(column.entries)
-    .map(Number)
-    .filter(key => key < month && !isYearlyKey(key))
-
+  const entryKeys = Object.keys(column.itemSets).map(Number).filter(key => key < month && !isYearlyKey(key))
   if (entryKeys.length > 0) {
-    // 找到最近的 entry（最大的 key）
     const mostRecentKey = Math.max(...entryKeys)
-    const inheritedValue = column.entries[mostRecentKey]
-
-    // 找到且值非零 → 延续该值
-    // 找到且值为 0 → 显示 0
-    // 两种情况都标记为非编辑状态
-    return {
-      id: column.id,
-      name: column.name,
-      amount: inheritedValue,
-      isEdited: false,
-      enabled,
-    }
+    return { id: column.id, name: column.name, amount: sumItems(column.itemSets[mostRecentKey]), isEdited: false, enabled }
   }
 
-  // 规则3: 未找到任何 entry → 显示 0
-  return {
-    id: column.id,
-    name: column.name,
-    amount: 0,
-    isEdited: false,
-    enabled,
-  }
+  // 规则3: 无任何手填组 → 0
+  return { id: column.id, name: column.name, amount: 0, isEdited: false, enabled }
 }
 
 /**
@@ -69,15 +46,23 @@ export function resolveColumnValue(
  * 供月冲默认联动判定（未手填月冲时回退到房贷月供）。
  */
 export function hasColumnValue(column: FlowColumn, month: number): boolean {
-  // 直接编辑值
-  if (String(month) in column.entries) return true
-
-  // 向前查找最近的非 yearly entry（与 resolveColumnValue 规则2 一致）
+  if (String(month) in column.itemSets) return true
   const isYearlyKey = (k: number) => Boolean(column.yearlyMonths?.[k])
-  const entryKeys = Object.keys(column.entries)
-    .map(Number)
-    .filter(key => key < month && !isYearlyKey(key))
+  const entryKeys = Object.keys(column.itemSets).map(Number).filter(key => key < month && !isYearlyKey(key))
   return entryKeys.length > 0
+}
+
+/**
+ * 解析某列在指定月「生效的整组明细」（手填组或沿用组）；无则空数组。
+ * 与 resolveColumnValue 同构，但返回明细组而非合计，供只读明细弹窗使用。
+ */
+export function resolveColumnItems(column: FlowColumn, month: number): ColumnItem[] {
+  const monthKey = String(month)
+  if (monthKey in column.itemSets) return column.itemSets[month]
+  const isYearlyKey = (k: number) => Boolean(column.yearlyMonths?.[k])
+  const entryKeys = Object.keys(column.itemSets).map(Number).filter(key => key < month && !isYearlyKey(key))
+  if (entryKeys.length > 0) return column.itemSets[Math.max(...entryKeys)]
+  return []
 }
 
 /**

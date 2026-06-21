@@ -1,9 +1,17 @@
+// 单笔明细（动态列专用；按月存于 FlowColumn.itemSets 一组中）
+export interface ColumnItem {
+  id: string
+  name: string      // 可空；单值列那笔 name=''，明细列可填
+  amount: number    // 元；正=收入，负=支出
+}
+
 export interface FlowColumn {
   id: string
   name: string
-  entries: Record<number, number>          // 稀疏存储，key=YYYYMM，只存用户手动编辑的值
-  yearlyMonths?: Record<number, true>      // 标记哪些月是「年度重复项」(key=YYYYMM，存在即标记)；标记月不向前延续
-  enabled?: boolean                        // 缺省(undefined)/true=启用；false=禁用（不计入统计，数值仍灰显）
+  itemSets: Record<number, ColumnItem[]>   // key=YYYYMM，value=该月手填明细组（单值=一组一笔）
+  yearlyMonths?: Record<number, true>      // 标记月：整组只算当月、不参与往后延续
+  enabled?: boolean                        // 缺省/true=启用；false=禁用（不计统计，灰显）
+  mode?: 'single' | 'detail'               // 缺省/'single'=单值；'detail'=明细列（仅控制 UI）
 }
 
 // 单月一次性大额收支（买房、生育、换车、择校费……）
