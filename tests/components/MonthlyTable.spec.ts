@@ -666,7 +666,7 @@ describe('MonthlyTable', () => {
       expect(menuItem.attributes('aria-disabled')).toBe('true')
     })
 
-    it('动态列右键菜单顺序：同步 → 清除该值 → 清除下方编辑值', async () => {
+    it('动态列右键菜单顺序：同步 → 清除该值 → 清除下方编辑值 → 切换为明细列', async () => {
       const store = useSharedStore()
       store.reset()
       store.data.value.systemParams.startMonth = 202601
@@ -683,7 +683,7 @@ describe('MonthlyTable', () => {
         .findComponent({ name: 'ContextMenu' })
         .findAll('[role="menuitem"]')
         .map(i => i.text())
-      expect(labels).toEqual(['同步到下方每年此月', '清除该值', '清除下方编辑值'])
+      expect(labels).toEqual(['同步到下方每年此月', '清除该值', '清除下方编辑值', '切换为明细列'])
     })
 
     it('点击「清除该值」删除当前格公积金余额锚点', async () => {
@@ -1623,5 +1623,42 @@ describe('动态列明细模式', () => {
     expect(popover.exists()).toBe(true)
     expect(popover.text()).toContain('项目奖')
     expect(popover.text()).toContain('加班费')
+  })
+})
+
+describe('右键切换明细/单值', () => {
+  it('动态列右键菜单含「切换为明细列」，点击后列变 detail', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    const col = store.addColumn('奖金')
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    await wrapper.find('[aria-label="编辑 2026-01 奖金"]').trigger('contextmenu')
+
+    const item = wrapper.findComponent({ name: 'ContextMenu' })
+      .findAll('[role="menuitem"]').find(i => i.text() === '切换为明细列')!
+    await item.trigger('click')
+
+    expect(col.mode).toBe('detail')
+  })
+
+  it('明细列右键菜单显示「切回单值」，点击后变 single', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    const col = store.addColumn('奖金')
+    store.setColumnMode(col.id, 'detail')
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    await wrapper.find('[aria-label="编辑 2026-01 奖金"]').trigger('contextmenu')
+
+    const item = wrapper.findComponent({ name: 'ContextMenu' })
+      .findAll('[role="menuitem"]').find(i => i.text() === '切回单值')!
+    await item.trigger('click')
+
+    expect(col.mode).toBe('single')
   })
 })

@@ -486,6 +486,17 @@ const contextMenuItems = computed(() => {
     onClick: () => clearEditedBelow(ctx.columnId, ctx.month),
   })
 
+  // 切换明细/单值：仅真实动态列（余额列、公积金专区固定列不切换）
+  if (!isBalanceColumn && !isFundFixed) {
+    const col = columns.value.find(c => c.id === ctx.columnId)
+    if (col) {
+      items.push({
+        label: col.mode === 'detail' ? '切回单值' : '切换为明细列',
+        onClick: () => store.setColumnMode(ctx.columnId, col.mode === 'detail' ? 'single' : 'detail'),
+      })
+    }
+  }
+
   return items
 })
 
