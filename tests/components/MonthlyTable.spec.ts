@@ -1554,3 +1554,74 @@ describe('MonthlyTable · 公积金专区', () => {
     expect(item.attributes('aria-disabled')).toBe('true')
   })
 })
+
+describe('动态列明细模式', () => {
+  it('明细列点击单元格打开明细编辑器；保存写回 replaceColumnItems', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    const col = store.addColumn('奖金')
+    store.setColumnMode(col.id, 'detail')
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const cell = wrapper.find('[aria-label="编辑 2026-01 奖金"]')
+    await cell.trigger('click')
+
+    const editor = wrapper.findComponent({ name: 'ItemEditor' })
+    expect(editor.exists()).toBe(true)
+    const names = editor.findAll('input[placeholder="名称"]')
+    const amounts = editor.findAll('input[inputmode="numeric"]')
+    await names[0].setValue('年终奖'); await amounts[0].setValue('8000')
+    await names[1].setValue('红包');   await amounts[1].setValue('3000')
+    await editor.find('button[aria-label="完成"]').trigger('click')
+
+    expect(col.itemSets[202601].map(i => i.amount)).toEqual([8000, 3000])
+  })
+
+  it('明细列悬停显示只读明细弹窗', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    const col = store.addColumn('奖金')
+    store.setColumnMode(col.id, 'detail')
+    store.replaceColumnItems(col.id, 202601, [{ name: '年终奖', amount: 8000 }])
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const cell = wrapper.find('[aria-label="编辑 2026-01 奖金"]')
+    await cell.trigger('mouseenter', { clientX: 100, clientY: 100 })
+    expect(wrapper.findComponent({ name: 'EventDetailPopover' }).exists()).toBe(true)
+  })
+
+  it('单值列维持内联编辑，不弹编辑器', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    store.addColumn('工资')   // 缺省 single
+    const results = calculate(store.data.value).slice(0, 1)
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    await wrapper.find('[aria-label="编辑 2026-01 工资"]').trigger('click')
+    expect(wrapper.find('input[inputmode="numeric"]').exists()).toBe(true)  // 内联输入框
+    expect(wrapper.findComponent({ name: 'ItemEditor' }).exists()).toBe(false)
+  })
+
+  it('悬停延续来的明细组（未手填、沿用前月）也弹只读弹窗', async () => {
+    const store = useSharedStore()
+    store.reset()
+    store.data.value.systemParams.startMonth = 202601
+    const col = store.addColumn('奖金')
+    store.setColumnMode(col.id, 'detail')
+    store.replaceColumnItems(col.id, 202601, [{ name: '项目奖', amount: 5000 }, { name: '加班费', amount: 3000 }])
+    const results = calculate(store.data.value).slice(0, 2)  // 202602 不手填，沿用 202601 组
+
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const cell = wrapper.find('[aria-label="编辑 2026-02 奖金"]')
+    await cell.trigger('mouseenter', { clientX: 100, clientY: 100 })
+    const popover = wrapper.findComponent({ name: 'EventDetailPopover' })
+    expect(popover.exists()).toBe(true)
+    expect(popover.text()).toContain('项目奖')
+    expect(popover.text()).toContain('加班费')
+  })
+})

@@ -11,7 +11,7 @@ import { formatCurrency } from '../utils/format'
 import { formatMonth } from '../utils/month'
 import { computePopoverX } from '../utils/popover'
 import { useStore } from '../composables/useStore'
-import { buildComparison, resolveColumnValue, hasColumnValue, resolveFundOffset } from '../composables/useCalculation'
+import { buildComparison, resolveColumnValue, hasColumnValue, resolveFundOffset, resolveColumnItems } from '../composables/useCalculation'
 import { useClickOutside } from '../composables/useClickOutside'
 import { useColumnDrag } from '../composables/useColumnDrag'
 
@@ -104,6 +104,50 @@ function showEventDetail(month: number, event: MouseEvent) {
 function hideEventDetail() {
   eventPopover.value = null
 }
+
+// 动态列是否为明细模式
+function isDetailColumn(column: FlowColumn): boolean {
+  return column.mode === 'detail'
+}
+
+// 动态列明细编辑器状态：点击单元格时打开，可新增/编辑/删除多条「名称+金额」明细
+const detailEditor = ref<{ columnId: string; month: number; x: number; y: number } | null>(null)
+function openDetailEditor(columnId: string, month: number, event: MouseEvent) {
+  // 编辑器宽约 min-w-64(256)，估 288；靠右时整体左移避免溢出视口
+  detailEditor.value = { columnId, month, x: computePopoverX(event.clientX, { expectedWidth: 288 }), y: event.clientY }
+  // 打开编辑器时收起悬浮明细，避免两者叠加（与专项 openEventEditor 一致）
+  detailPopover.value = null
+}
+function closeDetailEditor() {
+  detailEditor.value = null
+}
+// 编辑器当前对应的列与结果：在 setup 中解析，避免模板内联非空断言
+const detailEditorColumn = computed(() =>
+  detailEditor.value ? columns.value.find(c => c.id === detailEditor.value!.columnId) : undefined,
+)
+function handleDetailEditorSave(items: { name: string; amount: number }[]) {
+  if (detailEditor.value) store.replaceColumnItems(detailEditor.value.columnId, detailEditor.value.month, items)
+}
+
+// 动态列只读明细弹窗状态：悬停单元格时展示已有明细（无可弹项时不弹）
+const detailPopover = ref<{ columnId: string; month: number; x: number; y: number } | null>(null)
+function showDetailPopover(columnId: string, month: number, event: MouseEvent) {
+  const col = columns.value.find(c => c.id === columnId)
+  if (col && resolveColumnItems(col, month).length > 0) {
+    detailPopover.value = { columnId, month, x: computePopoverX(event.clientX), y: event.clientY + 10 }
+  }
+}
+function hideDetailPopover() {
+  detailPopover.value = null
+}
+// 弹窗当前对应的列与结果：在 setup 中解析，避免模板内联非空断言
+const detailPopoverColumn = computed(() =>
+  detailPopover.value ? columns.value.find(c => c.id === detailPopover.value!.columnId) : undefined,
+)
+const detailPopoverResult = computed(() =>
+  detailPopover.value ? props.results.find(r => r.month === detailPopover.value!.month) : undefined,
+)
+
 
 // 公积金流水编辑器状态
 const fundFlowEditor = ref<{ month: number; x: number; y: number } | null>(null)
@@ -812,32 +856,47 @@ function getValueClass(value: number): string {
             ]"
             @contextmenu.prevent="openContextMenu(column.id, result.month, $event)"
           >
-            <input
-              v-if="editingCell?.columnId === column.id && editingCell?.month === result.month"
-              :ref="setEditCellInput"
-              type="text"
-              inputmode="numeric"
-              class="absolute inset-0 border rounded px-1 text-right text-[11px]"
-              :value="editCellValue"
-              @input="editCellValue = ($event.target as HTMLInputElement).value"
-              @keyup.enter="confirmEditCell"
-              @keyup.escape="cancelEditCell"
-              @keydown.up.prevent="moveEditCell(column.id, result.month, -1)"
-              @keydown.down.prevent="moveEditCell(column.id, result.month, 1)"
-              @blur="handleEditCellBlur"
-            />
+            <!-- 明细模式：点击打开编辑器，悬停查看只读明细 -->
             <span
-              v-else
+              v-if="isDetailColumn(column)"
               class="block w-full cursor-pointer"
               :aria-label="`编辑 ${formatMonth(result.month)} ${column.name}`"
-              @click="startEditCell(column.id, result.month, getColumnValue(result, column.id).amount)"
-            >
-              {{ formatCurrency(getColumnValue(result, column.id).amount) }}<span
+              @click="openDetailEditor(column.id, result.month, $event)"
+              @mouseenter="showDetailPopover(column.id, result.month, $event)"
+              @mouseleave="hideDetailPopover"
+            >{{ formatCurrency(getColumnValue(result, column.id).amount) }}<span
                 v-if="column.yearlyMonths?.[result.month]"
                 class="ml-0.5 text-brand-500"
                 aria-hidden="true"
-              >↻</span>
-            </span>
+              >↻</span></span>
+
+            <!-- 单值模式：维持原有内联编辑 -->
+            <template v-else>
+              <input
+                v-if="editingCell?.columnId === column.id && editingCell?.month === result.month"
+                :ref="setEditCellInput"
+                type="text"
+                inputmode="numeric"
+                class="absolute inset-0 border rounded px-1 text-right text-[11px]"
+                :value="editCellValue"
+                @input="editCellValue = ($event.target as HTMLInputElement).value"
+                @keyup.enter="confirmEditCell"
+                @keyup.escape="cancelEditCell"
+                @keydown.up.prevent="moveEditCell(column.id, result.month, -1)"
+                @keydown.down.prevent="moveEditCell(column.id, result.month, 1)"
+                @blur="handleEditCellBlur"
+              />
+              <span
+                v-else
+                class="block w-full cursor-pointer"
+                :aria-label="`编辑 ${formatMonth(result.month)} ${column.name}`"
+                @click="startEditCell(column.id, result.month, getColumnValue(result, column.id).amount)"
+              >{{ formatCurrency(getColumnValue(result, column.id).amount) }}<span
+                  v-if="column.yearlyMonths?.[result.month]"
+                  class="ml-0.5 text-brand-500"
+                  aria-hidden="true"
+                >↻</span></span>
+            </template>
           </td>
 
           <!-- 添加列占位 -->
@@ -1128,6 +1187,28 @@ function getValueClass(value: number): string {
     :x="eventPopover.x"
     :y="eventPopover.y"
     @close="eventPopover = null"
+  />
+
+  <!-- 动态列明细编辑器：detail 模式点击单元格时打开 -->
+  <ItemEditor
+    v-if="detailEditor && detailEditorColumn"
+    :title="`${formatMonth(detailEditor.month)} ${detailEditorColumn.name}`"
+    :items="resolveColumnItems(detailEditorColumn, detailEditor.month)"
+    :x="detailEditor.x"
+    :y="detailEditor.y"
+    @save="handleDetailEditorSave"
+    @close="closeDetailEditor"
+  />
+
+  <!-- 动态列只读明细弹窗：detail 模式悬停单元格时展示 -->
+  <EventDetailPopover
+    v-if="detailPopover && detailPopoverColumn && detailPopoverResult"
+    :title="`${formatMonth(detailPopover.month)} ${detailPopoverColumn.name}`"
+    :items="resolveColumnItems(detailPopoverColumn, detailPopover.month)"
+    :net="getColumnValue(detailPopoverResult, detailPopover.columnId).amount"
+    :x="detailPopover.x"
+    :y="detailPopover.y"
+    @close="detailPopover = null"
   />
 
   <FundFlowEditor
