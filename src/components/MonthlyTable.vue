@@ -34,7 +34,7 @@ function fundContribution(month: number): number {
 }
 // 房贷月供 / 公积金缴存：该月是否手填过（用于浅蓝底与右键判断）
 function isFundEntryEdited(field: 'mortgage' | 'contribution', month: number): boolean {
-  return fund.value ? String(month) in fund.value[field].entries : false
+  return fund.value ? String(month) in fund.value[field].itemSets : false
 }
 // 月冲：手填用手填值，否则自动联动房贷月供（返回 { value, auto }）
 function fundOffsetDisplay(month: number): { value: number; auto: boolean } {
@@ -381,7 +381,7 @@ function isCurrentCellEdited(columnId: string, month: number): boolean {
   const fundField = fundFieldFromColumnId(columnId)
   if (fundField) return isFundEntryEdited(fundField, month)
   const column = columns.value.find(c => c.id === columnId)
-  return column ? String(month) in column.entries : false
+  return column ? String(month) in column.itemSets : false
 }
 
 // 清除当前格的编辑值
@@ -417,7 +417,7 @@ const contextMenuItems = computed(() => {
   // 同步到下方每年此月：余额列不显示；专区固定列显示但恒置灰；动态列按是否有直接值
   if (!isBalanceColumn) {
     const column = columns.value.find(c => c.id === ctx.columnId)
-    const hasDirectEntry = column ? String(ctx.month) in column.entries : false
+    const hasDirectEntry = column ? String(ctx.month) in column.itemSets : false
     items.push({
       label: '同步到下方每年此月',
       disabled: isFundFixed ? true : !hasDirectEntry,

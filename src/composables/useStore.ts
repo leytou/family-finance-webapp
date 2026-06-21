@@ -78,7 +78,7 @@ function isValidColumn(value: unknown): boolean {
   return false
 }
 
-/** 把旧 entries 结构的列升级为 itemSets（v2→v3）。幂等：已是新结构则只补 mode。 */
+/** 把旧 entries 结构的列升级为 itemSets（v2→v3）。幂等：已是新结构则只补 mode，并清除可能残留的旧 entries。 */
 function migrateColumn(col: Record<string, any>): void {
   if (!col.itemSets) {
     const entries = col.entries ?? {}
@@ -87,8 +87,9 @@ function migrateColumn(col: Record<string, any>): void {
       itemSets[key] = [{ id: generateId(), name: '', amount: entries[key] }]
     }
     col.itemSets = itemSets
-    delete col.entries
   }
+  // 无条件清除残留的旧 entries：脏数据（itemSets 与 entries 并存）经 isValidColumn 放行后，此处保证干净
+  delete col.entries
   if (col.mode === undefined) col.mode = 'single'
 }
 

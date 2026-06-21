@@ -1292,6 +1292,22 @@ describe('useStore', () => {
     expect(col.mode).toBe('single')
     expect(store.data.value.version).toBe(3)
   })
+
+  it('脏数据（itemSets 与残留 entries 并存）迁移后 entries 被清除，itemSets 不受污染', async () => {
+    const dirty = {
+      version: 2,
+      systemParams: { startMonth: 202601, annualRate: 0.025 },
+      columns: [{ id: 'c1', name: '工资', itemSets: { 202601: [{ id: 'x', name: '', amount: 100 }] }, entries: { 202601: 999 } }],
+      anchors: [], snapshots: [], events: [],
+    }
+    localStorage.setItem('family-finance-plan', JSON.stringify(dirty))
+
+    const useStore = await loadUseStore()
+    const store = useStore()
+    const col = store.data.value.columns[0]
+    expect((col as any).entries).toBeUndefined()
+    expect(col.itemSets[202601][0].amount).toBe(100)
+  })
 })
 
 describe('fund 校验与迁移', () => {

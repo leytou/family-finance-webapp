@@ -1,1 +1,412 @@
-{"version":2,"systemParams":{"startMonth":202606,"annualRate":0.03,"initialDeposit":150000,"fundRate":0.015,"fundInterestMonth":6,"fundInitialBalance":50000,"endMonth":203105},"columns":[{"id":"mqbuwhnr51a6","name":"月薪","entries":{"202606":10000,"202703":11000}},{"id":"mqdrvrpt8sa3","name":"月薪2","entries":{"202606":6000}},{"id":"mqbv4gskmzhv","name":"奖金","entries":{"202607":3000,"202610":3000,"202612":8000,"202701":5000,"202707":3000,"202710":3000,"202712":8000,"202801":5000,"202807":3000,"202810":3000,"202812":8000,"202901":5000,"202907":3000,"202910":3000,"202912":8000,"203001":5000,"203007":3000,"203010":3000,"203012":8000,"203101":5000},"yearlyMonths":{"202607":true,"202610":true,"202612":true,"202701":true,"202707":true,"202710":true,"202712":true,"202801":true,"202807":true,"202810":true,"202812":true,"202901":true,"202907":true,"202910":true,"202912":true,"203001":true,"203007":true,"203010":true,"203012":true,"203101":true}},{"id":"mqbuwzyzuaak","name":"房租水电停车","entries":{"202606":-1500},"enabled":true},{"id":"mqbvag3ccabw","name":"日常","entries":{"202606":-1200}},{"id":"mqbvcw8zcabp","name":"旅行","entries":{"202606":-3000,"202610":-6000,"202706":-3000,"202710":-6000,"202806":-3000,"202810":-6000,"202906":-3000,"202910":-6000,"203006":-3000,"203010":-6000},"yearlyMonths":{"202606":true,"202610":true,"202706":true,"202710":true,"202806":true,"202810":true,"202906":true,"202910":true,"203006":true,"203010":true},"enabled":true}],"anchors":[],"snapshots":[],"events":[{"id":"mqcgyjdoajqe","name":"结婚","month":202610,"amount":-60000},{"id":"mqdtjqahe025","name":"买房","month":202706,"amount":-200000}],"fund":{"mortgage":{"id":"mqdmqb0ic2ol","name":"房贷月供","entries":{"202706":-4500,"202710":-4500}},"contribution":{"id":"mqdmqb0ix0dr","name":"公积金缴存","entries":{"202606":1200,"202607":1600}},"monthlyOffset":{"id":"mqdmqb0i073g","name":"公积金月冲","entries":{}},"withdrawals":[{"id":"mqdu4drddqgy","name":"买房","month":202706,"amount":100000}],"anchors":[]}}
+{
+  "version": 3,
+  "systemParams": {
+    "startMonth": 202606,
+    "annualRate": 0.03,
+    "initialDeposit": 150000,
+    "fundRate": 0.015,
+    "fundInterestMonth": 6,
+    "fundInitialBalance": 50000,
+    "endMonth": 203105
+  },
+  "columns": [
+    {
+      "id": "mqbuwhnr51a6",
+      "name": "月薪",
+      "itemSets": {
+        "202606": [
+          {
+            "id": "mqbuwhnr51a6_202606_0",
+            "name": "",
+            "amount": 10000
+          }
+        ],
+        "202703": [
+          {
+            "id": "mqbuwhnr51a6_202703_1",
+            "name": "",
+            "amount": 11000
+          }
+        ]
+      },
+      "mode": "single"
+    },
+    {
+      "id": "mqdrvrpt8sa3",
+      "name": "月薪2",
+      "itemSets": {
+        "202606": [
+          {
+            "id": "mqdrvrpt8sa3_202606_0",
+            "name": "",
+            "amount": 6000
+          }
+        ]
+      },
+      "mode": "single"
+    },
+    {
+      "id": "mqbv4gskmzhv",
+      "name": "奖金",
+      "yearlyMonths": {
+        "202607": true,
+        "202610": true,
+        "202612": true,
+        "202701": true,
+        "202707": true,
+        "202710": true,
+        "202712": true,
+        "202801": true,
+        "202807": true,
+        "202810": true,
+        "202812": true,
+        "202901": true,
+        "202907": true,
+        "202910": true,
+        "202912": true,
+        "203001": true,
+        "203007": true,
+        "203010": true,
+        "203012": true,
+        "203101": true
+      },
+      "itemSets": {
+        "202607": [
+          {
+            "id": "mqbv4gskmzhv_202607_0",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "202610": [
+          {
+            "id": "mqbv4gskmzhv_202610_1",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "202612": [
+          {
+            "id": "mqbv4gskmzhv_202612_2",
+            "name": "",
+            "amount": 8000
+          }
+        ],
+        "202701": [
+          {
+            "id": "mqbv4gskmzhv_202701_3",
+            "name": "",
+            "amount": 5000
+          }
+        ],
+        "202707": [
+          {
+            "id": "mqbv4gskmzhv_202707_4",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "202710": [
+          {
+            "id": "mqbv4gskmzhv_202710_5",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "202712": [
+          {
+            "id": "mqbv4gskmzhv_202712_6",
+            "name": "",
+            "amount": 8000
+          }
+        ],
+        "202801": [
+          {
+            "id": "mqbv4gskmzhv_202801_7",
+            "name": "",
+            "amount": 5000
+          }
+        ],
+        "202807": [
+          {
+            "id": "mqbv4gskmzhv_202807_8",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "202810": [
+          {
+            "id": "mqbv4gskmzhv_202810_9",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "202812": [
+          {
+            "id": "mqbv4gskmzhv_202812_10",
+            "name": "",
+            "amount": 8000
+          }
+        ],
+        "202901": [
+          {
+            "id": "mqbv4gskmzhv_202901_11",
+            "name": "",
+            "amount": 5000
+          }
+        ],
+        "202907": [
+          {
+            "id": "mqbv4gskmzhv_202907_12",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "202910": [
+          {
+            "id": "mqbv4gskmzhv_202910_13",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "202912": [
+          {
+            "id": "mqbv4gskmzhv_202912_14",
+            "name": "",
+            "amount": 8000
+          }
+        ],
+        "203001": [
+          {
+            "id": "mqbv4gskmzhv_203001_15",
+            "name": "",
+            "amount": 5000
+          }
+        ],
+        "203007": [
+          {
+            "id": "mqbv4gskmzhv_203007_16",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "203010": [
+          {
+            "id": "mqbv4gskmzhv_203010_17",
+            "name": "",
+            "amount": 3000
+          }
+        ],
+        "203012": [
+          {
+            "id": "mqbv4gskmzhv_203012_18",
+            "name": "",
+            "amount": 8000
+          }
+        ],
+        "203101": [
+          {
+            "id": "mqbv4gskmzhv_203101_19",
+            "name": "",
+            "amount": 5000
+          }
+        ]
+      },
+      "mode": "single"
+    },
+    {
+      "id": "mqbuwzyzuaak",
+      "name": "房租水电停车",
+      "enabled": true,
+      "itemSets": {
+        "202606": [
+          {
+            "id": "mqbuwzyzuaak_202606_0",
+            "name": "",
+            "amount": -1500
+          }
+        ]
+      },
+      "mode": "single"
+    },
+    {
+      "id": "mqbvag3ccabw",
+      "name": "日常",
+      "itemSets": {
+        "202606": [
+          {
+            "id": "mqbvag3ccabw_202606_0",
+            "name": "",
+            "amount": -1200
+          }
+        ]
+      },
+      "mode": "single"
+    },
+    {
+      "id": "mqbvcw8zcabp",
+      "name": "旅行",
+      "yearlyMonths": {
+        "202606": true,
+        "202610": true,
+        "202706": true,
+        "202710": true,
+        "202806": true,
+        "202810": true,
+        "202906": true,
+        "202910": true,
+        "203006": true,
+        "203010": true
+      },
+      "enabled": true,
+      "itemSets": {
+        "202606": [
+          {
+            "id": "mqbvcw8zcabp_202606_0",
+            "name": "",
+            "amount": -3000
+          }
+        ],
+        "202610": [
+          {
+            "id": "mqbvcw8zcabp_202610_1",
+            "name": "",
+            "amount": -6000
+          }
+        ],
+        "202706": [
+          {
+            "id": "mqbvcw8zcabp_202706_2",
+            "name": "",
+            "amount": -3000
+          }
+        ],
+        "202710": [
+          {
+            "id": "mqbvcw8zcabp_202710_3",
+            "name": "",
+            "amount": -6000
+          }
+        ],
+        "202806": [
+          {
+            "id": "mqbvcw8zcabp_202806_4",
+            "name": "",
+            "amount": -3000
+          }
+        ],
+        "202810": [
+          {
+            "id": "mqbvcw8zcabp_202810_5",
+            "name": "",
+            "amount": -6000
+          }
+        ],
+        "202906": [
+          {
+            "id": "mqbvcw8zcabp_202906_6",
+            "name": "",
+            "amount": -3000
+          }
+        ],
+        "202910": [
+          {
+            "id": "mqbvcw8zcabp_202910_7",
+            "name": "",
+            "amount": -6000
+          }
+        ],
+        "203006": [
+          {
+            "id": "mqbvcw8zcabp_203006_8",
+            "name": "",
+            "amount": -3000
+          }
+        ],
+        "203010": [
+          {
+            "id": "mqbvcw8zcabp_203010_9",
+            "name": "",
+            "amount": -6000
+          }
+        ]
+      },
+      "mode": "single"
+    }
+  ],
+  "anchors": [],
+  "snapshots": [],
+  "events": [
+    {
+      "id": "mqcgyjdoajqe",
+      "name": "结婚",
+      "month": 202610,
+      "amount": -60000
+    },
+    {
+      "id": "mqdtjqahe025",
+      "name": "买房",
+      "month": 202706,
+      "amount": -200000
+    }
+  ],
+  "fund": {
+    "mortgage": {
+      "id": "mqdmqb0ic2ol",
+      "name": "房贷月供",
+      "itemSets": {
+        "202706": [
+          {
+            "id": "mqdmqb0ic2ol_202706_0",
+            "name": "",
+            "amount": -4500
+          }
+        ],
+        "202710": [
+          {
+            "id": "mqdmqb0ic2ol_202710_1",
+            "name": "",
+            "amount": -4500
+          }
+        ]
+      },
+      "mode": "single"
+    },
+    "contribution": {
+      "id": "mqdmqb0ix0dr",
+      "name": "公积金缴存",
+      "itemSets": {
+        "202606": [
+          {
+            "id": "mqdmqb0ix0dr_202606_0",
+            "name": "",
+            "amount": 1200
+          }
+        ],
+        "202607": [
+          {
+            "id": "mqdmqb0ix0dr_202607_1",
+            "name": "",
+            "amount": 1600
+          }
+        ]
+      },
+      "mode": "single"
+    },
+    "monthlyOffset": {
+      "id": "mqdmqb0i073g",
+      "name": "公积金月冲",
+      "itemSets": {},
+      "mode": "single"
+    },
+    "withdrawals": [
+      {
+        "id": "mqdu4drddqgy",
+        "name": "买房",
+        "month": 202706,
+        "amount": 100000
+      }
+    ],
+    "anchors": []
+  }
+}

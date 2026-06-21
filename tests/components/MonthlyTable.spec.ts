@@ -476,8 +476,8 @@ describe('MonthlyTable', () => {
     const syncItem = menu.findAll('[role="menuitem"]').find(i => i.text() === '同步到下方每年此月')!
     await syncItem.trigger('click')
 
-    expect(col.entries[202712]).toBe(50000)
-    expect(col.entries[203012]).toBe(50000)
+    expect(col.itemSets[202712]?.[0]?.amount).toBe(50000)
+    expect(col.itemSets[203012]?.[0]?.amount).toBe(50000)
     expect(col.yearlyMonths?.[202612]).toBe(true)
     expect(col.yearlyMonths?.[202712]).toBe(true)
   })
@@ -537,9 +537,9 @@ describe('MonthlyTable', () => {
     await menuItem.trigger('click')
 
     // 202601、202602 的编辑值保留，202603 被清除
-    expect(col.entries[202601]).toBe(1000)
-    expect(col.entries[202602]).toBe(2000)
-    expect(col.entries[202603]).toBeUndefined()
+    expect(col.itemSets[202601]?.[0]?.amount).toBe(1000)
+    expect(col.itemSets[202602]?.[0]?.amount).toBe(2000)
+    expect(col.itemSets[202603]).toBeUndefined()
   })
 
   it('清除余额列下方锚点，当前行及上方保留', async () => {
@@ -617,8 +617,8 @@ describe('MonthlyTable', () => {
       await menuItem.trigger('click')
 
       // 当前格 202601 被清除，202602 保留
-      expect(col.entries[202601]).toBeUndefined()
-      expect(col.entries[202602]).toBe(2000)
+      expect(col.itemSets[202601]).toBeUndefined()
+      expect(col.itemSets[202602]?.[0]?.amount).toBe(2000)
     })
 
     it('点击「清除该值」删除当前格余额列锚点', async () => {
@@ -1180,7 +1180,7 @@ describe('MonthlyTable · 公积金专区', () => {
     await input.setValue('5000')
     await input.trigger('blur')
 
-    expect(store.data.value.fund!.mortgage.entries[202601]).toBe(-5000)
+    expect(store.data.value.fund!.mortgage.itemSets[202601]?.[0]?.amount).toBe(-5000)
   })
 
   it('公积金缴存输入正数原样存储', async () => {
@@ -1198,7 +1198,7 @@ describe('MonthlyTable · 公积金专区', () => {
     await input.setValue('2000')
     await input.trigger('blur')
 
-    expect(store.data.value.fund!.contribution.entries[202601]).toBe(2000)
+    expect(store.data.value.fund!.contribution.itemSets[202601]?.[0]?.amount).toBe(2000)
   })
 
   it('月冲手填覆盖后显示蓝底（已编辑）', async () => {
@@ -1258,7 +1258,7 @@ describe('MonthlyTable · 公积金专区', () => {
     await input.setValue('3000')
     await input.trigger('blur')
 
-    expect(store.data.value.fund!.monthlyOffset.entries[202601]).toBe(3000)
+    expect(store.data.value.fund!.monthlyOffset.itemSets[202601]?.[0]?.amount).toBe(3000)
   })
 
   it('月冲单元格 hover 展示公式（自动联动）', async () => {
@@ -1436,8 +1436,8 @@ describe('MonthlyTable · 公积金专区', () => {
       .find(i => i.text() === '清除该值')!
     await item.trigger('click')
 
-    expect(store.data.value.fund!.mortgage.entries[202601]).toBeUndefined()
-    expect(store.data.value.fund!.mortgage.entries[202602]).toBe(-6000)
+    expect(store.data.value.fund!.mortgage.itemSets[202601]).toBeUndefined()
+    expect(store.data.value.fund!.mortgage.itemSets[202602]?.[0]?.amount).toBe(-6000)
   })
 
   it('公积金缴存右键「清除该值」删除当前格手填值', async () => {
@@ -1459,8 +1459,8 @@ describe('MonthlyTable · 公积金专区', () => {
       .find(i => i.text() === '清除该值')!
     await item.trigger('click')
 
-    expect(store.data.value.fund!.contribution.entries[202601]).toBeUndefined()
-    expect(store.data.value.fund!.contribution.entries[202602]).toBe(3000)
+    expect(store.data.value.fund!.contribution.itemSets[202601]).toBeUndefined()
+    expect(store.data.value.fund!.contribution.itemSets[202602]?.[0]?.amount).toBe(3000)
   })
 
   it('房贷月供未手填格「清除该值」禁用', async () => {
@@ -1504,9 +1504,9 @@ describe('MonthlyTable · 公积金专区', () => {
     await item.trigger('click')
 
     // 202601、202602 保留，202603（严格下方）被清除
-    expect(store.data.value.fund!.mortgage.entries[202601]).toBe(-5000)
-    expect(store.data.value.fund!.mortgage.entries[202602]).toBe(-6000)
-    expect(store.data.value.fund!.mortgage.entries[202603]).toBeUndefined()
+    expect(store.data.value.fund!.mortgage.itemSets[202601]?.[0]?.amount).toBe(-5000)
+    expect(store.data.value.fund!.mortgage.itemSets[202602]?.[0]?.amount).toBe(-6000)
+    expect(store.data.value.fund!.mortgage.itemSets[202603]).toBeUndefined()
   })
 
   it('公积金缴存右键「清除下方编辑值」删除下方', async () => {
@@ -1529,9 +1529,9 @@ describe('MonthlyTable · 公积金专区', () => {
       .find(i => i.text() === '清除下方编辑值')!
     await item.trigger('click')
 
-    expect(store.data.value.fund!.contribution.entries[202601]).toBe(2000)
-    expect(store.data.value.fund!.contribution.entries[202602]).toBe(3000)
-    expect(store.data.value.fund!.contribution.entries[202603]).toBeUndefined()
+    expect(store.data.value.fund!.contribution.itemSets[202601]?.[0]?.amount).toBe(2000)
+    expect(store.data.value.fund!.contribution.itemSets[202602]?.[0]?.amount).toBe(3000)
+    expect(store.data.value.fund!.contribution.itemSets[202603]).toBeUndefined()
   })
 
   it('房贷月供下方无编辑值时「清除下方编辑值」禁用', async () => {

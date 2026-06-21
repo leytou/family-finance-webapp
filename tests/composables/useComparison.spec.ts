@@ -20,7 +20,7 @@ describe('computeScenarioMetrics', () => {
     const plan = createTestPlan({
       systemParams: { startMonth: 202601, annualRate: 0 },
       columns: [
-        { id: 'salary', name: '工资', entries: { 202601: 10000 } },
+        { id: 'salary', name: '工资', itemSets: { 202601: [{ id: 'i1', name: '', amount: 10000 }] } },
       ],
       anchors: [],
     })
@@ -38,8 +38,8 @@ describe('computeScenarioMetrics', () => {
     const plan = createTestPlan({
       systemParams: { startMonth: 202601, annualRate: 0 },
       columns: [
-        { id: 'salary', name: '工资', entries: { 202601: 10000 } },
-        { id: 'rent', name: '房租', entries: { 202601: -3000 } },
+        { id: 'salary', name: '工资', itemSets: { 202601: [{ id: 'i1', name: '', amount: 10000 }] } },
+        { id: 'rent', name: '房租', itemSets: { 202601: [{ id: 'i1', name: '', amount: -3000 }] } },
       ],
     })
 
@@ -53,8 +53,8 @@ describe('computeScenarioMetrics', () => {
     const plan = createTestPlan({
       systemParams: { startMonth: 202601, annualRate: 0 },
       columns: [
-        { id: 'salary', name: '工资', entries: { 202601: 10000 } },
-        { id: 'rent', name: '房租', entries: { 202601: -3000 } },
+        { id: 'salary', name: '工资', itemSets: { 202601: [{ id: 'i1', name: '', amount: 10000 }] } },
+        { id: 'rent', name: '房租', itemSets: { 202601: [{ id: 'i1', name: '', amount: -3000 }] } },
       ],
     })
 
@@ -68,7 +68,7 @@ describe('computeScenarioMetrics', () => {
     const plan = createTestPlan({
       systemParams: { startMonth: 202601, annualRate: 0 },
       columns: [
-        { id: 'salary', name: '工资', entries: { 202601: 10000 } },
+        { id: 'salary', name: '工资', itemSets: { 202601: [{ id: 'i1', name: '', amount: 10000 }] } },
       ],
     })
 
@@ -82,8 +82,8 @@ describe('computeScenarioMetrics', () => {
     const plan = createTestPlan({
       systemParams: { startMonth: 202601, annualRate: 0 },
       columns: [
-        { id: 'salary', name: '工资', entries: { 202601: 10000 } },
-        { id: 'house', name: '买房', entries: { 202606: -200000, 202607: 0 } },
+        { id: 'salary', name: '工资', itemSets: { 202601: [{ id: 'i1', name: '', amount: 10000 }] } },
+        { id: 'house', name: '买房', itemSets: { 202606: [{ id: 'i1', name: '', amount: -200000 }], 202607: [{ id: 'i2', name: '', amount: 0 }] } },
       ],
     })
 
@@ -121,7 +121,7 @@ describe('computeScenarioMetrics', () => {
   it('期限 10 年时 yearEndSavings 含 10 个元素', () => {
     const plan = createTestPlan({
       systemParams: { startMonth: 202601, annualRate: 0, endMonth: 203512 },
-      columns: [{ id: 'salary', name: '工资', entries: { 202601: 10000 } }],
+      columns: [{ id: 'salary', name: '工资', itemSets: { 202601: [{ id: 'i1', name: '', amount: 10000 }] } }],
     })
 
     const metrics = computeScenarioMetrics('s1', '方案A', plan)
@@ -132,7 +132,7 @@ describe('computeScenarioMetrics', () => {
   it('期限 2 年时 yearEndSavings 含 2 个元素', () => {
     const plan = createTestPlan({
       systemParams: { startMonth: 202601, annualRate: 0, endMonth: 202712 },
-      columns: [{ id: 'salary', name: '工资', entries: { 202601: 10000 } }],
+      columns: [{ id: 'salary', name: '工资', itemSets: { 202601: [{ id: 'i1', name: '', amount: 10000 }] } }],
     })
 
     const metrics = computeScenarioMetrics('s1', '方案A', plan)
