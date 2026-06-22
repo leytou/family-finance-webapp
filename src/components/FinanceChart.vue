@@ -36,7 +36,7 @@ const currentTotalAssetsLabel = computed(() => {
 
 function render() {
   // option 字段遵循 ECharts 规范，用 as any 桥接第三方严格类型
-  chart?.setOption(buildChartOption(chartData.value, fundEnabled.value) as unknown as echarts.EChartsCoreOption)
+  chart?.setOption(buildChartOption(chartData.value, fundEnabled.value, granularity.value) as unknown as echarts.EChartsCoreOption)
 }
 
 onMounted(() => {
