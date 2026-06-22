@@ -69,7 +69,7 @@ function handleRemove(id: string, name: string) {
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
+  <div class="flex items-center gap-1" data-tour="scenario-tabs">
     <div
       v-for="scenario in scenarios"
       :key="scenario.id"

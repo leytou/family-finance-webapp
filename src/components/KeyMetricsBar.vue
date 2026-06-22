@@ -46,6 +46,7 @@ const cells = computed<Cell[]>(() => {
 
 <template>
   <div class="grid border-b border-line bg-surface"
+       data-tour="metrics"
        :style="{ gridTemplateColumns: `repeat(${cells.length}, 1fr)` }">
     <div v-for="(c, i) in cells" :key="c.label"
          class="px-4 py-3"

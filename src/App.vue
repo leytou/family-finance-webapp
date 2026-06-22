@@ -157,6 +157,7 @@ function onFundToggle(e: Event) {
             class="px-3 py-1 border rounded text-sm font-mono"
             :class="activeView === 'chart' ? 'bg-brand-50 border-brand-200' : 'hover:bg-surface-2'"
             type="button"
+            data-tour="view-chart"
             @click="setActiveView('chart')"
           >
             图表
@@ -165,6 +166,7 @@ function onFundToggle(e: Event) {
             class="px-3 py-1 border rounded text-sm font-mono"
             :class="activeView === 'comparison' ? 'bg-brand-50 border-brand-200' : 'hover:bg-surface-2'"
             type="button"
+            data-tour="view-compare"
             @click="setActiveView('comparison')"
           >
             对比
@@ -216,7 +218,7 @@ function onFundToggle(e: Event) {
       >
         <div class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-surface-2 border-t">
           <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2" data-tour="param-month">
             <label for="start-month" class="text-[11px] whitespace-nowrap font-mono">起始月份</label>
             <MonthPicker v-model="startMonth" input-id="start-month" />
           </div>
@@ -226,7 +228,7 @@ function onFundToggle(e: Event) {
             <span data-testid="projection-text" class="text-[11px] text-ink-3 whitespace-nowrap">{{ projectionText }}</span>
           </div>
           <span v-if="periodError" data-testid="end-month-error" class="text-[11px] text-negative-600 whitespace-nowrap">{{ periodError }}</span>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2" data-tour="param-rate">
             <label class="text-[11px] whitespace-nowrap font-mono">年化收益率(%)</label>
             <input
               :value="(data.systemParams.annualRate * 100).toFixed(3)"
@@ -247,7 +249,7 @@ function onFundToggle(e: Event) {
           </div>
           <!-- 公积金子分组：另起一行展示；仅 fund 启用时显示 3 输入 -->
           <div class="flex items-center gap-2 w-full">
-            <label class="text-[11px] whitespace-nowrap font-mono flex items-center gap-1">
+            <label class="text-[11px] whitespace-nowrap font-mono flex items-center gap-1" data-tour="fund-toggle">
               <input
                 data-testid="fund-enable-toggle"
                 type="checkbox"
@@ -327,6 +329,7 @@ function onFundToggle(e: Event) {
             title="年度汇总"
             index="01"
             class="border-b border-line"
+            data-tour="annual-table"
           >
             <AnnualTable :results="results" />
           </CollapsibleSection>
@@ -336,6 +339,7 @@ function onFundToggle(e: Event) {
             title="月度流水"
             index="02"
             sticky
+            data-tour="monthly-table"
           >
             <MonthlyTable :results="results" />
           </CollapsibleSection>
