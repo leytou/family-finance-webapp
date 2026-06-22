@@ -8,6 +8,7 @@ import ScenarioTabs from './components/ScenarioTabs.vue'
 import ComparisonView from './components/ComparisonView.vue'
 import CalculatorView from './components/CalculatorView.vue'
 import ToolsMenu from './components/ToolsMenu.vue'
+import TourMenu from './components/TourMenu.vue'
 import MonthPicker from './components/MonthPicker.vue'
 import FinanceChart from './components/FinanceChart.vue'
 import CollapsibleSection from './components/CollapsibleSection.vue'
@@ -16,6 +17,7 @@ import { useStore } from './composables/useStore'
 import { useHistory } from './composables/useHistory'
 import { useUiPrefs } from './composables/useUiPrefs'
 import { monthDiff } from './utils/month'
+import { isTourSeen, playTour } from './composables/useTour'
 
 const {
   data,
@@ -59,7 +61,11 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  // 首次访问（未看过引导）自动播放「快速入门」；看毕/跳过后写入标记
+  if (!isTourSeen()) playTour('quickstart', { markSeenOnDone: true })
+})
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 const results = computed(() => calculate(data.value))
 
@@ -206,6 +212,7 @@ function onFundToggle(e: Event) {
             <span aria-hidden="true">↷</span>重做
           </button>
           <div class="border-l h-5 mx-2" />
+          <TourMenu />
           <ToolsMenu />
         </div>
       </div>

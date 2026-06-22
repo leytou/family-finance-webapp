@@ -19,6 +19,7 @@ function findButton(wrapper: ReturnType<typeof mount>, text: string) {
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
+    localStorage.setItem('family-finance-tour-seen', '1')
     vi.resetModules()
   })
 
@@ -35,6 +36,7 @@ describe('App', () => {
     ComparisonView: true,
     CalculatorView: true,
     ToolsMenu: true,
+    TourMenu: true,
     FinanceChart: true,
   }
 
@@ -426,5 +428,31 @@ describe('App', () => {
     await wrapper.get('[data-testid="calc-view-btn"]').trigger('click')
 
     expect(wrapper.find('[data-testid="param-row"]').exists()).toBe(false)
+  })
+
+  it('未看过时挂载后自动播放快速入门', async () => {
+    vi.resetModules()
+    const playTour = vi.fn()
+    vi.doMock('../src/composables/useTour', () => ({
+      playTour, isTourSeen: () => false, markTourSeen: () => {},
+    }))
+    const App = (await import('../src/App.vue')).default
+    mount(App, { global: { stubs: globalStubs } })
+    await nextTick()
+    expect(playTour).toHaveBeenCalledWith('quickstart', { markSeenOnDone: true })
+    vi.doUnmock('../src/composables/useTour')
+  })
+
+  it('已看过时不自动播放', async () => {
+    vi.resetModules()
+    const playTour = vi.fn()
+    vi.doMock('../src/composables/useTour', () => ({
+      playTour, isTourSeen: () => true, markTourSeen: () => {},
+    }))
+    const App = (await import('../src/App.vue')).default
+    mount(App, { global: { stubs: globalStubs } })
+    await nextTick()
+    expect(playTour).not.toHaveBeenCalled()
+    vi.doUnmock('../src/composables/useTour')
   })
 })
