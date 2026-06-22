@@ -131,6 +131,8 @@ describe('buildChartOption · 双 grid 结构', () => {
       { seriesName: '收入', value: 15800 }, { seriesName: '支出', value: 9200 }, { seriesName: '存款', value: 1234567 },
     ])
     expect(html).toContain('收入'); expect(html).toContain('结余'); expect(html).toContain('123.5万')
+    expect(html).toContain('1.6万')   // 收入 15800
+    expect(html).toContain('9,200')   // 支出 9200
     expect(html).not.toContain('公积金余额')
   })
 
@@ -196,5 +198,52 @@ describe('keyPointIndices', () => {
   })
   it('全相同 → [0, 末位]', () => {
     expect(keyPointIndices([3, 3, 3])).toEqual([0, 2])
+  })
+})
+
+describe('buildChartOption · 数值标注', () => {
+  const monthData = {
+    categories: ['26/01', '26/02', '26/03', '26/04'],
+    income: [10000, 10000, 10000, 10000],
+    expense: [6000, 9000, 6000, 6000],
+    cumSavings: [50000, 40000, 47000, 61000],
+    fundBalance: [0, 0, 0, 0],
+  }
+
+  it('按月:存款线仅在关键点(0/1/3)标注数值,其余为空字符串', () => {
+    const opt = buildChartOption(monthData, false, 'month')
+    const cum = opt.series.find(s => s.name === '存款')!
+    const fmt = cum.label!.formatter
+    expect(fmt({ dataIndex: 0, value: 50000 })).toBe('5万')
+    expect(fmt({ dataIndex: 1, value: 40000 })).toBe('4万')
+    expect(fmt({ dataIndex: 2, value: 47000 })).toBe('')
+    expect(fmt({ dataIndex: 3, value: 61000 })).toBe('6.1万')
+  })
+
+  it('按月:收支柱不标注(label 不显示)', () => {
+    const opt = buildChartOption(monthData, false, 'month')
+    const income = opt.series.find(s => s.name === '收入')!
+    expect(income.label?.show ?? false).toBe(false)
+  })
+
+  it('按年:存款线每个点都标注', () => {
+    const yearData = {
+      categories: ['2026', '2027'], income: [120000, 130000], expense: [80000, 70000],
+      cumSavings: [400000, 610000], fundBalance: [0, 0],
+    }
+    const opt = buildChartOption(yearData, false, 'year')
+    const cum = opt.series.find(s => s.name === '存款')!
+    expect(cum.label!.formatter({ dataIndex: 0, value: 400000 })).toBe('40万')
+    expect(cum.label!.formatter({ dataIndex: 1, value: 610000 })).toBe('61万')
+  })
+
+  it('按年:收支柱顶标注数值(label 显示)', () => {
+    const yearData = {
+      categories: ['2026'], income: [120000], expense: [80000], cumSavings: [400000], fundBalance: [0],
+    }
+    const opt = buildChartOption(yearData, false, 'year')
+    const income = opt.series.find(s => s.name === '收入')!
+    expect(income.label?.show).toBe(true)
+    expect(income.label!.formatter({ dataIndex: 0, value: 120000 })).toBe('12万')
   })
 })

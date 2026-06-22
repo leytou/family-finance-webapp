@@ -172,11 +172,21 @@ function tooltipFormatter(fundEnabled: boolean) {
  * granularity 控制标注/横轴分层(标注=Task4,分层=Task5)。字段名遵循 ECharts option 规范,组件内以 `as any` 桥接。
  */
 export function buildChartOption(data: ChartData, fundEnabled: boolean, granularity: Granularity = 'month'): ChartOption {
-  // granularity 暂作入参占位，供 Task4(数值标注)/Task5(横轴月份-年份分层)消费；当前先 void 规避未用告警。
-  void granularity
   const legendData = fundEnabled
     ? ['收入', '支出', '存款', '公积金余额']
     : ['收入', '支出', '存款']
+
+  const isMonth = granularity === 'month'
+  // 存款线标注点:按月仅起点/最低/终点,按年全点
+  const cumKey = isMonth
+    ? keyPointIndices(data.cumSavings)
+    : data.cumSavings.map((_, i) => i)
+  const cumLabelFormatter = (p: { dataIndex: number; value: number }) =>
+    cumKey.includes(p.dataIndex) ? formatAxisAmount(p.value) : ''
+  // 下块收支柱:按年柱顶标数值,按月不标
+  const barLabel = isMonth
+    ? undefined
+    : { show: true, position: 'top', fontSize: 10, formatter: (p: { dataIndex: number; value: number }) => formatAxisAmount(p.value) }
 
   const series: ChartSeries[] = [
     {
@@ -192,6 +202,7 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean, granular
           ],
         },
       },
+      label: { show: true, position: 'top', color: COLOR_CUM, fontSize: 10, formatter: cumLabelFormatter },
     },
   ]
 
@@ -207,10 +218,12 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean, granular
     {
       name: '收入', type: 'bar', xAxisIndex: 1, yAxisIndex: 1, data: data.income,
       itemStyle: { color: COLOR_INCOME, borderRadius: [2, 2, 0, 0] }, barCategoryGap: '40%',
+      label: barLabel,
     },
     {
       name: '支出', type: 'bar', xAxisIndex: 1, yAxisIndex: 1, data: data.expense,
       itemStyle: { color: COLOR_EXPENSE, borderRadius: [2, 2, 0, 0] }, barCategoryGap: '40%',
+      label: barLabel,
     },
   )
 
