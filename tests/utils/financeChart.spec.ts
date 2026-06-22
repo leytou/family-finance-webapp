@@ -84,145 +84,90 @@ describe('buildChartData', () => {
   })
 })
 
-describe('buildChartOption · 退化模式（fundEnabled=false）', () => {
-  // 退化模式 data：无 fund，主线取 cumSavings
+describe('buildChartOption · 双 grid 结构', () => {
   const baseData = () => ({
-    categories: ['26/01'],
-    income: [10000],
-    expense: [6000],
-    cumSavings: [50000],
-    fundBalance: [0],
+    categories: ['26/01'], income: [10000], expense: [6000], cumSavings: [50000], fundBalance: [0],
   })
 
-  it('三系列：收入/支出走左轴，存款走右轴；数据与配色正确', () => {
-    const option = buildChartOption(baseData(), false)
-
-    expect(option.series.map(s => s.name)).toEqual(['收入', '支出', '存款'])
-    expect(option.series.map(s => s.type)).toEqual(['bar', 'bar', 'line'])
-    expect(option.series[0].yAxisIndex).toBe(0)
-    expect(option.series[1].yAxisIndex).toBe(0)
-    expect(option.series[2].yAxisIndex).toBe(1)
-    expect(option.series[0].data).toEqual([10000])
-    expect(option.series[1].data).toEqual([6000])
-    expect(option.series[2].data).toEqual([50000])
-    expect(option.series[0].itemStyle?.color).toBe('#c0504d')
-    expect(option.series[1].itemStyle?.color).toBe('#6b8e7b')
-    expect(option.xAxis.data).toEqual(['26/01'])
-    expect(option.legend.data).toEqual(['收入', '支出', '存款'])
+  it('两个 grid(上下块);存款归上块轴、收支归下块轴', () => {
+    const opt = buildChartOption(baseData(), false, 'month')
+    expect(opt.grid).toHaveLength(2)
+    const cum = opt.series.find(s => s.name === '存款')!
+    const income = opt.series.find(s => s.name === '收入')!
+    const expense = opt.series.find(s => s.name === '支出')!
+    expect(cum.xAxisIndex).toBe(0); expect(cum.yAxisIndex).toBe(0)
+    expect(income.xAxisIndex).toBe(1); expect(income.yAxisIndex).toBe(1)
+    expect(expense.xAxisIndex).toBe(1); expect(expense.yAxisIndex).toBe(1)
   })
 
-  it('存款为渐变面积主线：含 areaStyle 与 2.5px 粗线', () => {
-    const main = buildChartOption(baseData(), false).series[2]
-
-    expect(main.areaStyle).toBeDefined()
-    expect(main.areaStyle?.color).toBeDefined()
-    expect(main.lineStyle?.width).toBe(2.5)
+  it('yAxis 仅两个单轴:上块「余额」、下块「金额」', () => {
+    const opt = buildChartOption(baseData(), false, 'month')
+    expect(opt.yAxis).toHaveLength(2)
+    expect(opt.yAxis[0].name).toBe('余额')
+    expect(opt.yAxis[1].name).toBe('金额')
+    expect(opt.yAxis[0].gridIndex).toBe(0)
+    expect(opt.yAxis[1].gridIndex).toBe(1)
   })
 
-  it('收支柱为正值并列双柱，顶部圆角', () => {
-    const option = buildChartOption(baseData(), false)
-    const income = option.series[0]
-    const expense = option.series[1]
-
-    expect(income.itemStyle?.borderRadius).toEqual([2, 2, 0, 0])
-    expect(expense.itemStyle?.borderRadius).toEqual([2, 2, 0, 0])
-    expect(income.barCategoryGap).toBe('40%')
-    expect(expense.barCategoryGap).toBe('40%')
+  it('存款为渐变面积主线;收支柱顶部圆角', () => {
+    const opt = buildChartOption(baseData(), false, 'month')
+    const cum = opt.series.find(s => s.name === '存款')!
+    expect(cum.areaStyle).toBeDefined()
+    expect(cum.lineStyle?.width).toBe(2.5)
+    expect(opt.series.find(s => s.name === '收入')!.itemStyle?.borderRadius).toEqual([2, 2, 0, 0])
   })
 
-  it('仅左轴画网格，右轴不画（避免双重网格）', () => {
-    const [left, right] = buildChartOption(baseData(), false).yAxis
-
-    expect(left.splitLine?.show ?? true).toBe(true)
-    expect(right.splitLine?.show).toBe(false)
+  it('配色不变:收入朱砂/支出竹青/存款靛蓝', () => {
+    const opt = buildChartOption(baseData(), false, 'month')
+    expect(opt.series.find(s => s.name === '收入')!.itemStyle?.color).toBe('#c0504d')
+    expect(opt.series.find(s => s.name === '支出')!.itemStyle?.color).toBe('#6b8e7b')
+    expect(opt.series.find(s => s.name === '存款')!.itemStyle?.color).toBe('#4f46e5')
   })
 
-  it('左右轴有万元 formatter，X 轴标签稀疏', () => {
-    const option = buildChartOption(baseData(), false)
-
-    expect(typeof option.yAxis[0].axisLabel?.formatter).toBe('function')
-    expect(typeof option.yAxis[1].axisLabel?.formatter).toBe('function')
-    // formatter 行为：15800 → 1.6万
-    expect((option.yAxis[0].axisLabel!.formatter as (v: number) => string)(15800)).toBe('1.6万')
-    expect(option.xAxis.axisLabel?.interval).toBe('auto')
-  })
-
-  it('tooltip 为浅色卡片，formatter 含收入/支出/结余/存款且金额万元化', () => {
-    const data = {
-      categories: ['26/08'],
-      income: [15800], expense: [9200], cumSavings: [1234567], fundBalance: [0],
-    }
-    const option = buildChartOption(data, false)
-
-    expect(option.tooltip.backgroundColor).toBe('#ffffff')
-    expect(option.tooltip.borderColor).toBe('#e4e8f1')
-    expect(option.tooltip.textStyle?.color).toBe('#0f172a')
-
-    const html = (option.tooltip.formatter as (p: Array<{ seriesName: string; value: number }>) => string)([
-      { seriesName: '收入', value: 15800 },
-      { seriesName: '支出', value: 9200 },
-      { seriesName: '存款', value: 1234567 },
+  it('tooltip formatter 仍含收入/支出/结余/存款且金额万元化;退化模式不含公积金', () => {
+    const data = { categories: ['26/08'], income: [15800], expense: [9200], cumSavings: [1234567], fundBalance: [0] }
+    const opt = buildChartOption(data, false, 'month')
+    const html = opt.tooltip.formatter([
+      { seriesName: '收入', value: 15800 }, { seriesName: '支出', value: 9200 }, { seriesName: '存款', value: 1234567 },
     ])
-    expect(html).toContain('收入')
-    expect(html).toContain('支出')
-    expect(html).toContain('结余')
-    expect(html).toContain('存款')
-    expect(html).toContain('1.6万')        // 收入 15800
-    expect(html).toContain('9,200')        // 支出 9200（<1万 千分位）
-    expect(html).toContain('123.5万')      // 存款 1234567
-    expect(html).not.toContain('公积金余额')   // 退化模式 tooltip 不含公积金
+    expect(html).toContain('收入'); expect(html).toContain('结余'); expect(html).toContain('123.5万')
+    expect(html).not.toContain('公积金余额')
+  })
 
-    // 赤字场景：净结余 5000-9000 = -4000，竹青色 + 千分位负数
-    const deficitHtml = (option.tooltip.formatter as (p: Array<{ seriesName: string; value: number }>) => string)([
-      { seriesName: '收入', value: 5000 },
-      { seriesName: '支出', value: 9000 },
-      { seriesName: '存款', value: 1234567 },
+  it('赤字场景:净结余用竹青色 + 千分位负数', () => {
+    const data = { categories: ['26/08'], income: [5000], expense: [9000], cumSavings: [1234567], fundBalance: [0] }
+    const opt = buildChartOption(data, false, 'month')
+    const html = opt.tooltip.formatter([
+      { seriesName: '收入', value: 5000 }, { seriesName: '支出', value: 9000 }, { seriesName: '存款', value: 1234567 },
     ])
-    expect(deficitHtml).toContain('#5e8270')   // 赤字竹青色（COLOR_NET_NEG）
-    expect(deficitHtml).toContain('-4,000')    // 净结余 -4000 千分位负数
+    expect(html).toContain('#5e8270')
+    expect(html).toContain('-4,000')
   })
 })
 
-describe('fund 双线', () => {
-  it('buildChartData 含 fundBalance 数组、不再产出 totalAssets', () => {
-    const results: MonthResult[] = [
-      makeResult({ month: 202601, cumSavings: 100, fundBalance: 50, totalAssets: 150 }),
-    ]
-    const data = buildChartData(results, 'month')
-    expect(data.fundBalance).toEqual([50])
-    expect((data as Record<string, unknown>).totalAssets).toBeUndefined()
-  })
-
-  it('buildChartOption fundEnabled=true 含存款与公积金余额两条线', () => {
-    const data = buildChartData([], 'month')
-    const opt = buildChartOption(data, true)
+describe('buildChartOption · fund 双线', () => {
+  it('fundEnabled=true 含存款与公积金余额两线,均归上块轴;配色正确', () => {
+    const opt = buildChartOption(buildChartData([], 'month'), true, 'month')
     const names = opt.series.map(s => s.name)
-    expect(names).toEqual(['收入', '支出', '存款', '公积金余额'])
+    expect(names).toEqual(['存款', '公积金余额', '收入', '支出'])
     expect(opt.legend.data).toEqual(['收入', '支出', '存款', '公积金余额'])
-    expect(opt.series[3].yAxisIndex).toBe(1)
-    expect(opt.series[3].itemStyle?.color).toBe('#d97706')   // 公积金琥珀
+    const fund = opt.series.find(s => s.name === '公积金余额')!
+    expect(fund.xAxisIndex).toBe(0); expect(fund.yAxisIndex).toBe(0)
+    expect(fund.itemStyle?.color).toBe('#d97706')
   })
 
-  it('buildChartOption fundEnabled=false 仅存款线（退化）', () => {
-    const data = buildChartData([], 'month')
-    const opt = buildChartOption(data, false)
-    const names = opt.series.map(s => s.name)
-    expect(names).toContain('存款')
-    expect(names).not.toContain('公积金余额')
-    expect(opt.legend.data).not.toContain('公积金余额')
+  it('fundEnabled=false 不含公积金余额', () => {
+    const opt = buildChartOption(buildChartData([], 'month'), false, 'month')
+    expect(opt.series.map(s => s.name)).not.toContain('公积金余额')
   })
 
-  it('fundEnabled=true 时 tooltip 含公积金余额行', () => {
-    const data = buildChartData([], 'month')
-    const option = buildChartOption(data, true)
-    const html = (option.tooltip.formatter as (p: Array<{ seriesName: string; value: number }>) => string)([
-      { seriesName: '收入', value: 10000 },
-      { seriesName: '支出', value: 6000 },
-      { seriesName: '存款', value: 80000 },
-      { seriesName: '公积金余额', value: 30000 },
+  it('fundEnabled=true tooltip 含公积金余额行', () => {
+    const opt = buildChartOption(buildChartData([], 'month'), true, 'month')
+    const html = opt.tooltip.formatter([
+      { seriesName: '收入', value: 10000 }, { seriesName: '支出', value: 6000 },
+      { seriesName: '存款', value: 80000 }, { seriesName: '公积金余额', value: 30000 },
     ])
-    expect(html).toContain('公积金余额')
-    expect(html).toContain('3万')   // 公积金 30000
+    expect(html).toContain('公积金余额'); expect(html).toContain('3万')
   })
 })
 

@@ -15,13 +15,38 @@ export interface ChartSeries {
   name: string
   type: 'bar' | 'line'
   data: number[]
+  xAxisIndex?: number
   yAxisIndex?: number
   itemStyle?: { color: string; borderRadius?: number[] }
   lineStyle?: { color: string; width?: number }
-  areaStyle?: { color: unknown }   // ECharts 渐变对象，类型宽松
+  areaStyle?: { color: unknown }
   smooth?: boolean
   showSymbol?: boolean
   barCategoryGap?: string
+  label?: {
+    show: boolean
+    position?: string
+    color?: string
+    fontSize?: number
+    formatter: (p: { dataIndex: number; value: number }) => string
+  }
+}
+
+export interface ChartAxis {
+  type: string
+  gridIndex?: number
+  data?: string[]
+  name?: string
+  alignTicks?: boolean
+  offset?: number
+  axisLine?: { show?: boolean; lineStyle?: { color: string } }
+  axisTick?: { show?: boolean }
+  axisLabel?: {
+    show?: boolean
+    interval?: string | number | ((index: number) => boolean)
+    formatter?: unknown
+  }
+  splitLine?: { show?: boolean; interval?: unknown; lineStyle?: { color: string; type?: string } }
 }
 
 export interface ChartOption {
@@ -31,20 +56,13 @@ export interface ChartOption {
     borderColor?: string
     borderWidth?: number
     textStyle?: { color: string }
+    axisPointer?: { link: Array<{ xAxisIndex: string }> }
     formatter: (params: Array<{ seriesName: string; value: number }>) => string
   }
   legend: { data: string[] }
-  grid: { left: string; right: string; bottom: string; containLabel: boolean }
-  xAxis: {
-    type: string; data: string[]
-    axisLine?: { lineStyle: { color: string } }
-    axisLabel?: { interval: string | number }
-  }
-  yAxis: {
-    type: string; alignTicks: boolean
-    splitLine?: { show?: boolean; lineStyle?: { color: string } }
-    axisLabel?: { formatter: (v: number) => string }
-  }[]
+  grid: Array<{ left: string; right: string; top: string; height: string }>
+  xAxis: ChartAxis[]
+  yAxis: ChartAxis[]
   series: ChartSeries[]
 }
 
@@ -124,32 +142,47 @@ export function buildChartData(results: MonthResult[], granularity: Granularity)
   }
 }
 
+/** tooltip 明细:收入/支出/结余/存款(+公积金余额),金额万元化;结余盈余朱砂/赤字竹青。 */
+function tooltipFormatter(fundEnabled: boolean) {
+  return (params: Array<{ seriesName: string; value: number }>) => {
+    const get = (name: string) => params.find(p => p.seriesName === name)?.value ?? 0
+    const income = get('收入')
+    const expense = get('支出')
+    const total = get('存款')
+    const fund = get('公积金余额')
+    const net = income - expense
+    const netColor = net >= 0 ? COLOR_INCOME : COLOR_NET_NEG
+    const row = (label: string, val: number, color = '#0f172a') =>
+      `<div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;line-height:18px">`
+      + `<span style="color:#64748b">${label}</span>`
+      + `<span style="color:${color};font-weight:600">${formatAxisAmount(val)}</span></div>`
+    let html = row('收入', income) + row('支出', expense)
+      + row('结余', net, netColor)
+      + `<div style="height:1px;background:#e2e8f0;margin:4px 0"></div>`
+      + row('存款', total)
+    if (fundEnabled) html += row('公积金余额', fund)
+    return html
+  }
+}
+
 /**
- * 由 ChartData 构造 ECharts option：收入/支支柱状（左轴）+ 存款渐变面积折线（右轴）。
- * fundEnabled 时叠加公积金余额副线（右轴）；否则退化仅三系列。
- * 字段名遵循 ECharts option 规范，组件内以 `as any` 桥接第三方类型。
+ * 由 ChartData 构造 ECharts 双 grid option：
+ * 上块(gridIndex 0)= 存款 + 公积金余额 折线(单「余额」轴);
+ * 下块(gridIndex 1)= 收入 + 支出 柱(单「金额」轴)。
+ * granularity 控制标注/横轴分层(标注=Task4,分层=Task5)。字段名遵循 ECharts option 规范,组件内以 `as any` 桥接。
  */
-export function buildChartOption(data: ChartData, fundEnabled: boolean): ChartOption {
+export function buildChartOption(data: ChartData, fundEnabled: boolean, granularity: Granularity = 'month'): ChartOption {
+  // granularity 暂作入参占位，供 Task4(数值标注)/Task5(横轴月份-年份分层)消费；当前先 void 规避未用告警。
+  void granularity
   const legendData = fundEnabled
     ? ['收入', '支出', '存款', '公积金余额']
     : ['收入', '支出', '存款']
 
   const series: ChartSeries[] = [
     {
-      name: '收入', type: 'bar', yAxisIndex: 0, data: data.income,
-      itemStyle: { color: COLOR_INCOME, borderRadius: [2, 2, 0, 0] },
-      barCategoryGap: '40%',
-    },
-    {
-      name: '支出', type: 'bar', yAxisIndex: 0, data: data.expense,
-      itemStyle: { color: COLOR_EXPENSE, borderRadius: [2, 2, 0, 0] },
-      barCategoryGap: '40%',
-    },
-    {
-      name: '存款', type: 'line', yAxisIndex: 1, data: data.cumSavings,
+      name: '存款', type: 'line', xAxisIndex: 0, yAxisIndex: 0, data: data.cumSavings,
       smooth: true, showSymbol: false,
-      lineStyle: { color: COLOR_CUM, width: 2.5 },
-      itemStyle: { color: COLOR_CUM },
+      lineStyle: { color: COLOR_CUM, width: 2.5 }, itemStyle: { color: COLOR_CUM },
       areaStyle: {
         color: {
           type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
@@ -164,58 +197,46 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean): ChartOp
 
   if (fundEnabled) {
     series.push({
-      name: '公积金余额', type: 'line', yAxisIndex: 1, data: data.fundBalance,
+      name: '公积金余额', type: 'line', xAxisIndex: 0, yAxisIndex: 0, data: data.fundBalance,
       smooth: true, showSymbol: false,
-      lineStyle: { color: COLOR_FUND },
-      itemStyle: { color: COLOR_FUND },
+      lineStyle: { color: COLOR_FUND }, itemStyle: { color: COLOR_FUND },
     })
   }
+
+  series.push(
+    {
+      name: '收入', type: 'bar', xAxisIndex: 1, yAxisIndex: 1, data: data.income,
+      itemStyle: { color: COLOR_INCOME, borderRadius: [2, 2, 0, 0] }, barCategoryGap: '40%',
+    },
+    {
+      name: '支出', type: 'bar', xAxisIndex: 1, yAxisIndex: 1, data: data.expense,
+      itemStyle: { color: COLOR_EXPENSE, borderRadius: [2, 2, 0, 0] }, barCategoryGap: '40%',
+    },
+  )
 
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#ffffff',
-      borderColor: '#e4e8f1',
-      borderWidth: 1,
+      backgroundColor: '#ffffff', borderColor: '#e4e8f1', borderWidth: 1,
       textStyle: { color: '#0f172a' },
-      formatter: params => {
-        const get = (name: string) => params.find(p => p.seriesName === name)?.value ?? 0
-        const income = get('收入')
-        const expense = get('支出')
-        const total = get('存款')
-        const fund = get('公积金余额')
-        const net = income - expense
-        const netColor = net >= 0 ? COLOR_INCOME : COLOR_NET_NEG   // 盈余朱砂 / 赤字竹青
-        const row = (label: string, val: number, color = '#0f172a') =>
-          `<div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;line-height:18px">`
-          + `<span style="color:#64748b">${label}</span>`
-          + `<span style="color:${color};font-weight:600">${formatAxisAmount(val)}</span></div>`
-        let html = row('收入', income) + row('支出', expense)
-          + row('结余', net, netColor)
-          + `<div style="height:1px;background:#e2e8f0;margin:4px 0"></div>`
-          + row('存款', total)
-        if (fundEnabled) html += row('公积金余额', fund)
-        return html
-      },
+      formatter: tooltipFormatter(fundEnabled),
     },
     legend: { data: legendData },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: {
-      type: 'category', data: data.categories,
-      axisLine: { lineStyle: { color: COLOR_AXIS } },
-      axisLabel: { interval: 'auto' },
-    },
+    grid: [
+      { left: '3%', right: '4%', top: '6%', height: '54%' },
+      { left: '3%', right: '4%', top: '66%', height: '26%' },
+    ],
+    xAxis: [
+      { type: 'category', gridIndex: 0, data: data.categories,
+        axisLine: { lineStyle: { color: COLOR_AXIS } }, axisLabel: { show: false }, axisTick: { show: false } },
+      { type: 'category', gridIndex: 1, data: data.categories,
+        axisLine: { lineStyle: { color: COLOR_AXIS } }, axisLabel: { interval: 'auto' } },
+    ],
     yAxis: [
-      {
-        type: 'value', alignTicks: true,
-        axisLabel: { formatter: (v: number) => formatAxisAmount(v) },
-        splitLine: { lineStyle: { color: COLOR_GRID } },
-      },
-      {
-        type: 'value', alignTicks: true,
-        axisLabel: { formatter: (v: number) => formatAxisAmount(v) },
-        splitLine: { show: false },
-      },
+      { type: 'value', gridIndex: 0, name: '余额', alignTicks: true,
+        axisLabel: { formatter: (v: number) => formatAxisAmount(v) }, splitLine: { lineStyle: { color: COLOR_GRID } } },
+      { type: 'value', gridIndex: 1, name: '金额', alignTicks: true,
+        axisLabel: { formatter: (v: number) => formatAxisAmount(v) }, splitLine: { lineStyle: { color: COLOR_GRID } } },
     ],
     series,
   }
