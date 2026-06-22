@@ -177,6 +177,7 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean, granular
     : ['收入', '支出', '存款']
 
   const isMonth = granularity === 'month'
+  const yearBounds = isMonth ? monthYearBoundaries(data.categories) : []
   // 存款线标注点:按月仅起点/最低/终点,按年全点
   const cumKey = isMonth
     ? keyPointIndices(data.cumSavings)
@@ -239,12 +240,27 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean, granular
       { left: '3%', right: '4%', top: '6%', height: '54%' },
       { left: '3%', right: '4%', top: '66%', height: '26%' },
     ],
-    xAxis: [
-      { type: 'category', gridIndex: 0, data: data.categories,
-        axisLine: { lineStyle: { color: COLOR_AXIS } }, axisLabel: { show: false }, axisTick: { show: false } },
-      { type: 'category', gridIndex: 1, data: data.categories,
-        axisLine: { lineStyle: { color: COLOR_AXIS } }, axisLabel: { interval: 'auto' } },
-    ],
+    xAxis: isMonth
+      ? [
+          // 上块类目轴:不显示标签,但在年份边界画分隔竖线(与下块对齐 → 视觉连贯)
+          { type: 'category', gridIndex: 0, data: data.categories,
+            axisLine: { lineStyle: { color: COLOR_AXIS } }, axisLabel: { show: false }, axisTick: { show: false },
+            splitLine: { show: true, interval: (i: number) => yearBounds.includes(i), lineStyle: { color: COLOR_AXIS, type: 'dashed' } } },
+          // 下块类目轴:显示月份(去前导零)
+          { type: 'category', gridIndex: 1, data: data.categories,
+            axisLine: { lineStyle: { color: COLOR_AXIS } }, axisLabel: { interval: 'auto', formatter: (val: string) => String(Number(val.slice(3, 5))) },
+            splitLine: { show: true, interval: (i: number) => yearBounds.includes(i), lineStyle: { color: COLOR_AXIS, type: 'dashed' } } },
+          // 年份辅助轴(下沉一层):仅每年首月显示年份
+          { type: 'category', gridIndex: 1, data: data.categories, offset: 28,
+            axisLine: { show: false }, axisTick: { show: false },
+            axisLabel: { interval: 0, formatter: (val: string, i: number) => yearBounds.includes(i) ? `20${val.slice(0, 2)}` : '' } },
+        ]
+      : [
+          { type: 'category', gridIndex: 0, data: data.categories,
+            axisLine: { lineStyle: { color: COLOR_AXIS } }, axisLabel: { show: false }, axisTick: { show: false } },
+          { type: 'category', gridIndex: 1, data: data.categories,
+            axisLine: { lineStyle: { color: COLOR_AXIS } }, axisLabel: { interval: 'auto' } },
+        ],
     yAxis: [
       { type: 'value', gridIndex: 0, name: '余额', alignTicks: true,
         axisLabel: { formatter: (v: number) => formatAxisAmount(v) }, splitLine: { lineStyle: { color: COLOR_GRID } } },

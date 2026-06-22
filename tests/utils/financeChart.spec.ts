@@ -247,3 +247,47 @@ describe('buildChartOption · 数值标注', () => {
     expect(income.label!.formatter({ dataIndex: 0, value: 120000 })).toBe('12万')
   })
 })
+
+describe('buildChartOption · 按月横轴分层', () => {
+  const monthData = {
+    categories: ['26/11', '26/12', '27/01', '27/02'],
+    income: [10000, 10000, 10000, 10000],
+    expense: [6000, 6000, 6000, 6000],
+    cumSavings: [50000, 55000, 60000, 65000],
+    fundBalance: [0, 0, 0, 0],
+  }
+
+  it('按月:下块月份轴 formatter 把 26/03 → 3(去前导零)', () => {
+    const opt = buildChartOption(monthData, false, 'month')
+    const monthFmt = opt.xAxis[1].axisLabel!.formatter as (val: string, idx: number) => string
+    expect(monthFmt('26/03', 0)).toBe('3')
+    expect(monthFmt('26/12', 0)).toBe('12')
+  })
+
+  it('按月:存在第三个 xAxis(年份辅助轴),仅每年首月显示年份,其余空', () => {
+    const opt = buildChartOption(monthData, false, 'month')
+    expect(opt.xAxis[2]).toBeDefined()
+    expect(opt.xAxis[2].gridIndex).toBe(1)
+    const yearFmt = opt.xAxis[2].axisLabel!.formatter as (val: string, idx: number) => string
+    expect(yearFmt('26/11', 0)).toBe('2026')
+    expect(yearFmt('26/12', 1)).toBe('')
+    expect(yearFmt('27/01', 2)).toBe('2027')
+    expect(yearFmt('27/02', 3)).toBe('')
+  })
+
+  it('按月:上下 x 轴在年份边界(0、2)有分隔竖线,非边界不画', () => {
+    const opt = buildChartOption(monthData, false, 'month')
+    const top = opt.xAxis[0].splitLine!.interval as (idx: number) => boolean
+    const bottom = opt.xAxis[1].splitLine!.interval as (idx: number) => boolean
+    expect(top(0)).toBe(true); expect(top(1)).toBe(false); expect(top(2)).toBe(true)
+    expect(bottom(0)).toBe(true); expect(bottom(2)).toBe(true); expect(bottom(3)).toBe(false)
+  })
+
+  it('按年:不产生年份辅助轴(仅 2 个 xAxis)', () => {
+    const yearData = {
+      categories: ['2026', '2027'], income: [1, 1], expense: [1, 1], cumSavings: [1, 1], fundBalance: [0, 0],
+    }
+    const opt = buildChartOption(yearData, false, 'year')
+    expect(opt.xAxis).toHaveLength(2)
+  })
+})
