@@ -1,0 +1,53 @@
+/* driver.js 教程气泡 · 贴合浅色金融终端风格 */
+.fp-tour-popover {
+  background: #ffffff;
+  color: #1a2233;
+  font-family: var(--font-sans);
+  border: 1px solid #e5e3df;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px -20px rgba(26, 34, 51, 0.25);
+}
+.fp-tour-popover .driver-popover-title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: #1a2233;
+}
+.fp-tour-popover .driver-popover-description {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4a5568;
+}
+.fp-tour-popover .driver-popover-progress-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #94a3b8;
+}
+.fp-tour-popover .driver-popover-close-btn {
+  color: #94a3b8;
+}
+.fp-tour-popover .driver-popover-prev-btn {
+  background: #f3f5fa;
+  color: #1a2233;
+  border: 1px solid #cbd5e1;
+  text-shadow: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.fp-tour-popover .driver-popover-next-btn {
+  background: #1a2233;
+  color: #ffffff;
+  border: none;
+  text-shadow: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.fp-tour-popover .driver-popover-next-btn:hover {
+  background: #2d3a52;
+}
+/* 高亮元素描边用墨色（driver.js 1.4 高亮元素运行时类为 driver-active-element） */
+.driver-active-element {
+  outline: 3px solid #1a2233;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(26, 34, 51, 0.15);
+}
