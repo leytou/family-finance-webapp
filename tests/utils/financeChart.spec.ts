@@ -291,3 +291,11 @@ describe('buildChartOption · 按月横轴分层', () => {
     expect(opt.xAxis).toHaveLength(2)
   })
 })
+
+describe('buildChartOption · 悬停联动', () => {
+  it('tooltip.axisPointer.link 联动所有 xAxis(上下块同步)', () => {
+    const data = { categories: ['26/01'], income: [1], expense: [1], cumSavings: [1], fundBalance: [0] }
+    const opt = buildChartOption(data, false, 'month')
+    expect(opt.tooltip.axisPointer?.link).toEqual([{ xAxisIndex: 'all' }])
+  })
+})

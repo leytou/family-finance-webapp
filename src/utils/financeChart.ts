@@ -233,6 +233,7 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean, granular
       trigger: 'axis',
       backgroundColor: '#ffffff', borderColor: '#e4e8f1', borderWidth: 1,
       textStyle: { color: '#0f172a' },
+      axisPointer: { link: [{ xAxisIndex: 'all' }] },
       formatter: tooltipFormatter(fundEnabled),
     },
     legend: { data: legendData },
