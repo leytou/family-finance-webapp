@@ -299,3 +299,12 @@ describe('buildChartOption · 悬停联动', () => {
     expect(opt.tooltip.axisPointer?.link).toEqual([{ xAxisIndex: 'all' }])
   })
 })
+
+describe('buildChartOption · label 渲染前提(规避 ECharts #8885)', () => {
+  it('存款线 showSymbol 非 false——showSymbol:false 会抑制 line label 渲染', () => {
+    const opt = buildChartOption({ categories: ['2026'], income: [1], expense: [1], cumSavings: [50000], fundBalance: [0] }, false, 'year')
+    const cum = opt.series.find(s => s.name === '存款')!
+    expect(cum.showSymbol).not.toBe(false)
+    expect(cum.label?.show).toBe(true)
+  })
+})

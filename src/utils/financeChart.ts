@@ -17,17 +17,20 @@ export interface ChartSeries {
   data: number[]
   xAxisIndex?: number
   yAxisIndex?: number
-  itemStyle?: { color: string; borderRadius?: number[] }
+  itemStyle?: { color: string; borderRadius?: number[]; opacity?: number }
   lineStyle?: { color: string; width?: number }
   areaStyle?: { color: unknown }
   smooth?: boolean
   showSymbol?: boolean
+  symbolSize?: number
   barCategoryGap?: string
   label?: {
     show: boolean
     position?: string
     color?: string
     fontSize?: number
+    textBorderColor?: string
+    textBorderWidth?: number
     formatter: (p: { dataIndex: number; value: number }) => string
   }
 }
@@ -192,7 +195,10 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean, granular
   const series: ChartSeries[] = [
     {
       name: '存款', type: 'line', xAxisIndex: 0, yAxisIndex: 0, data: data.cumSavings,
-      smooth: true, showSymbol: false,
+      smooth: true,
+      // 不用 showSymbol:false——它会抑制 label 渲染(ECharts 已知问题 #8885);
+      // 改用极小+透明 symbol 保留 label 锚点,视觉上仍看不到圆点
+      showSymbol: true, symbolSize: 4,
       lineStyle: { color: COLOR_CUM, width: 2.5 }, itemStyle: { color: COLOR_CUM },
       areaStyle: {
         color: {
@@ -203,15 +209,15 @@ export function buildChartOption(data: ChartData, fundEnabled: boolean, granular
           ],
         },
       },
-      label: { show: true, position: 'top', color: COLOR_CUM, fontSize: 10, formatter: cumLabelFormatter },
+      label: { show: true, position: 'top', color: COLOR_CUM, fontSize: 11, textBorderColor: '#ffffff', textBorderWidth: 2, formatter: cumLabelFormatter },
     },
   ]
 
   if (fundEnabled) {
     series.push({
       name: '公积金余额', type: 'line', xAxisIndex: 0, yAxisIndex: 0, data: data.fundBalance,
-      smooth: true, showSymbol: false,
-      lineStyle: { color: COLOR_FUND }, itemStyle: { color: COLOR_FUND },
+      smooth: true, showSymbol: true, symbolSize: 1,
+      lineStyle: { color: COLOR_FUND }, itemStyle: { color: COLOR_FUND, opacity: 0 },
     })
   }
 
