@@ -84,7 +84,7 @@ function migrateColumn(col: Record<string, any>): void {
     const entries = col.entries ?? {}
     const itemSets: Record<number, ColumnItem[]> = {}
     for (const key in entries) {
-      itemSets[key] = [{ id: generateId(), name: '', amount: entries[key] }]
+      itemSets[Number(key)] = [{ id: generateId(), name: '', amount: entries[key] }]
     }
     col.itemSets = itemSets
   }

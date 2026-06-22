@@ -1186,7 +1186,7 @@ function getValueClass(value: number): string {
     :items="eventInfo(eventEditor.month).events.map(e => ({ name: e.name, amount: e.amount }))"
     :x="eventEditor.x"
     :y="eventEditor.y"
-    @save="(items) => store.replaceMonthEvents(eventEditor.month, items)"
+    @save="(items) => store.replaceMonthEvents(eventEditor!.month, items)"
     @close="closeEventEditor"
   />
 
