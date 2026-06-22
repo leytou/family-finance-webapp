@@ -256,6 +256,23 @@ function getColumnTotal(summary: YearSummary, name: string): number {
           </td>
         </tr>
 
+        <template v-if="fund">
+          <tr class="border-b">
+            <td class="px-1 py-0 whitespace-nowrap">年末公积金</td>
+            <td
+              v-for="summary in yearSummaries"
+              :key="`fund-${summary.year}`"
+              class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
+            >
+              <span
+                class="block w-full"
+                @mouseenter="showYearFormula(summary, 'fundBalance', $event)"
+                @mouseleave="popover = null"
+              >{{ formatCurrency(summary.fundBalance ?? 0) }}</span>
+            </td>
+          </tr>
+        </template>
+
         <tr class="border-b font-semibold">
           <td class="px-1 py-0 whitespace-nowrap">年度结余</td>
           <td
@@ -287,23 +304,6 @@ function getColumnTotal(summary: YearSummary, name: string): number {
             >{{ formatCurrency(summary.endSavings) }}</span>
           </td>
         </tr>
-
-        <template v-if="fund">
-          <tr class="border-b">
-            <td class="px-1 py-0 whitespace-nowrap">公积金</td>
-            <td
-              v-for="summary in yearSummaries"
-              :key="`fund-${summary.year}`"
-              class="px-1 py-0 text-right font-mono tabular-nums whitespace-nowrap"
-            >
-              <span
-                class="block w-full"
-                @mouseenter="showYearFormula(summary, 'fundBalance', $event)"
-                @mouseleave="popover = null"
-              >{{ formatCurrency(summary.fundBalance ?? 0) }}</span>
-            </td>
-          </tr>
-        </template>
       </tbody>
     </table>
     <FormulaPopover
