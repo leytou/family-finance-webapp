@@ -204,7 +204,7 @@ describe('AnnualTable', () => {
     expect(wrapper.get('table').classes()).toEqual(
       expect.arrayContaining(['text-[11px]', 'leading-tight'])
     )
-    expect(wrapper.get('thead').classes()).toEqual(expect.arrayContaining(['sticky', 'top-0', 'bg-surface-2']))
+    expect(wrapper.get('thead').classes()).toEqual(expect.arrayContaining(['bg-surface-2']))
     expect(wrapper.get('th').classes()).toEqual(expect.arrayContaining(['px-1', 'py-0']))
 
     const yearValueCell = wrapper.findAll('tbody tr')[0].findAll('td')[1]
@@ -510,7 +510,7 @@ describe('AnnualTable · 公积金', () => {
     const AnnualTable = (await import('../../src/components/AnnualTable.vue')).default
     const wrapper = mount(AnnualTable, { props: { results } })
     const rowLabels = wrapper.findAll('tbody td:first-child').map(td => td.text())
-    expect(rowLabels).toContain('公积金')
+    expect(rowLabels).toContain('年末公积金')
     expect(rowLabels).not.toContain('总资产')
   })
 

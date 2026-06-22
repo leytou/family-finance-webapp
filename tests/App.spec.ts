@@ -58,16 +58,13 @@ describe('App', () => {
     const wrapper = mount(App, { global: { stubs: globalStubs } })
 
     const main = wrapper.get('main')
-    const divs = main.findAll(':scope > div')
-    // v-else 分支会渲染两个 div
-    expect(divs).toHaveLength(2)
-
-    // 第一个 div 是年度表区域
-    expect(divs[0].classes()).toContain('max-h-[35%]')
-    expect(divs[0].classes()).toContain('border-b')
-
-    // 第二个 div 是月度表区域
-    expect(divs[1].classes()).toContain('flex-1')
+    // 表格视图：单一滚动容器，内含年度汇总与月度流水两个折叠区
+    const scroll = main.findAll(':scope > div')
+    expect(scroll).toHaveLength(1)
+    expect(scroll[0].classes()).toContain('flex-1')
+    expect(scroll[0].classes()).toContain('overflow-auto')
+    expect(wrapper.findComponent({ name: 'AnnualTable' }).exists()).toBe(true)
+    expect(wrapper.findComponent({ name: 'MonthlyTable' }).exists()).toBe(true)
   })
 
   it('头部包含 ScenarioTabs 和对比按钮', async () => {
@@ -382,14 +379,16 @@ describe('App', () => {
     expect(contentDiv.attributes('style') ?? '').toContain('display: none')
   })
 
-  it('收起年度汇总后，月度流水容器仍为 flex-1（撑满）', async () => {
+  it('收起年度汇总后，月度流水折叠头仍可见且展开', async () => {
     const App = await loadApp()
     const wrapper = mount(App, { global: { stubs: globalStubs } })
-    const annualHeader = wrapper.findAll('[data-testid="collapse-header"]').find(b => b.text().includes('年度汇总'))!
+    const headers = wrapper.findAll('[data-testid="collapse-header"]')
+    const annualHeader = headers.find(b => b.text().includes('年度汇总'))!
     await annualHeader.trigger('click')
-    const main = wrapper.get('main')
-    const divs = main.findAll(':scope > div')
-    expect(divs[1].classes()).toContain('flex-1')
+    expect(annualHeader.attributes('aria-expanded')).toBe('false')
+    // 单滚动结构下，月度折叠头仍在、保持展开
+    const monthlyHeader = headers.find(b => b.text().includes('月度流水'))!
+    expect(monthlyHeader.attributes('aria-expanded')).toBe('true')
   })
 
   it('收起参数后重新挂载仍保持收起（持久化）', async () => {

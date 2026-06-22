@@ -385,7 +385,7 @@ describe('MonthlyTable', () => {
 
     const thead = wrapper.get('thead')
     expect(thead.classes()).toContain('sticky')
-    expect(thead.classes()).toContain('top-0')
+    expect(thead.classes()).toContain('top-7')
     expect(thead.classes()).toContain('bg-surface-2')
   })
 
