@@ -1,4 +1,4 @@
-import { computed, ref, type WritableComputedRef } from 'vue'
+import { computed, ref, type Ref, type WritableComputedRef } from 'vue'
 
 const STORAGE_KEY = 'family-finance-ui-prefs'
 
@@ -40,20 +40,22 @@ function save(state: CollapsedState): void {
 }
 
 // 模块级单例：与 useStore 同样的模式，整页共享同一份折叠状态
-let sharedCollapsed: ReturnType<typeof ref<CollapsedState>> | null = null
+let sharedCollapsed: Ref<CollapsedState> | null = null
 
 export function useUiPrefs(): Record<SectionKey, WritableComputedRef<boolean>> {
   if (!sharedCollapsed) {
     sharedCollapsed = ref(load())
   }
-  const state = sharedCollapsed
+  // 模块级 let 在闭包内会丢失「已初始化」的窄化，这里断言为非空 ref
+  const state = sharedCollapsed as Ref<CollapsedState>
   // 每个区块一个可写 computed：读共享 state，写时同步落盘
   const make = (key: SectionKey): WritableComputedRef<boolean> =>
     computed({
       get: () => state.value[key],
       set: (v: boolean) => {
-        state.value = { ...state.value, [key]: v }
-        save(state.value)
+        const next = { ...state.value, [key]: v } as CollapsedState
+        state.value = next
+        save(next)
       },
     })
   return {
