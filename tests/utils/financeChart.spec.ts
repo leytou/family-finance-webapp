@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MonthResult } from '../../src/types'
-import { formatAxisLabel, buildChartData, buildChartOption, formatAxisAmount, monthYearBoundaries } from '../../src/utils/financeChart'
+import { formatAxisLabel, buildChartData, buildChartOption, formatAxisAmount, monthYearBoundaries, keyPointIndices } from '../../src/utils/financeChart'
 
 function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
   return {
@@ -236,5 +236,20 @@ describe('monthYearBoundaries', () => {
   })
   it('空数组 → []', () => {
     expect(monthYearBoundaries([])).toEqual([])
+  })
+})
+
+describe('keyPointIndices', () => {
+  it('返回起点/最低点/终点索引(升序去重)', () => {
+    expect(keyPointIndices([50000, 40000, 47000, 61000])).toEqual([0, 1, 3])
+  })
+  it('单元素 → [0]', () => {
+    expect(keyPointIndices([5])).toEqual([0])
+  })
+  it('空数组 → []', () => {
+    expect(keyPointIndices([])).toEqual([])
+  })
+  it('全相同 → [0, 末位]', () => {
+    expect(keyPointIndices([3, 3, 3])).toEqual([0, 2])
   })
 })

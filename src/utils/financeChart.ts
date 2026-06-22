@@ -83,6 +83,17 @@ export function monthYearBoundaries(categories: string[]): number[] {
   return bounds
 }
 
+/**
+ * 数值序列 → [起点, 最低点, 终点] 索引(升序去重)。
+ * 最低点取第一个最小值的位置;空数组返回空。
+ */
+export function keyPointIndices(values: number[]): number[] {
+  if (values.length === 0) return []
+  let minIdx = 0
+  values.forEach((v, i) => { if (v < values[minIdx]) minIdx = i })
+  return Array.from(new Set([0, minIdx, values.length - 1])).sort((a, b) => a - b)
+}
+
 /** 轴刻度 / 摘要智能缩写：<1万 千分位整数，≥1万 X.X万，≥1亿 X.X亿（去尾零）。 */
 export function formatAxisAmount(v: number): string {
   const abs = Math.abs(v)
