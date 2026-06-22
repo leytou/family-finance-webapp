@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MonthResult } from '../../src/types'
-import { formatAxisLabel, buildChartData, buildChartOption, formatAxisAmount } from '../../src/utils/financeChart'
+import { formatAxisLabel, buildChartData, buildChartOption, formatAxisAmount, monthYearBoundaries } from '../../src/utils/financeChart'
 
 function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
   return {
@@ -223,5 +223,18 @@ describe('fund 双线', () => {
     ])
     expect(html).toContain('公积金余额')
     expect(html).toContain('3万')   // 公积金 30000
+  })
+})
+
+describe('monthYearBoundaries', () => {
+  it('返回每个年份首次出现的索引(升序)', () => {
+    const cats = ['26/01', '26/02', '26/12', '27/01', '27/03', '28/01']
+    expect(monthYearBoundaries(cats)).toEqual([0, 3, 5])
+  })
+  it('单年 → 仅 [0]', () => {
+    expect(monthYearBoundaries(['26/01', '26/12'])).toEqual([0])
+  })
+  it('空数组 → []', () => {
+    expect(monthYearBoundaries([])).toEqual([])
   })
 })

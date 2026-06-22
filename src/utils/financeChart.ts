@@ -65,6 +65,24 @@ export function formatAxisLabel(month: number): string {
   return `${String(year).padStart(2, '0')}/${String(m).padStart(2, '0')}`
 }
 
+/**
+ * 按月 categories(YY/MM)→ 每个年份首次出现的索引(升序)。
+ * 供按月横轴的「年份标注」与「年份分隔竖线」使用。空数组返回空。
+ */
+export function monthYearBoundaries(categories: string[]): number[] {
+  if (categories.length === 0) return []
+  const bounds: number[] = []
+  let lastYear = ''
+  categories.forEach((cat, i) => {
+    const year = cat.slice(0, 2)
+    if (year !== lastYear) {
+      bounds.push(i)
+      lastYear = year
+    }
+  })
+  return bounds
+}
+
 /** 轴刻度 / 摘要智能缩写：<1万 千分位整数，≥1万 X.X万，≥1亿 X.X亿（去尾零）。 */
 export function formatAxisAmount(v: number): string {
   const abs = Math.abs(v)
