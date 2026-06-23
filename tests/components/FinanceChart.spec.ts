@@ -61,7 +61,7 @@ describe('FinanceChart', () => {
     const mockInstance = mockInit.mock.results[0].value as { setOption: ReturnType<typeof vi.fn> }
     expect(mockInstance.setOption).toHaveBeenCalledTimes(1)
     const option = mockInstance.setOption.mock.calls[0][0] as { series: { name: string }[] }
-    expect(option.series.map(s => s.name)).toEqual(['收入', '支出', '存款'])
+    expect(option.series.map(s => s.name)).toEqual(['存款', '收入', '支出'])
   })
 
   it('标题区高亮当前存款（与主线同名，万元格式）', async () => {
@@ -90,8 +90,8 @@ describe('FinanceChart', () => {
     await nextTick()
 
     expect(mockInstance.setOption).toHaveBeenCalledTimes(1)
-    const option = mockInstance.setOption.mock.calls[0][0] as { xAxis: { data: string[] } }
-    expect(option.xAxis.data).toEqual(['2026'])
+    const option = mockInstance.setOption.mock.calls[0][0] as { xAxis: Array<{ data: string[] }> }
+    expect(option.xAxis[1].data).toEqual(['2026'])
   })
 
   it('卸载时 dispose 图表实例', async () => {
