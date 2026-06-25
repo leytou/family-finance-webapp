@@ -835,7 +835,7 @@ function getValueClass(value: number): string {
           <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap" data-tour="balance-col">存款</th>
           <!-- 公积金专区表头（仅 fund 启用） -->
           <template v-if="fund">
-            <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l-2 border-brand-300">房贷月供</th>
+            <th data-tour="fund-columns" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l-2 border-brand-300">房贷月供</th>
             <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">公积金缴存</th>
             <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">公积金月冲</th>
             <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">存款补扣</th>

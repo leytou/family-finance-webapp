@@ -259,8 +259,8 @@ function onFundToggle(e: Event) {
             </div>
           </div>
           <!-- 公积金子分组：另起一行展示；仅 fund 启用时显示 3 输入 -->
-          <div class="flex items-center gap-2 w-full">
-            <label class="text-[11px] whitespace-nowrap font-mono flex items-center gap-1" data-tour="fund-toggle">
+          <div class="flex items-center gap-2 w-full" data-tour="fund-toggle">
+            <label class="text-[11px] whitespace-nowrap font-mono flex items-center gap-1">
               <input
                 data-testid="fund-enable-toggle"
                 type="checkbox"

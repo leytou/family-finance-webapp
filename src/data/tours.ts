@@ -27,11 +27,10 @@ export const TOURS: Record<Exclude<TourTopic, 'all'>, TourDef> = {
   fund: {
     key: 'fund',
     label: '🏠 公积金专区',
-    // 公积金子参数仅在开关开启后渲染，故全部指向始终存在的开关元素，文案分段讲解
+    // 第1步指向参数行的公积金配置区（开关+参数，外层容器常驻）；第2步指向月度表专区首列（需已开启公积金）
     steps: [
-      { element: el('fund-toggle'), popover: { title: '开启公积金', description: '勾选这个开关启用公积金；未开启时下方参数不会显示。' } },
-      { element: el('fund-toggle'), popover: { title: '缴存与结息', description: '开启后可在此设置年利率、结息月份、初始余额。' } },
-      { element: el('fund-toggle'), popover: { title: '月冲与提取', description: '在月度流水表的公积金列点单元格，可编辑缴存 / 月冲 / 提取。' } },
+      { element: el('fund-toggle'), popover: { title: '配置公积金', description: '勾选开关启用公积金；开启后在这里设置年利率、结息月份、初始余额。' } },
+      { element: el('fund-columns'), popover: { title: '公积金专区（月度）', description: '月度流水这一片（蓝色分隔线右侧）是公积金专区，逐月显示房贷月供、缴存、月冲、存款补扣和余额，点单元格即可编辑。' } },
     ],
   },
   compare: {
