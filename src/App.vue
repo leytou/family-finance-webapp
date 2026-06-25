@@ -225,34 +225,38 @@ function onFundToggle(e: Event) {
       >
         <div class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-surface-2 border-t">
           <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-          <div class="flex items-center gap-2" data-tour="param-month">
-            <label for="start-month" class="text-[11px] whitespace-nowrap font-mono">起始月份</label>
-            <MonthPicker v-model="startMonth" input-id="start-month" />
+          <div class="flex items-center gap-3" data-tour="param-month">
+            <div class="flex items-center gap-2">
+              <label for="start-month" class="text-[11px] whitespace-nowrap font-mono">起始月份</label>
+              <MonthPicker v-model="startMonth" input-id="start-month" />
+            </div>
+            <div class="flex items-center gap-2">
+              <label for="end-month" class="text-[11px] whitespace-nowrap font-mono">结束月份</label>
+              <MonthPicker v-model="endMonth" input-id="end-month" />
+              <span data-testid="projection-text" class="text-[11px] text-ink-3 whitespace-nowrap">{{ projectionText }}</span>
+            </div>
+            <span v-if="periodError" data-testid="end-month-error" class="text-[11px] text-negative-600 whitespace-nowrap">{{ periodError }}</span>
           </div>
-          <div class="flex items-center gap-2">
-            <label for="end-month" class="text-[11px] whitespace-nowrap font-mono">结束月份</label>
-            <MonthPicker v-model="endMonth" input-id="end-month" />
-            <span data-testid="projection-text" class="text-[11px] text-ink-3 whitespace-nowrap">{{ projectionText }}</span>
-          </div>
-          <span v-if="periodError" data-testid="end-month-error" class="text-[11px] text-negative-600 whitespace-nowrap">{{ periodError }}</span>
-          <div class="flex items-center gap-2" data-tour="param-rate">
-            <label class="text-[11px] whitespace-nowrap font-mono">年化收益率(%)</label>
-            <input
-              :value="(data.systemParams.annualRate * 100).toFixed(3)"
-              @input="(e: Event) => { const target = e.target as HTMLInputElement; data.systemParams.annualRate = Number(target.value) / 100 }"
-              type="number"
-              step="0.001"
-              class="border rounded px-2 py-0.5 text-[11px] w-[85px]"
-            />
-          </div>
-          <div class="flex items-center gap-2">
-            <label class="text-[11px] whitespace-nowrap font-mono">初始存款</label>
-            <input
-              v-model.number="data.systemParams.initialDeposit"
-              type="number"
-              class="border rounded px-2 py-0.5 text-[11px] w-24"
-              placeholder="元"
-            />
+          <div class="flex items-center gap-3" data-tour="param-rate">
+            <div class="flex items-center gap-2">
+              <label class="text-[11px] whitespace-nowrap font-mono">年化收益率(%)</label>
+              <input
+                :value="(data.systemParams.annualRate * 100).toFixed(3)"
+                @input="(e: Event) => { const target = e.target as HTMLInputElement; data.systemParams.annualRate = Number(target.value) / 100 }"
+                type="number"
+                step="0.001"
+                class="border rounded px-2 py-0.5 text-[11px] w-[85px]"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-[11px] whitespace-nowrap font-mono">初始存款</label>
+              <input
+                v-model.number="data.systemParams.initialDeposit"
+                type="number"
+                class="border rounded px-2 py-0.5 text-[11px] w-24"
+                placeholder="元"
+              />
+            </div>
           </div>
           <!-- 公积金子分组：另起一行展示；仅 fund 启用时显示 3 输入 -->
           <div class="flex items-center gap-2 w-full">
