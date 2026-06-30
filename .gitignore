@@ -24,10 +24,8 @@ dist-ssr
 
 # Brainstorming 可视化伴侣会话产物
 .superpowers/
+docs/superpowers/
 
 # 本地工具与个人数据（不随项目发布）
 .claude/
 .VSCodeCounter/
-公积金基数.txt
-房贷月供金额.md
-废弃/
