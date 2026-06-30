@@ -1,0 +1,621 @@
+{
+  "exportVersion": 1,
+  "exportTime": "2026-06-30T16:27:14.292Z",
+  "data": {
+    "version": 1,
+    "scenarios": [
+      {
+        "id": "demo_stable",
+        "name": "示例-稳健储蓄",
+        "plan": {
+          "version": 3,
+          "systemParams": {
+            "startMonth": 202601,
+            "endMonth": 203012,
+            "annualRate": 0.025,
+            "initialDeposit": 50000,
+            "fundRate": 0.015,
+            "fundInterestMonth": 7,
+            "fundInitialBalance": 20000
+          },
+          "columns": [
+            {
+              "id": "demo_salary_a",
+              "name": "工资A",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "mr0ubklv4f3o",
+                    "name": "",
+                    "amount": 8000
+                  }
+                ],
+                "202606": [
+                  {
+                    "id": "mr0ubr2yi0nc",
+                    "name": "",
+                    "amount": 9000
+                  }
+                ],
+                "202701": [
+                  {
+                    "id": "mr0ubvinaj66",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ],
+                "202707": [
+                  {
+                    "id": "mr0ulqvawn0f",
+                    "name": "",
+                    "amount": 12000
+                  }
+                ]
+              }
+            },
+            {
+              "id": "demo_salary_b",
+              "name": "工资B",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "demo_salary_b_202601",
+                    "name": "",
+                    "amount": 8000
+                  }
+                ],
+                "202701": [
+                  {
+                    "id": "mr0uc8ljamp6",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ],
+                "202711": [
+                  {
+                    "id": "mr0um6b88i7u",
+                    "name": "",
+                    "amount": 11000
+                  }
+                ]
+              }
+            },
+            {
+              "id": "demo_bonus",
+              "name": "奖金",
+              "enabled": true,
+              "mode": "single",
+              "yearlyMonths": {
+                "202606": true,
+                "202612": true,
+                "202706": true,
+                "202712": true,
+                "202806": true,
+                "202812": true
+              },
+              "itemSets": {
+                "202606": [
+                  {
+                    "id": "mr0uctl8i5rl",
+                    "name": "",
+                    "amount": 5000
+                  }
+                ],
+                "202612": [
+                  {
+                    "id": "mr0udrmc8ob3",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ],
+                "202706": [
+                  {
+                    "id": "mr0uctl8g6ig",
+                    "name": "",
+                    "amount": 5000
+                  }
+                ],
+                "202712": [
+                  {
+                    "id": "mr0udrmc9x3t",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ],
+                "202806": [
+                  {
+                    "id": "mr0uctl81wbg",
+                    "name": "",
+                    "amount": 5000
+                  }
+                ],
+                "202812": [
+                  {
+                    "id": "mr0udrmcwsrv",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ]
+              }
+            },
+            {
+              "id": "demo_living",
+              "name": "日常支出",
+              "enabled": true,
+              "mode": "detail",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "mr0uf0f8lysw",
+                    "name": "餐饮",
+                    "amount": -2500
+                  },
+                  {
+                    "id": "mr0uf0f8z3tc",
+                    "name": "交通",
+                    "amount": -800
+                  },
+                  {
+                    "id": "mr0uf0f8narb",
+                    "name": "其他",
+                    "amount": -1000
+                  }
+                ]
+              }
+            },
+            {
+              "id": "demo_rent",
+              "name": "租房",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "mr0ueeooozd7",
+                    "name": "",
+                    "amount": -2000
+                  }
+                ]
+              }
+            },
+            {
+              "id": "mr0ufi2vcvrj",
+              "name": "旅行",
+              "itemSets": {
+                "202604": [
+                  {
+                    "id": "mr0ug96x8016",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ],
+                "202704": [
+                  {
+                    "id": "mr0ug96xb69p",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ],
+                "202804": [
+                  {
+                    "id": "mr0ug96x8z5h",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ],
+                "202904": [
+                  {
+                    "id": "mr0ug96xjt5b",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ],
+                "203004": [
+                  {
+                    "id": "mr0ug96xvgq8",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ]
+              },
+              "mode": "single",
+              "yearlyMonths": {
+                "202604": true,
+                "202704": true,
+                "202804": true,
+                "202904": true,
+                "203004": true
+              }
+            }
+          ],
+          "anchors": [],
+          "snapshots": [],
+          "events": [
+            {
+              "id": "mr0unkjcfi3o",
+              "name": "电脑",
+              "month": 202603,
+              "amount": -5000
+            },
+            {
+              "id": "mr0unncg7s4v",
+              "name": "相机",
+              "month": 202607,
+              "amount": -6000
+            }
+          ],
+          "fund": {
+            "mortgage": {
+              "id": "demo_fund_mortgage",
+              "name": "房贷月供",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {}
+            },
+            "contribution": {
+              "id": "demo_fund_contribution",
+              "name": "公积金缴存",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "demo_fund_contribution_202601",
+                    "name": "",
+                    "amount": 3000
+                  }
+                ]
+              }
+            },
+            "monthlyOffset": {
+              "id": "demo_fund_offset",
+              "name": "公积金月冲",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {}
+            },
+            "withdrawals": [],
+            "anchors": []
+          }
+        }
+      },
+      {
+        "id": "demo_home",
+        "name": "示例-买房规划",
+        "plan": {
+          "version": 3,
+          "systemParams": {
+            "startMonth": 202601,
+            "endMonth": 203012,
+            "annualRate": 0.025,
+            "initialDeposit": 50000,
+            "fundRate": 0.015,
+            "fundInterestMonth": 7,
+            "fundInitialBalance": 20000
+          },
+          "columns": [
+            {
+              "id": "demo_home_salary_a",
+              "name": "工资A",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "home_mr0ubklv4f3o",
+                    "name": "",
+                    "amount": 8000
+                  }
+                ],
+                "202606": [
+                  {
+                    "id": "home_mr0ubr2yi0nc",
+                    "name": "",
+                    "amount": 9000
+                  }
+                ],
+                "202701": [
+                  {
+                    "id": "home_mr0ubvinaj66",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ],
+                "202707": [
+                  {
+                    "id": "home_mr0ulqvawn0f",
+                    "name": "",
+                    "amount": 12000
+                  }
+                ]
+              }
+            },
+            {
+              "id": "demo_home_salary_b",
+              "name": "工资B",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "demo_home_salary_b_202601",
+                    "name": "",
+                    "amount": 8000
+                  }
+                ],
+                "202701": [
+                  {
+                    "id": "home_mr0uc8ljamp6",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ],
+                "202711": [
+                  {
+                    "id": "home_mr0um6b88i7u",
+                    "name": "",
+                    "amount": 11000
+                  }
+                ]
+              }
+            },
+            {
+              "id": "demo_home_bonus",
+              "name": "奖金",
+              "enabled": true,
+              "mode": "single",
+              "yearlyMonths": {
+                "202606": true,
+                "202612": true,
+                "202706": true,
+                "202712": true,
+                "202806": true,
+                "202812": true
+              },
+              "itemSets": {
+                "202606": [
+                  {
+                    "id": "home_mr0uctl8i5rl",
+                    "name": "",
+                    "amount": 5000
+                  }
+                ],
+                "202612": [
+                  {
+                    "id": "home_mr0udrmc8ob3",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ],
+                "202706": [
+                  {
+                    "id": "home_mr0uctl8g6ig",
+                    "name": "",
+                    "amount": 5000
+                  }
+                ],
+                "202712": [
+                  {
+                    "id": "home_mr0udrmc9x3t",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ],
+                "202806": [
+                  {
+                    "id": "home_mr0uctl81wbg",
+                    "name": "",
+                    "amount": 5000
+                  }
+                ],
+                "202812": [
+                  {
+                    "id": "home_mr0udrmcwsrv",
+                    "name": "",
+                    "amount": 10000
+                  }
+                ]
+              }
+            },
+            {
+              "id": "demo_home_living",
+              "name": "日常支出",
+              "enabled": true,
+              "mode": "detail",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "home_mr0uf0f8lysw",
+                    "name": "餐饮",
+                    "amount": -2500
+                  },
+                  {
+                    "id": "home_mr0uf0f8z3tc",
+                    "name": "交通",
+                    "amount": -800
+                  },
+                  {
+                    "id": "home_mr0uf0f8narb",
+                    "name": "其他",
+                    "amount": -1000
+                  }
+                ]
+              }
+            },
+            {
+              "id": "demo_home_rent",
+              "name": "租房",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "home_mr0ueeooozd7",
+                    "name": "",
+                    "amount": -2000
+                  }
+                ],
+                "202708": [
+                  {
+                    "id": "demo_home_rent_202708",
+                    "name": "",
+                    "amount": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "home_mr0ufi2vcvrj",
+              "name": "旅行",
+              "itemSets": {
+                "202604": [
+                  {
+                    "id": "home_mr0ug96x8016",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ],
+                "202704": [
+                  {
+                    "id": "home_mr0ug96xb69p",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ],
+                "202804": [
+                  {
+                    "id": "home_mr0ug96x8z5h",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ],
+                "202904": [
+                  {
+                    "id": "home_mr0ug96xjt5b",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ],
+                "203004": [
+                  {
+                    "id": "home_mr0ug96xvgq8",
+                    "name": "",
+                    "amount": -8000
+                  }
+                ]
+              },
+              "mode": "single",
+              "yearlyMonths": {
+                "202604": true,
+                "202704": true,
+                "202804": true,
+                "202904": true,
+                "203004": true
+              }
+            }
+          ],
+          "anchors": [],
+          "snapshots": [
+            {
+              "id": "demo_home_snapshot_202601",
+              "name": "2026-01 示例快照",
+              "createdMonth": 202601,
+              "projection": {
+                "202612": 175000,
+                "202712": 325000,
+                "202812": 485000
+              }
+            }
+          ],
+          "events": [
+            {
+              "id": "home_mr0unkjcfi3o",
+              "name": "电脑",
+              "month": 202603,
+              "amount": -5000
+            },
+            {
+              "id": "home_mr0unncg7s4v",
+              "name": "相机",
+              "month": 202607,
+              "amount": -6000
+            },
+            {
+              "id": "demo_home_down_payment_202707",
+              "name": "首付",
+              "month": 202707,
+              "amount": -120000
+            },
+            {
+              "id": "demo_home_decoration_202709",
+              "name": "装修家电",
+              "month": 202709,
+              "amount": -30000
+            }
+          ],
+          "fund": {
+            "mortgage": {
+              "id": "demo_home_fund_mortgage",
+              "name": "房贷月供",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202708": [
+                  {
+                    "id": "demo_home_mortgage_202708",
+                    "name": "",
+                    "amount": -5000
+                  }
+                ]
+              }
+            },
+            "contribution": {
+              "id": "demo_home_fund_contribution",
+              "name": "公积金缴存",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202601": [
+                  {
+                    "id": "demo_home_fund_contribution_202601",
+                    "name": "",
+                    "amount": 3000
+                  }
+                ]
+              }
+            },
+            "monthlyOffset": {
+              "id": "demo_home_fund_offset",
+              "name": "公积金月冲",
+              "enabled": true,
+              "mode": "single",
+              "itemSets": {
+                "202708": [
+                  {
+                    "id": "demo_home_offset_202708",
+                    "name": "",
+                    "amount": 3000
+                  }
+                ]
+              }
+            },
+            "withdrawals": [
+              {
+                "id": "demo_home_withdrawal_202707",
+                "name": "购房提取",
+                "month": 202707,
+                "amount": 20000
+              }
+            ],
+            "anchors": []
+          }
+        }
+      }
+    ],
+    "activeId": "demo_stable"
+  }
+}
