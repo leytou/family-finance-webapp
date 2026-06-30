@@ -60,6 +60,19 @@ describe('CollapsibleSection', () => {
     expect(wrapper.find('[data-testid="collapse-index"]').exists()).toBe(false)
   })
 
+  it('传入 icon 渲染对应线性图标（SVG）', () => {
+    const wrapper = mountSection({ collapsed: false, title: '年度汇总', icon: 'calendar' })
+    const icon = wrapper.get('[data-testid="collapse-icon"]')
+    // 容器为品牌靛蓝，内部内联了一枚 <svg>
+    expect(icon.classes()).toContain('text-brand-600')
+    expect(icon.find('svg').exists()).toBe(true)
+  })
+
+  it('未传 icon 时不渲染图标节点', () => {
+    const wrapper = mountSection({ collapsed: false, title: '参数' })
+    expect(wrapper.find('[data-testid="collapse-icon"]').exists()).toBe(false)
+  })
+
   it('sticky 为真时折叠头带 sticky 类', () => {
     const wrapper = mountSection({ collapsed: false, title: '月度流水', sticky: true })
     expect(wrapper.get('button').classes()).toContain('sticky')

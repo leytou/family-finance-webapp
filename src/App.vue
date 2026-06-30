@@ -221,6 +221,7 @@ function onFundToggle(e: Event) {
         v-if="activeView !== 'calculator'"
         v-model:collapsed="paramsCollapsed"
         title="参数"
+        icon="sliders"
         data-testid="param-row"
       >
         <div class="min-h-8 flex items-center gap-4 px-4 py-0.5 bg-surface-2 border-t">
@@ -308,6 +309,7 @@ function onFundToggle(e: Event) {
         v-if="activeView !== 'calculator' && activeView !== 'comparison'"
         v-model:collapsed="metricsCollapsed"
         title="指标"
+        icon="gauge"
       >
         <KeyMetricsBar
           :results="keyMetricsProps.results"
@@ -338,7 +340,7 @@ function onFundToggle(e: Event) {
           <CollapsibleSection
             v-model:collapsed="annualCollapsed"
             title="年度汇总"
-            index="01"
+            icon="calendar"
             class="border-b border-line"
             data-tour="annual-table"
           >
@@ -348,7 +350,7 @@ function onFundToggle(e: Event) {
           <CollapsibleSection
             v-model:collapsed="monthlyCollapsed"
             title="月度流水"
-            index="02"
+            icon="list"
             sticky
             data-tour="monthly-table"
           >
