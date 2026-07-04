@@ -833,6 +833,9 @@ function getValueClass(value: number): string {
           <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">支出</th>
           <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">结余</th>
           <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap" data-tour="balance-col">存款</th>
+          <!-- 对比列表头：紧贴存款列，便于直接对照差额 -->
+          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">当时预计</th>
+          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">差额</th>
           <!-- 公积金专区表头（仅 fund 启用） -->
           <template v-if="fund">
             <th data-tour="fund-columns" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l-2 border-brand-300">房贷月供</th>
@@ -841,9 +844,6 @@ function getValueClass(value: number): string {
             <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">存款补扣</th>
             <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">公积金</th>
           </template>
-          <!-- 对比列表头 -->
-          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">当时预计</th>
-          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">差额</th>
         </tr>
       </thead>
 
@@ -1010,6 +1010,26 @@ function getValueClass(value: number): string {
               {{ formatCurrency(result.cumSavings) }}
             </span>
           </td>
+          <!-- 对比列：当时预计（紧贴存款列） -->
+          <td
+            v-if="selectedSnapshot"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap text-ink-2"
+          >
+            <span v-if="getComparison(result.month).predicted !== null">
+              {{ formatCurrency(getComparison(result.month).predicted as number) }}
+            </span>
+            <span v-else class="text-ink-3">—</span>
+          </td>
+          <!-- 对比列：差额 -->
+          <td
+            v-if="selectedSnapshot"
+            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap"
+            :class="getDiffClass(getComparison(result.month).diff)"
+          >
+            <span v-if="getComparison(result.month).diff !== null">
+              {{ formatCurrency(getComparison(result.month).diff as number) }}
+            </span>
+          </td>
           <!-- 公积金专区数据列（仅 fund 启用） -->
           <template v-if="fund">
             <!-- 房贷月供（可编辑；输入正数存负数，显示绝对值） -->
@@ -1137,26 +1157,6 @@ function getValueClass(value: number): string {
               >{{ formatCurrency(result.fundBalance) }}</span>
             </td>
           </template>
-          <!-- 对比列：当时预计 -->
-          <td
-            v-if="selectedSnapshot"
-            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap text-ink-2"
-          >
-            <span v-if="getComparison(result.month).predicted !== null">
-              {{ formatCurrency(getComparison(result.month).predicted as number) }}
-            </span>
-            <span v-else class="text-ink-3">—</span>
-          </td>
-          <!-- 对比列：差额 -->
-          <td
-            v-if="selectedSnapshot"
-            class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap"
-            :class="getDiffClass(getComparison(result.month).diff)"
-          >
-            <span v-if="getComparison(result.month).diff !== null">
-              {{ formatCurrency(getComparison(result.month).diff as number) }}
-            </span>
-          </td>
         </tr>
       </tbody>
     </table>
