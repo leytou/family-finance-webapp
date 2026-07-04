@@ -29,3 +29,7 @@ docs/superpowers/
 # 本地工具与个人数据（不随项目发布）
 .claude/
 .VSCodeCounter/
+
+# AI 编码助手配置（仅本地使用，不随项目发布）
+CLAUDE.md
+AGENTS.md
