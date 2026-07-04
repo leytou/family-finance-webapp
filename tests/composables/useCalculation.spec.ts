@@ -1213,14 +1213,14 @@ describe('buildComparison', () => {
     expect(cmp[2].predicted).toBeNull()
   })
 
-  it('diff 仅在该月 isCorrected 且 predicted 非空时计算', () => {
+  it('diff 在 predicted 非空时即计算（不限是否修正存款）', () => {
     const cmp = buildComparison(results, snapshot)
-    expect(cmp[0].diff).toBeNull()
-    expect(cmp[1].diff).toBe(-500)
-    expect(cmp[2].diff).toBeNull()
+    expect(cmp[0].diff).toBe(0)        // 5000 − 5000：未修正也计算
+    expect(cmp[1].diff).toBe(-500)     // 8500 − 9000
+    expect(cmp[2].diff).toBeNull()     // predicted 缺失
   })
 
-  it('isCorrected 但 predicted 缺失时 diff 为 null', () => {
+  it('predicted 缺失时 diff 为 null（无论是否修正）', () => {
     const correctedNoPredict: MonthResult[] = [
       makeResult({ month: 202603, cumSavings: 12000, isCorrected: true }),
     ]

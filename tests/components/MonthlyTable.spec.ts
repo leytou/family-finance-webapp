@@ -805,7 +805,7 @@ describe('MonthlyTable', () => {
     expect((input.element as HTMLInputElement).value).toContain('计划')
   })
 
-  it('选中快照后显示「当时预计」「差额」两列并按规则计算', async () => {
+  it('选中快照后显示「快照预计」「快照偏差」两列并按规则计算', async () => {
     const store = useSharedStore()
     store.data.value.snapshots = [
       { id: 's1', name: '2026-01 计划', createdMonth: 202601, projection: { 202601: 5000, 202602: 9000 } },
@@ -822,13 +822,29 @@ describe('MonthlyTable', () => {
     await nextTick()
 
     const headers = wrapper.findAll('th').map(c => c.text())
-    expect(headers).toContain('当时预计')
-    expect(headers).toContain('差额')
+    expect(headers).toContain('快照预计')
+    expect(headers).toContain('快照偏差')
 
-    // 表体含预计值 9,000 与差额 -500（202602 行，correction）
+    // 表体含快照预计 9,000 与快照偏差 -500（202602 行：8500 − 9000）
     const bodyText = wrapper.find('tbody').text()
     expect(bodyText).toContain('9,000')
     expect(bodyText).toContain('-500')
+  })
+
+  it('未修正存款但存款变化时也显示快照偏差（如改了收入）', async () => {
+    const store = useSharedStore()
+    store.data.value.snapshots = [
+      { id: 's1', name: '2026-01 计划', createdMonth: 202601, projection: { 202601: 5000 } },
+    ]
+    // 收入被改多 → cumSavings 变成 6500，但该月并未做存款修正
+    const results = [
+      createResult({ month: 202601, cumSavings: 6500, isCorrected: false }),
+    ]
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    await wrapper.find('[aria-label="选择对比快照"]').setValue('s1')
+    await nextTick()
+    // 6500 − 5000 = +1,500：未修正也应出现快照偏差
+    expect(wrapper.find('tbody').text()).toContain('1,500')
   })
 
   it('未选中快照时不渲染对比列', async () => {
@@ -836,8 +852,8 @@ describe('MonthlyTable', () => {
     store.data.value.snapshots = []
     const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
     const headers = wrapper.findAll('th').map(c => c.text())
-    expect(headers).not.toContain('当时预计')
-    expect(headers).not.toContain('差额')
+    expect(headers).not.toContain('快照预计')
+    expect(headers).not.toContain('快照偏差')
   })
 
   describe('启用/禁用切换', () => {

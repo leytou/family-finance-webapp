@@ -255,13 +255,13 @@ export function calculate(plan: PlanData): MonthResult[] {
 
 export interface SnapshotComparison {
   month: number
-  predicted: number | null   // 该月当时预计；快照无该月则 null
+  predicted: number | null   // 该月快照预计；快照无该月则 null
   actual: number             // 实际/当前累计（= MonthResult.cumSavings）
-  diff: number | null        // actual - predicted；仅当该月 isCorrected 且 predicted 非空时有值
+  diff: number | null        // 快照偏差 = actual - predicted；predicted 非空即计算（任何影响存款的改动都会反映，不限于存款修正）
 }
 
 /**
- * 把选中的计划快照叠加到月度结果，逐月给出预计/实际/差额。
+ * 把选中的计划快照叠加到月度结果，逐月给出快照预计/实际/快照偏差。
  * @param results 当前计算出的月度结果
  * @param snapshot 选中的计划快照；null 表示未选中
  */
@@ -273,7 +273,7 @@ export function buildComparison(
     const predicted =
       snapshot && r.month in snapshot.projection ? snapshot.projection[r.month] : null
     const diff =
-      predicted !== null && r.isCorrected ? r.cumSavings - predicted : null
+      predicted !== null ? r.cumSavings - predicted : null
     return {
       month: r.month,
       predicted,

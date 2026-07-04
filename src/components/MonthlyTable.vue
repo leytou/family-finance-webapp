@@ -833,9 +833,9 @@ function getValueClass(value: number): string {
           <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">支出</th>
           <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">结余</th>
           <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap" data-tour="balance-col">存款</th>
-          <!-- 对比列表头：紧贴存款列，便于直接对照差额 -->
-          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">当时预计</th>
-          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">差额</th>
+          <!-- 对比列表头：紧贴存款列，便于直接对照快照偏差 -->
+          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">快照预计</th>
+          <th v-if="selectedSnapshot" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">快照偏差</th>
           <!-- 公积金专区表头（仅 fund 启用） -->
           <template v-if="fund">
             <th data-tour="fund-columns" class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l-2 border-brand-300">房贷月供</th>
@@ -1010,7 +1010,7 @@ function getValueClass(value: number): string {
               {{ formatCurrency(result.cumSavings) }}
             </span>
           </td>
-          <!-- 对比列：当时预计（紧贴存款列） -->
+          <!-- 对比列：快照预计（紧贴存款列） -->
           <td
             v-if="selectedSnapshot"
             class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap text-ink-2"
@@ -1020,7 +1020,7 @@ function getValueClass(value: number): string {
             </span>
             <span v-else class="text-ink-3">—</span>
           </td>
-          <!-- 对比列：差额 -->
+          <!-- 对比列：快照偏差 -->
           <td
             v-if="selectedSnapshot"
             class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap"
