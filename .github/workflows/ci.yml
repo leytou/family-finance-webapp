@@ -26,7 +26,10 @@ jobs:
           cache: npm
 
       - name: 安装依赖
-        run: npm ci
+        # 用 npm install 而非 npm ci：仓库含 Rolldown/oxc-parser 等原生/wasm 绑定，
+        # 锁文件在 Windows 下生成，Linux CI 用 npm ci 会因平台相关依赖缺失而失败。
+        # npm install 能按当前平台自动补齐。
+        run: npm install --no-fund --no-audit
 
       - name: 类型检查 + 构建
         run: npm run build

@@ -30,7 +30,7 @@ jobs:
           cache: npm
 
       - name: 安装依赖
-        run: npm ci
+        run: npm install --no-fund --no-audit
 
       - name: 类型检查 + 构建单文件产物
         run: npm run build
