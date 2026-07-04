@@ -54,9 +54,9 @@ function fundPrevBalance(month: number): number {
 function fundWithdrawalsByMonth(month: number): FundWithdrawal[] {
   return fund.value?.withdrawals.filter(w => w.month === month) ?? []
 }
-// 该月公积金余额锚点（实际余额）；undefined=未修正
-function fundAnchorBalance(month: number): number | undefined {
-  return fund.value?.anchors.find(an => an.month === month)?.actualBalance
+// 该月公积金余额修正（实际余额）；undefined=未修正
+function fundActualBalance(month: number): number | undefined {
+  return fund.value?.corrections.find(an => an.month === month)?.actualBalance
 }
 // FundFlowEditor 的该月 result：fundFlowEditor 打开的月份必在 results 内（余额单元格由 results v-for 渲染），
 // 断言集中在此 computed，避免模板内联 results.find(...)! 散落。
@@ -387,8 +387,8 @@ function editedBelowRows(columnId: string, month: number): MonthResult[] {
   const fundField = fundFieldFromColumnId(columnId)
   return props.results.filter(r =>
     r.month > month &&
-    (columnId === BALANCE_COLUMN_ID ? r.isAnchor
-      : columnId === FUND_BALANCE_COLUMN_ID ? r.isFundAnchor
+    (columnId === BALANCE_COLUMN_ID ? r.isCorrected
+      : columnId === FUND_BALANCE_COLUMN_ID ? r.isFundCorrected
       : fundField ? isFundEntryEdited(fundField, r.month)
       : getColumnValue(r, columnId).isEdited))
 }
@@ -403,9 +403,9 @@ function clearEditedBelow(columnId: string, month: number): void {
   const fundField = fundFieldFromColumnId(columnId)
   editedBelowRows(columnId, month).forEach(r => {
     if (columnId === BALANCE_COLUMN_ID) {
-      store.removeAnchor(r.month)
+      store.removeCorrection(r.month)
     } else if (columnId === FUND_BALANCE_COLUMN_ID) {
-      store.removeFundAnchor(r.month)
+      store.removeFundCorrection(r.month)
     } else if (fundField) {
       store.updateFundEntry(fundField, r.month, null)
     } else {
@@ -417,10 +417,10 @@ function clearEditedBelow(columnId: string, month: number): void {
 // 当前格是否已被手动编辑（决定「清除该值」是否可用）
 function isCurrentCellEdited(columnId: string, month: number): boolean {
   if (columnId === BALANCE_COLUMN_ID) {
-    return props.results.find(r => r.month === month)?.isAnchor ?? false
+    return props.results.find(r => r.month === month)?.isCorrected ?? false
   }
   if (columnId === FUND_BALANCE_COLUMN_ID) {
-    return props.results.find(r => r.month === month)?.isFundAnchor ?? false
+    return props.results.find(r => r.month === month)?.isFundCorrected ?? false
   }
   const fundField = fundFieldFromColumnId(columnId)
   if (fundField) return isFundEntryEdited(fundField, month)
@@ -432,9 +432,9 @@ function isCurrentCellEdited(columnId: string, month: number): boolean {
 function clearCurrentValue(columnId: string, month: number): void {
   const fundField = fundFieldFromColumnId(columnId)
   if (columnId === BALANCE_COLUMN_ID) {
-    store.removeAnchor(month)
+    store.removeCorrection(month)
   } else if (columnId === FUND_BALANCE_COLUMN_ID) {
-    store.removeFundAnchor(month)
+    store.removeFundCorrection(month)
   } else if (fundField) {
     store.updateFundEntry(fundField, month, null)
   } else {
@@ -478,7 +478,7 @@ const contextMenuItems = computed(() => {
 
   const count = countEditedBelow(ctx.columnId, ctx.month)
   const clearLabel = ctx.columnId === FUND_BALANCE_COLUMN_ID
-    ? '清除下方公积金锚点'
+    ? '清除下方公积金修正'
     : '清除下方编辑值'
   items.push({
     label: clearLabel,
@@ -557,7 +557,7 @@ function handleEditCellBlur() {
   confirmEditCell()
 }
 
-// 累计列编辑（锚点）
+// 累计列编辑（修正）
 const editCumOriginalValue = ref<number>(0)
 
 function startEditCum(result: MonthResult) {
@@ -574,13 +574,13 @@ function confirmEditCum() {
   const trimmed = editCumValue.value.trim()
 
   if (trimmed === '') {
-    store.removeAnchor(editingCumMonth.value)
+    store.removeCorrection(editingCumMonth.value)
   } else {
     const num = Math.round(Number(trimmed))
     if (Number.isFinite(num)) {
-      // 值未变化时不写入锚点
+      // 值未变化时不写入修正
       if (num !== editCumOriginalValue.value) {
-        store.addAnchor(editingCumMonth.value, num)
+        store.addCorrection(editingCumMonth.value, num)
       }
     }
   }
@@ -981,7 +981,7 @@ function getValueClass(value: number): string {
             class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap font-bold relative"
             :class="[
               getValueClass(result.cumSavings),
-              { 'bg-brand-50': result.isAnchor }
+              { 'bg-brand-50': result.isCorrected }
             ]"
             @contextmenu.prevent="openContextMenu(BALANCE_COLUMN_ID, result.month, $event)"
           >
@@ -1141,10 +1141,10 @@ function getValueClass(value: number): string {
                 @mouseleave="popover = null"
               >{{ formatCurrency(result.fundOffsetShortfall) }}</span>
             </td>
-            <!-- 公积金余额（左键开 FundFlowEditor / 右键锚点菜单 / hover 余额公式） -->
+            <!-- 公积金余额（左键开 FundFlowEditor / 右键修正菜单 / hover 余额公式） -->
             <td
               class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer"
-              :class="{ 'bg-brand-50': result.isFundAnchor }"
+              :class="{ 'bg-brand-50': result.isFundCorrected }"
               :data-fund-balance="result.month"
               @click="openFundFlowEditor(result.month, $event)"
               @contextmenu.prevent="openContextMenu(FUND_BALANCE_COLUMN_ID, result.month, $event)"
@@ -1228,7 +1228,7 @@ function getValueClass(value: number): string {
     :result="fundFlowEditorResult"
     :prev-fund-balance="fundPrevBalance(fundFlowEditor.month)"
     :withdrawals="fundWithdrawalsByMonth(fundFlowEditor.month)"
-    :anchor-balance="fundAnchorBalance(fundFlowEditor.month)"
+    :actual-balance="fundActualBalance(fundFlowEditor.month)"
     :x="fundFlowEditor.x"
     :y="fundFlowEditor.y"
     @close="closeFundFlowEditor"
@@ -1251,7 +1251,7 @@ tbody tr:nth-child(even) {
 tbody tr:hover {
   background-color: #f8fafc;
 }
-/* hover 行内单元格同步变 surface-2，覆盖已编辑/锚点的高亮 */
+/* hover 行内单元格同步变 surface-2，覆盖已编辑/修正的高亮 */
 tbody tr:hover td {
   background-color: #f8fafc;
 }

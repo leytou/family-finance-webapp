@@ -232,7 +232,7 @@
               }
             }
           ],
-          "anchors": [],
+          "corrections": [],
           "snapshots": [],
           "events": [
             {
@@ -279,7 +279,7 @@
               "itemSets": {}
             },
             "withdrawals": [],
-            "anchors": []
+            "corrections": []
           }
         }
       },
@@ -518,7 +518,7 @@
               }
             }
           ],
-          "anchors": [],
+          "corrections": [],
           "snapshots": [
             {
               "id": "demo_home_snapshot_202601",
@@ -611,7 +611,7 @@
                 "amount": 20000
               }
             ],
-            "anchors": []
+            "corrections": []
           }
         }
       }

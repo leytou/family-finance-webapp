@@ -32,21 +32,21 @@ const eventsByYear = computed(() => {
 // hover 公式弹窗状态
 const popover = ref<{ title: string; lines: string[]; x: number; y: number } | null>(null)
 
-// 首年首月是否为锚点（供 startSavings 首年公式区分锚点/初始存款）
-function isFirstMonthAnchor(): boolean {
+// 首年首月是否为修正（供 startSavings 首年公式区分修正/初始存款）
+function isFirstMonthCorrected(): boolean {
   if (yearSummaries.value.length === 0) return false
   const firstYear = yearSummaries.value[0].year
   const firstYearMonths = props.results.filter(r => Math.floor(r.month / 100) === firstYear)
   if (firstYearMonths.length === 0) return false
   const firstMonth = Math.min(...firstYearMonths.map(r => r.month))
-  return props.results.find(r => r.month === firstMonth)?.isAnchor ?? false
+  return props.results.find(r => r.month === firstMonth)?.isCorrected ?? false
 }
 
 function showYearFormula(summary: YearSummary, field: YearFormulaField, event: MouseEvent): void {
   const idx = yearSummaries.value.findIndex(s => s.year === summary.year)
   const ctx: YearFormulaContext = {
     isFirstYear: idx === 0,
-    firstMonthIsAnchor: idx === 0 && isFirstMonthAnchor(),
+    firstMonthIsCorrected: idx === 0 && isFirstMonthCorrected(),
     initialDeposit: store.data.value.systemParams.initialDeposit ?? 0,
     prevYearEndSavings: idx > 0 ? yearSummaries.value[idx - 1].endSavings : 0,
     events: eventsByYear.value.get(summary.year) ?? [],
@@ -152,7 +152,7 @@ function getStartSavings(firstResult: MonthResult, previousResult?: MonthResult)
     return previousResult.cumSavings
   }
 
-  if (firstResult.isAnchor) {
+  if (firstResult.isCorrected) {
     return firstResult.cumSavings
   }
 

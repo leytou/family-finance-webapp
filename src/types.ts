@@ -30,8 +30,8 @@ export interface FundWithdrawal {
   amount: number      // 元，正数
 }
 
-// 公积金账户余额锚点（校验用，同 MonthlyAnchor 语义）
-export interface FundAnchor {
+// 公积金账户余额修正（校验用，同 MonthlyCorrection 语义）
+export interface FundCorrection {
   month: number
   actualBalance: number
 }
@@ -42,10 +42,10 @@ export interface FundConfig {
   contribution: FlowColumn    // 公积金缴存（稀疏+yearly，进公积金账户）
   monthlyOffset: FlowColumn   // 公积金月冲（稀疏+yearly；未手填时默认取 mortgage 同月值）
   withdrawals: FundWithdrawal[]   // 单月提取
-  anchors: FundAnchor[]           // 公积金余额锚点
+  corrections: FundCorrection[]           // 公积金余额修正
 }
 
-export interface MonthlyAnchor {
+export interface MonthlyCorrection {
   month: number
   actualSavings: number
 }
@@ -71,7 +71,7 @@ export interface PlanData {
   version: number
   systemParams: SystemParams
   columns: FlowColumn[]
-  anchors: MonthlyAnchor[]
+  corrections: MonthlyCorrection[]
   snapshots: PlanSnapshot[]
   events: MilestoneEvent[]   // 单月一次性大额事件；脉冲，不携带延续
   fund?: FundConfig          // 公积金配置；缺失=无公积金，向后兼容
@@ -86,7 +86,7 @@ export interface MonthResult {
   monthlyExpense: number
   monthlyBalance: number
   cumSavings: number
-  isAnchor: boolean
+  isCorrected: boolean
   // —— 公积金账户（无 fund 时均为 0/false）——
   fundBalance: number       // 月末公积金账户余额
   fundInterest: number      // 当月入账结息（仅结息月非 0）
@@ -95,14 +95,14 @@ export interface MonthResult {
   fundOffsetShortfall: number  // 房贷月供 − 公积金实际月冲（≥0）：月冲没冲满、改由可支配存款承担的部分
   fundWithdrawal: number    // 当月提取额（实际扣取，已截断）
   fundOutflow: number       // 当月转出到可支配合计 = fundOffset + fundWithdrawal
-  isFundAnchor: boolean     // 该月公积金余额是否被锚点覆盖
+  isFundCorrected: boolean     // 该月公积金余额是否被修正覆盖
   totalAssets: number       // = cumSavings + fundBalance
 }
 
 export interface Scenario {
   id: string
   name: string        // 如「买房方案」「租房方案」
-  plan: PlanData      // 完整独立副本，含各自的现金流列、锚点、系统参数
+  plan: PlanData      // 完整独立副本，含各自的现金流列、修正、系统参数
 }
 
 export interface Workspace {

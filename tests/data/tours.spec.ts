@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TOURS, TOUR_TOPICS, buildAllSteps, type TourTopic } from '../../src/data/tours'
 
-const REQUIRED_TOPICS: TourTopic[] = ['quickstart', 'fund', 'compare', 'anchor']
+const REQUIRED_TOPICS: TourTopic[] = ['quickstart', 'fund', 'compare', 'correction']
 
 describe('tours 数据', () => {
   it('四个主题均存在且每步含 element 与 popover', () => {
@@ -26,7 +26,7 @@ describe('tours 数据', () => {
 
   it('TOUR_TOPICS 菜单含 4 主题 + 重看全部', () => {
     const keys = TOUR_TOPICS.map(t => t.key)
-    expect(keys).toEqual(['quickstart', 'fund', 'compare', 'anchor', 'all'])
+    expect(keys).toEqual(['quickstart', 'fund', 'compare', 'correction', 'all'])
   })
 
   it('buildAllSteps 串联全部主题步骤', () => {

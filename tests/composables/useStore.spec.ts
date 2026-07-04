@@ -30,7 +30,7 @@ describe('useStore', () => {
 
     expect(store.data.value.version).toBe(3)
     expect(store.data.value.columns).toEqual([])
-    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.corrections).toEqual([])
     expect(store.data.value.systemParams.annualRate).toBe(0.025)
     expect(store.data.value.systemParams.startMonth).toBeDefined()
   })
@@ -143,51 +143,51 @@ describe('useStore', () => {
     expect(column.yearlyMonths?.[202612]).toBeUndefined()
   })
 
-  it('addAnchor 添加锚点并自动保存', async () => {
+  it('addCorrection 添加修正并自动保存', async () => {
     vi.useFakeTimers()
     const useStore = await loadUseStore()
     const store = useStore()
 
-    store.addAnchor(202601, 100000)
+    store.addCorrection(202601, 100000)
     await flushAutoSave()
 
-    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.anchors).toEqual([
+    expect(store.data.value.corrections).toEqual([{ month: 202601, actualSavings: 100000 }])
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.corrections).toEqual([
       { month: 202601, actualSavings: 100000 },
     ])
   })
 
-  it('addAnchor 同月更新已有锚点而不是重复添加并自动保存', async () => {
+  it('addCorrection 同月更新已有修正而不是重复添加并自动保存', async () => {
     vi.useFakeTimers()
     const useStore = await loadUseStore()
     const store = useStore()
 
-    store.addAnchor(202601, 100000)
-    store.addAnchor(202601, 120000)
+    store.addCorrection(202601, 100000)
+    store.addCorrection(202601, 120000)
     await flushAutoSave()
 
-    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 120000 }])
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.anchors).toEqual([
+    expect(store.data.value.corrections).toEqual([{ month: 202601, actualSavings: 120000 }])
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.corrections).toEqual([
       { month: 202601, actualSavings: 120000 },
     ])
   })
 
-  it('removeAnchor 删除锚点并自动保存', async () => {
+  it('removeCorrection 删除修正并自动保存', async () => {
     vi.useFakeTimers()
     const useStore = await loadUseStore()
     const store = useStore()
 
-    store.data.value.anchors = [
+    store.data.value.corrections = [
       { month: 202601, actualSavings: 100000 },
       { month: 202602, actualSavings: 120000 },
     ]
     store.save()
 
-    store.removeAnchor(202601)
+    store.removeCorrection(202601)
     await flushAutoSave()
 
-    expect(store.data.value.anchors).toEqual([{ month: 202602, actualSavings: 120000 }])
-    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.anchors).toEqual([
+    expect(store.data.value.corrections).toEqual([{ month: 202602, actualSavings: 120000 }])
+    expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.corrections).toEqual([
       { month: 202602, actualSavings: 120000 },
     ])
   })
@@ -206,7 +206,7 @@ describe('useStore', () => {
 
     // 当前方案被重置
     expect(store.data.value.columns).toEqual([])
-    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.corrections).toEqual([])
     expect(store.data.value.systemParams.annualRate).toBe(0.025)
     // Workspace 仍存在于 localStorage
     const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
@@ -240,7 +240,7 @@ describe('useStore', () => {
     const store = useStore()
     expect(store.data.value.version).toBe(3)
     expect(store.data.value.columns).toEqual([])
-    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.corrections).toEqual([])
     const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
     expect(saved.version).toBe(1)
     expect(saved.scenarios).toHaveLength(1)
@@ -255,7 +255,7 @@ describe('useStore', () => {
     const store = useStore()
     expect(store.data.value.version).toBe(3)
     expect(store.data.value.columns).toEqual([])
-    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.corrections).toEqual([])
     const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
     expect(saved.version).toBe(1)
     expect(saved.scenarios).toHaveLength(1)
@@ -277,7 +277,7 @@ describe('useStore', () => {
             // 缺少 itemSets
           },
         ],
-        anchors: [{ month: 202601, actualSavings: 100000 }],
+        corrections: [{ month: 202601, actualSavings: 100000 }],
       }),
     )
     const useStore = await loadUseStore()
@@ -287,7 +287,7 @@ describe('useStore', () => {
     const store = useStore()
     expect(store.data.value.version).toBe(3)
     expect(store.data.value.columns).toEqual([])
-    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.corrections).toEqual([])
     const saved = JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}')
     expect(saved.version).toBe(1)
     expect(saved.scenarios).toHaveLength(1)
@@ -378,7 +378,7 @@ describe('useStore', () => {
             segments: [{ amount: 10000, startMonth: 202601, endMonth: 203012 }],
           },
         ],
-        anchors: [{ month: 202601, actualSavings: 100000 }],
+        corrections: [{ month: 202601, actualSavings: 100000 }],
       }),
     )
 
@@ -388,7 +388,7 @@ describe('useStore', () => {
     // 旧格式被视为无效，返回默认 Workspace
     expect(store.data.value.version).toBe(3)
     expect(store.data.value.columns).toEqual([])
-    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.corrections).toEqual([])
   })
 
   it('旧 PlanData 格式自动迁移为 Workspace 默认方案', async () => {
@@ -396,7 +396,7 @@ describe('useStore', () => {
       version: 2,
       systemParams: { startMonth: 202601, annualRate: 0.025 },
       columns: [{ id: 'col1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } }],
-      anchors: [{ month: 202601, actualSavings: 50000 }],
+      corrections: [{ month: 202601, actualSavings: 50000 }],
     }
     localStorage.setItem('family-finance-plan', JSON.stringify(oldPlan))
 
@@ -407,7 +407,7 @@ describe('useStore', () => {
     expect(store.data.value.columns).toHaveLength(1)
     expect(store.data.value.columns[0].name).toBe('工资')
     expect(store.data.value.columns[0].itemSets[202601][0].amount).toBe(10000)
-    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 50000 }])
+    expect(store.data.value.corrections).toEqual([{ month: 202601, actualSavings: 50000 }])
     expect(store.data.value.systemParams.startMonth).toBe(202601)
 
     // workspace 结构正确
@@ -433,15 +433,15 @@ describe('useStore', () => {
     expect(store.workspace.value.activeId).toBe(store.workspace.value.scenarios[0].id)
     // 默认方案的 plan 是空白 plan
     expect(store.data.value.columns).toEqual([])
-    expect(store.data.value.anchors).toEqual([])
+    expect(store.data.value.corrections).toEqual([])
   })
 
   it('加载已有的 Workspace 格式数据', async () => {
     const workspace = {
       version: 1,
       scenarios: [
-        { id: 's1', name: '买房方案', plan: { version: 2, systemParams: { startMonth: 202601, annualRate: 0.03 }, columns: [], anchors: [] } },
-        { id: 's2', name: '租房方案', plan: { version: 2, systemParams: { startMonth: 202601, annualRate: 0.025 }, columns: [], anchors: [] } },
+        { id: 's1', name: '买房方案', plan: { version: 2, systemParams: { startMonth: 202601, annualRate: 0.03 }, columns: [], corrections: [] } },
+        { id: 's2', name: '租房方案', plan: { version: 2, systemParams: { startMonth: 202601, annualRate: 0.025 }, columns: [], corrections: [] } },
       ],
       activeId: 's2',
     }
@@ -460,7 +460,7 @@ describe('useStore', () => {
     const badWorkspace = {
       version: 1,
       scenarios: [
-        { id: 's1', name: '方案A', plan: { version: 2, systemParams: { startMonth: 202601, annualRate: 0.025 }, columns: [], anchors: [] } },
+        { id: 's1', name: '方案A', plan: { version: 2, systemParams: { startMonth: 202601, annualRate: 0.025 }, columns: [], corrections: [] } },
       ],
       activeId: 'nonexistent',
     }
@@ -487,7 +487,7 @@ describe('useStore', () => {
       expect(store.workspace.value.activeId).toBe(newScenario.id)
       expect(newScenario.name).toBe('')
       expect(newScenario.plan.columns).toEqual([])
-      expect(newScenario.plan.anchors).toEqual([])
+      expect(newScenario.plan.corrections).toEqual([])
       // data 指向新方案（通过 activeId 找到的 scenario.plan）
       expect(store.data.value).toEqual(newScenario.plan)
       // systemParams 也相同
@@ -502,7 +502,7 @@ describe('useStore', () => {
       // 在当前方案中添加数据
       const col = store.addColumn('工资')
       store.updateColumnEntry(col.id, 202601, 10000)
-      store.addAnchor(202601, 50000)
+      store.addCorrection(202601, 50000)
 
       const originalId = store.workspace.value.activeId
       const duplicated = store.duplicateScenario()
@@ -515,7 +515,7 @@ describe('useStore', () => {
       expect(duplicated.plan.columns).toHaveLength(1)
       expect(duplicated.plan.columns[0].name).toBe('工资')
       expect(duplicated.plan.columns[0].itemSets[202601][0].amount).toBe(10000)
-      expect(duplicated.plan.anchors).toEqual([{ month: 202601, actualSavings: 50000 }])
+      expect(duplicated.plan.corrections).toEqual([{ month: 202601, actualSavings: 50000 }])
       // 修改新方案不影响原方案
       store.renameColumn(duplicated.plan.columns[0].id, '薪水')
       const original = store.workspace.value.scenarios.find((s) => s.id === originalId)!
@@ -623,7 +623,7 @@ describe('useStore', () => {
               version: 2,
               systemParams: { startMonth: 202601, annualRate: 0.025 },
               columns: [],
-              anchors: [{ month: 202601, actualSavings: 100000 }],
+              corrections: [{ month: 202601, actualSavings: 100000 }],
               // 注意：故意不含 snapshots
             },
           },
@@ -632,7 +632,7 @@ describe('useStore', () => {
     )
     const useStore = await loadUseStore()
     const store = useStore()
-    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+    expect(store.data.value.corrections).toEqual([{ month: 202601, actualSavings: 100000 }])
     expect(store.data.value.snapshots).toEqual([])
   })
 
@@ -699,7 +699,7 @@ describe('useStore', () => {
               version: 2,
               systemParams: { startMonth: 202601, annualRate: 0.025 },
               columns: [],
-              anchors: [{ month: 202601, actualSavings: 100000 }],
+              corrections: [{ month: 202601, actualSavings: 100000 }],
             },
           },
         ],
@@ -708,7 +708,7 @@ describe('useStore', () => {
     const useStore = await loadUseStore()
     const store = useStore()
     expect(store.data.value.systemParams.endMonth).toBe(203012)   // addMonths(202601, 59)
-    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+    expect(store.data.value.corrections).toEqual([{ month: 202601, actualSavings: 100000 }])
   })
 
   it('默认方案的初始存款为 0', async () => {
@@ -731,7 +731,7 @@ describe('useStore', () => {
               version: 2,
               systemParams: { startMonth: 202601, annualRate: 0.025 },
               columns: [],
-              anchors: [{ month: 202601, actualSavings: 100000 }],
+              corrections: [{ month: 202601, actualSavings: 100000 }],
             },
           },
         ],
@@ -740,7 +740,7 @@ describe('useStore', () => {
     const useStore = await loadUseStore()
     const store = useStore()
     expect(store.data.value.systemParams.initialDeposit).toBe(0)
-    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+    expect(store.data.value.corrections).toEqual([{ month: 202601, actualSavings: 100000 }])
   })
 
   describe('syncYearly', () => {
@@ -1108,7 +1108,7 @@ describe('useStore', () => {
                 version: 2,
                 systemParams: { startMonth: 202601, annualRate: 0.025, initialDeposit: 0 },
                 columns: [{ id: 'c1', name: '工资', itemSets: { 202601: [{ id: "i1", name: "", amount: 10000 }] } }],
-                anchors: [],
+                corrections: [],
                 snapshots: [],
               },
             },
@@ -1143,7 +1143,7 @@ describe('useStore', () => {
               version: 2,
               systemParams: { startMonth: 202601, annualRate: 0.025 },
               columns: [],
-              anchors: [{ month: 202601, actualSavings: 100000 }],
+              corrections: [{ month: 202601, actualSavings: 100000 }],
               // 故意不含 events
             },
           },
@@ -1153,7 +1153,7 @@ describe('useStore', () => {
     const useStore = await loadUseStore()
     const store = useStore()
     expect(store.data.value.events).toEqual([])
-    expect(store.data.value.anchors).toEqual([{ month: 202601, actualSavings: 100000 }])
+    expect(store.data.value.corrections).toEqual([{ month: 202601, actualSavings: 100000 }])
   })
 
   it('localStorage 中 events 含非法项时视为无效并回退默认', async () => {
@@ -1170,7 +1170,7 @@ describe('useStore', () => {
               version: 2,
               systemParams: { startMonth: 202601, annualRate: 0.025 },
               columns: [],
-              anchors: [],
+              corrections: [],
               events: [{ id: 'e1', name: '买房' }],   // 缺 month / amount
             },
           },
@@ -1279,7 +1279,7 @@ describe('useStore', () => {
       version: 2,
       systemParams: { startMonth: 202601, annualRate: 0.025 },
       columns: [{ id: 'col1', name: '工资', entries: { 202601: 10000, 202602: 11000 } }],
-      anchors: [], snapshots: [], events: [],
+      corrections: [], snapshots: [], events: [],
     }
     localStorage.setItem('family-finance-plan', JSON.stringify(oldPlan))
 
@@ -1298,7 +1298,7 @@ describe('useStore', () => {
       version: 2,
       systemParams: { startMonth: 202601, annualRate: 0.025 },
       columns: [{ id: 'c1', name: '工资', itemSets: { 202601: [{ id: 'x', name: '', amount: 100 }] }, entries: { 202601: 999 } }],
-      anchors: [], snapshots: [], events: [],
+      corrections: [], snapshots: [], events: [],
     }
     localStorage.setItem('family-finance-plan', JSON.stringify(dirty))
 
@@ -1322,7 +1322,7 @@ describe('fund 校验与迁移', () => {
     const legacy = {
       version: 2,
       systemParams: { startMonth: 202601, annualRate: 0.03 },
-      columns: [], anchors: [], snapshots: [], events: [],
+      columns: [], corrections: [], snapshots: [], events: [],
     }
     localStorage.setItem('family-finance-plan', JSON.stringify({
       version: 1,
@@ -1340,13 +1340,13 @@ describe('fund 校验与迁移', () => {
     const plan = {
       version: 2,
       systemParams: { startMonth: 202601, annualRate: 0.03, fundRate: 0.015, fundInterestMonth: 7 },
-      columns: [], anchors: [], snapshots: [], events: [],
+      columns: [], corrections: [], snapshots: [], events: [],
       fund: {
         mortgage: { id: 'm', name: '房贷月供', itemSets: {} },
         contribution: { id: 'c', name: '公积金缴存', itemSets: { 202601: [{ id: "i1", name: "", amount: 1000 }] } },
         monthlyOffset: { id: 'o', name: '公积金月冲', itemSets: {} },
         withdrawals: [{ id: 'w1', name: '买房', month: 202602, amount: 30000 }],
-        anchors: [{ month: 202603, actualBalance: 500000 }],
+        corrections: [{ month: 202603, actualBalance: 500000 }],
       },
     }
     localStorage.setItem('family-finance-plan', JSON.stringify({
@@ -1364,12 +1364,12 @@ describe('fund 校验与迁移', () => {
     const plan = {
       version: 2,
       systemParams: { startMonth: 202601, annualRate: 0.03, fundRate: 0.015, fundInterestMonth: 7 },
-      columns: [], anchors: [], snapshots: [], events: [],
+      columns: [], corrections: [], snapshots: [], events: [],
       fund: {
         mortgage: { id: 'm', name: '房贷月供', entries: { 202601: -5000 } },
         contribution: { id: 'c', name: '公积金缴存', entries: { 202601: 2000 } },
         monthlyOffset: { id: 'o', name: '公积金月冲', entries: { 202601: 3000 } },
-        withdrawals: [], anchors: [],
+        withdrawals: [], corrections: [],
       },
     }
     localStorage.setItem('family-finance-plan', JSON.stringify(plan))
@@ -1386,8 +1386,8 @@ describe('fund 校验与迁移', () => {
     const bad = {
       version: 2,
       systemParams: { startMonth: 202601, annualRate: 0.03, fundRate: 0.015, fundInterestMonth: 7 },
-      columns: [], anchors: [], snapshots: [], events: [],
-      fund: { mortgage: '不是列', contribution: { id: 'c', name: 'x', itemSets: {} }, monthlyOffset: { id: 'o', name: 'x', itemSets: {} }, withdrawals: [], anchors: [] },
+      columns: [], corrections: [], snapshots: [], events: [],
+      fund: { mortgage: '不是列', contribution: { id: 'c', name: 'x', itemSets: {} }, monthlyOffset: { id: 'o', name: 'x', itemSets: {} }, withdrawals: [], corrections: [] },
     }
     localStorage.setItem('family-finance-plan', JSON.stringify({
       version: 1,
@@ -1438,14 +1438,14 @@ describe('fund 操作函数', () => {
     expect(store.data.value.fund?.withdrawals[0].month).toBe(202602)
   })
 
-  it('addFundAnchor / removeFundAnchor 维护公积金锚点', async () => {
+  it('addFundCorrection / removeFundCorrection 维护公积金修正', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
     store.enableFund()
-    store.addFundAnchor(202603, 500000)
-    expect(store.data.value.fund?.anchors).toHaveLength(1)
-    store.removeFundAnchor(202603)
-    expect(store.data.value.fund?.anchors).toHaveLength(0)
+    store.addFundCorrection(202603, 500000)
+    expect(store.data.value.fund?.corrections).toHaveLength(1)
+    store.removeFundCorrection(202603)
+    expect(store.data.value.fund?.corrections).toHaveLength(0)
   })
 
   it('setFundRate 设置公积金年利率', async () => {

@@ -26,7 +26,7 @@ function createDefault(): PlanData {
       fundInitialBalance: 0,
     },
     columns: [],
-    anchors: [],
+    corrections: [],
     snapshots: [],
     events: [],
   }
@@ -93,7 +93,7 @@ function migrateColumn(col: Record<string, any>): void {
   if (col.mode === undefined) col.mode = 'single'
 }
 
-function isValidAnchor(value: unknown): boolean {
+function isValidCorrection(value: unknown): boolean {
   if (!isObject(value)) return false
   return isFiniteNumber(value.month) && isFiniteNumber(value.actualSavings)
 }
@@ -129,7 +129,7 @@ function isValidFundWithdrawal(value: unknown): boolean {
   )
 }
 
-function isValidFundAnchor(value: unknown): boolean {
+function isValidFundCorrection(value: unknown): boolean {
   if (!isObject(value)) return false
   return Number.isInteger(value.month) && isFiniteNumber(value.actualBalance)
 }
@@ -140,7 +140,7 @@ function isValidFund(value: unknown): boolean {
   if (!isValidColumn(value.contribution)) return false
   if (!isValidColumn(value.monthlyOffset)) return false
   if (!Array.isArray(value.withdrawals) || !value.withdrawals.every(isValidFundWithdrawal)) return false
-  if (!Array.isArray(value.anchors) || !value.anchors.every(isValidFundAnchor)) return false
+  if (!Array.isArray(value.corrections) || !value.corrections.every(isValidFundCorrection)) return false
   return true
 }
 
@@ -167,8 +167,8 @@ function isValidPlanData(value: unknown): value is PlanData {
     (value.systemParams.fundInterestMonth === undefined || isFiniteNumber(value.systemParams.fundInterestMonth)) &&
     Array.isArray(value.columns) &&
     value.columns.every(isValidColumn) &&
-    Array.isArray(value.anchors) &&
-    value.anchors.every(isValidAnchor)
+    Array.isArray(value.corrections) &&
+    value.corrections.every(isValidCorrection)
   )
 }
 
@@ -218,7 +218,7 @@ function normalizeWorkspace(ws: Workspace): Workspace {
     // fund 缺失保持 undefined（视为无公积金）；fund 存在则补其内部数组默认
     if (scenario.plan.fund) {
       if (!Array.isArray(scenario.plan.fund.withdrawals)) scenario.plan.fund.withdrawals = []
-      if (!Array.isArray(scenario.plan.fund.anchors)) scenario.plan.fund.anchors = []
+      if (!Array.isArray(scenario.plan.fund.corrections)) scenario.plan.fund.corrections = []
     }
     // 列与公积金三列：旧 entries 升级为 itemSets（v2→v3）
     for (const col of scenario.plan.columns) migrateColumn(col as Record<string, any>)
@@ -468,19 +468,19 @@ export function useStore() {
     }
   }
 
-  function addAnchor(month: number, actualSavings: number) {
+  function addCorrection(month: number, actualSavings: number) {
     const plan = getActivePlan()
-    const existing = plan.anchors.findIndex(anchor => anchor.month === month)
+    const existing = plan.corrections.findIndex(correction => correction.month === month)
     if (existing >= 0) {
-      plan.anchors[existing].actualSavings = actualSavings
+      plan.corrections[existing].actualSavings = actualSavings
     } else {
-      plan.anchors.push({ month, actualSavings })
+      plan.corrections.push({ month, actualSavings })
     }
   }
 
-  function removeAnchor(month: number) {
+  function removeCorrection(month: number) {
     const plan = getActivePlan()
-    plan.anchors = plan.anchors.filter(anchor => anchor.month !== month)
+    plan.corrections = plan.corrections.filter(correction => correction.month !== month)
   }
 
   // —— 公积金操作 ——
@@ -496,7 +496,7 @@ export function useStore() {
       contribution: emptyFlowColumn('公积金缴存'),
       monthlyOffset: emptyFlowColumn('公积金月冲'),
       withdrawals: [],
-      anchors: [],
+      corrections: [],
     }
   }
 
@@ -554,21 +554,21 @@ export function useStore() {
     }
   }
 
-  function addFundAnchor(month: number, actualBalance: number): void {
+  function addFundCorrection(month: number, actualBalance: number): void {
     const plan = getActivePlan()
     if (!plan.fund) return
-    const existing = plan.fund.anchors.findIndex(a => a.month === month)
+    const existing = plan.fund.corrections.findIndex(a => a.month === month)
     if (existing >= 0) {
-      plan.fund.anchors[existing].actualBalance = actualBalance
+      plan.fund.corrections[existing].actualBalance = actualBalance
     } else {
-      plan.fund.anchors.push({ month, actualBalance })
+      plan.fund.corrections.push({ month, actualBalance })
     }
   }
 
-  function removeFundAnchor(month: number): void {
+  function removeFundCorrection(month: number): void {
     const plan = getActivePlan()
     if (!plan.fund) return
-    plan.fund.anchors = plan.fund.anchors.filter(a => a.month !== month)
+    plan.fund.corrections = plan.fund.corrections.filter(a => a.month !== month)
   }
 
   function setFundRate(rate: number): void {
@@ -694,8 +694,8 @@ export function useStore() {
     setColumnMode,
     syncYearly,
     replaceMonthEvents,
-    addAnchor,
-    removeAnchor,
+    addCorrection,
+    removeCorrection,
     addSnapshot,
     removeSnapshot,
     renameSnapshot,
@@ -710,8 +710,8 @@ export function useStore() {
     updateFundEntry,
     syncFundYearly,
     replaceMonthWithdrawals,
-    addFundAnchor,
-    removeFundAnchor,
+    addFundCorrection,
+    removeFundCorrection,
     setFundRate,
     setFundInterestMonth,
     setFundInitialBalance,

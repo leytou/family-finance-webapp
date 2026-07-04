@@ -24,7 +24,7 @@ function createResult(overrides: Partial<MonthResult> = {}): MonthResult {
     monthlyExpense: 0,
     monthlyBalance: 0,
     cumSavings: 0,
-    isAnchor: false,
+    isCorrected: false,
     ...overrides,
   }
 }
@@ -144,7 +144,7 @@ describe('MonthlyTable', () => {
     expect(netCell1.classes()).not.toContain('text-negative-600')
   })
 
-  it('锚点行高亮显示', async () => {
+  it('修正行高亮显示', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
 
@@ -152,12 +152,12 @@ describe('MonthlyTable', () => {
       createResult({
         month: 202601,
         cumSavings: 100000,
-        isAnchor: true,
+        isCorrected: true,
       }),
       createResult({
         month: 202602,
         cumSavings: 110000,
-        isAnchor: false,
+        isCorrected: false,
       }),
     ]
 
@@ -167,12 +167,12 @@ describe('MonthlyTable', () => {
 
     const rows = wrapper.findAll('tbody tr')
 
-    // 锚点不再高亮整行，而是高亮累计列单元格
+    // 修正不再高亮整行，而是高亮累计列单元格
     const firstRowCells = rows[0].findAll('td')
     const cumCell = firstRowCells[firstRowCells.length - 1] // 最后一列是累计列
     expect(cumCell.classes()).toContain('bg-brand-50')
 
-    // 第二行不是锚点，累计列不应高亮
+    // 第二行不是修正，累计列不应高亮
     const secondRowCells = rows[1].findAll('td')
     const secondCumCell = secondRowCells[secondRowCells.length - 1]
     expect(secondCumCell.classes()).not.toContain('bg-brand-50')
@@ -342,7 +342,7 @@ describe('MonthlyTable', () => {
     expect(wrapper.findComponent({ name: 'FormulaPopover' }).exists()).toBe(false)
   })
 
-  it('锚点月份显示正确的公式', async () => {
+  it('修正月份显示正确的公式', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
 
@@ -350,7 +350,7 @@ describe('MonthlyTable', () => {
       createResult({
         month: 202601,
         cumSavings: 150000,
-        isAnchor: true,
+        isCorrected: true,
       }),
     ]
 
@@ -364,7 +364,7 @@ describe('MonthlyTable', () => {
 
     await cumSpan.trigger('mouseenter', { clientX: 100, clientY: 120 })
 
-    expect(wrapper.text()).toContain('锚点值')
+    expect(wrapper.text()).toContain('修正值')
     expect(wrapper.text()).toContain('存款')
   })
 
@@ -542,15 +542,15 @@ describe('MonthlyTable', () => {
     expect(col.itemSets[202603]).toBeUndefined()
   })
 
-  it('清除余额列下方锚点，当前行及上方保留', async () => {
+  it('清除余额列下方修正，当前行及上方保留', async () => {
     const store = useSharedStore()
     store.reset()
     store.data.value.systemParams.startMonth = 202601
 
     store.addColumn('测试列')
-    store.addAnchor(202601, 10000)
-    store.addAnchor(202602, 20000)
-    store.addAnchor(202603, 30000)
+    store.addCorrection(202601, 10000)
+    store.addCorrection(202602, 20000)
+    store.addCorrection(202603, 30000)
     const results = calculate(store.data.value).slice(0, 3)
 
     const wrapper = mount(MonthlyTable, { props: { results } })
@@ -565,8 +565,8 @@ describe('MonthlyTable', () => {
       .find(i => i.text() === '清除下方编辑值')!
     await menuItem.trigger('click')
 
-    // 202601、202602 锚点保留，202603 被清除
-    const months = store.data.value.anchors.map((a) => a.month)
+    // 202601、202602 修正保留，202603 被清除
+    const months = store.data.value.corrections.map((a) => a.month)
     expect(months).toContain(202601)
     expect(months).toContain(202602)
     expect(months).not.toContain(202603)
@@ -621,13 +621,13 @@ describe('MonthlyTable', () => {
       expect(col.itemSets[202602]?.[0]?.amount).toBe(2000)
     })
 
-    it('点击「清除该值」删除当前格余额列锚点', async () => {
+    it('点击「清除该值」删除当前格余额列修正', async () => {
       const store = useSharedStore()
       store.reset()
       store.data.value.systemParams.startMonth = 202601
       store.addColumn('测试列')
-      store.addAnchor(202601, 10000)
-      store.addAnchor(202602, 20000)
+      store.addCorrection(202601, 10000)
+      store.addCorrection(202602, 20000)
       const results = calculate(store.data.value).slice(0, 2)
 
       const wrapper = mount(MonthlyTable, { props: { results } })
@@ -642,8 +642,8 @@ describe('MonthlyTable', () => {
         .find(i => i.text() === '清除该值')!
       await menuItem.trigger('click')
 
-      // 当前格 202601 锚点删除，202602 保留
-      const months = store.data.value.anchors.map(a => a.month)
+      // 当前格 202601 修正删除，202602 保留
+      const months = store.data.value.corrections.map(a => a.month)
       expect(months).not.toContain(202601)
       expect(months).toContain(202602)
     })
@@ -686,14 +686,14 @@ describe('MonthlyTable', () => {
       expect(labels).toEqual(['同步到下方每年此月', '清除该值', '清除下方编辑值', '切换为明细列'])
     })
 
-    it('点击「清除该值」删除当前格公积金余额锚点', async () => {
+    it('点击「清除该值」删除当前格公积金余额修正', async () => {
       const store = useSharedStore()
       store.reset()
       store.data.value.systemParams.startMonth = 202601
       store.enableFund()
       store.addColumn('测试列')
-      store.addFundAnchor(202601, 8000)
-      store.addFundAnchor(202602, 9000)
+      store.addFundCorrection(202601, 8000)
+      store.addFundCorrection(202602, 9000)
       const results = calculate(store.data.value).slice(0, 2)
 
       const wrapper = mount(MonthlyTable, { props: { results } })
@@ -706,7 +706,7 @@ describe('MonthlyTable', () => {
         .find(i => i.text() === '清除该值')!
       await menuItem.trigger('click')
 
-      const months = store.data.value.fund!.anchors.map(a => a.month)
+      const months = store.data.value.fund!.corrections.map(a => a.month)
       expect(months).not.toContain(202601)
       expect(months).toContain(202602)
     })
@@ -735,7 +735,7 @@ describe('MonthlyTable', () => {
       store.data.value.systemParams.startMonth = 202601
       store.enableFund()
       store.addColumn('测试列')
-      store.addFundAnchor(202601, 8000)
+      store.addFundCorrection(202601, 8000)
       const results = calculate(store.data.value).slice(0, 1)
 
       const wrapper = mount(MonthlyTable, { props: { results } })
@@ -755,7 +755,7 @@ describe('MonthlyTable', () => {
     store.data.value.systemParams.startMonth = 202601
     store.enableFund()
     store.addColumn('测试列')
-    store.addFundAnchor(202601, 7777)
+    store.addFundCorrection(202601, 7777)
     const results = calculate(store.data.value).slice(0, 1)
 
     const wrapper = mount(MonthlyTable, { props: { results } })
@@ -763,10 +763,10 @@ describe('MonthlyTable', () => {
 
     const editor = wrapper.findComponent({ name: 'FundFlowEditor' })
     expect(editor.exists()).toBe(true)
-    expect(editor.props('anchorBalance')).toBe(7777)
+    expect(editor.props('actualBalance')).toBe(7777)
   })
 
-  it('打开未修正月份的小窗，anchorBalance 为 undefined', async () => {
+  it('打开未修正月份的小窗，actualBalance 为 undefined', async () => {
     const store = useSharedStore()
     store.reset()
     store.data.value.systemParams.startMonth = 202601
@@ -778,7 +778,7 @@ describe('MonthlyTable', () => {
     await wrapper.find('[data-fund-balance="202601"]').trigger('click')
 
     const editor = wrapper.findComponent({ name: 'FundFlowEditor' })
-    expect(editor.props('anchorBalance')).toBeUndefined()
+    expect(editor.props('actualBalance')).toBeUndefined()
   })
 
   it('渲染快照工具条与保存快照按钮', async () => {
@@ -811,8 +811,8 @@ describe('MonthlyTable', () => {
       { id: 's1', name: '2026-01 计划', createdMonth: 202601, projection: { 202601: 5000, 202602: 9000 } },
     ]
     const results = [
-      createResult({ month: 202601, cumSavings: 5000, isAnchor: false }),
-      createResult({ month: 202602, cumSavings: 8500, isAnchor: true }),
+      createResult({ month: 202601, cumSavings: 5000, isCorrected: false }),
+      createResult({ month: 202602, cumSavings: 8500, isCorrected: true }),
     ]
     const wrapper = mount(MonthlyTable, { props: { results } })
 
@@ -825,7 +825,7 @@ describe('MonthlyTable', () => {
     expect(headers).toContain('当时预计')
     expect(headers).toContain('差额')
 
-    // 表体含预计值 9,000 与差额 -500（202602 行，anchor）
+    // 表体含预计值 9,000 与差额 -500（202602 行，correction）
     const bodyText = wrapper.find('tbody').text()
     expect(bodyText).toContain('9,000')
     expect(bodyText).toContain('-500')
@@ -1291,12 +1291,12 @@ describe('MonthlyTable · 公积金专区', () => {
     expect(wrapper.findComponent({ name: 'FundFlowEditor' }).exists()).toBe(true)
   })
 
-  it('右键公积金余额弹出锚点菜单（仅清除下方公积金锚点）', async () => {
+  it('右键公积金余额弹出修正菜单（仅清除下方公积金修正）', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
     store.enableFund()
     store.data.value.systemParams.startMonth = 202601
-    store.addFundAnchor(202603, 500000) // 下方有公积金锚点
+    store.addFundCorrection(202603, 500000) // 下方有公积金修正
     const results = calculate(store.data.value)
 
     const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
@@ -1306,24 +1306,24 @@ describe('MonthlyTable · 公积金专区', () => {
     const menu = wrapper.findComponent({ name: 'ContextMenu' })
     expect(menu.exists()).toBe(true)
     const labels = menu.props('items').map((i: any) => i.label)
-    expect(labels).toContain('清除下方公积金锚点')
+    expect(labels).toContain('清除下方公积金修正')
     expect(labels).not.toContain('同步到下方每年此月')
   })
 
-  it('公积金锚点月余额单元格高亮', async () => {
+  it('公积金修正月余额单元格高亮', async () => {
     const useStore = await loadUseStore()
     const store = useStore()
     store.enableFund()
     store.data.value.systemParams.startMonth = 202601
     store.updateFundEntry('contribution', 202601, 1000)
-    store.addFundAnchor(202603, 500000)
+    store.addFundCorrection(202603, 500000)
     const results = calculate(store.data.value)
 
     const MonthlyTable = (await import('../../src/components/MonthlyTable.vue')).default
     const wrapper = mount(MonthlyTable, { props: { results } })
 
-    const anchorCell = wrapper.find('[data-fund-balance="202603"]')
-    expect(anchorCell.classes()).toContain('bg-brand-50')
+    const correctionCell = wrapper.find('[data-fund-balance="202603"]')
+    expect(correctionCell.classes()).toContain('bg-brand-50')
   })
 
   it('余额单元格 hover 展示公积金余额公式', async () => {

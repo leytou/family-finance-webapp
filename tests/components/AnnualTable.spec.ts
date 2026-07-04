@@ -17,7 +17,7 @@ function createResult(overrides: Partial<MonthResult> = {}): MonthResult {
     monthlyExpense: 0,
     monthlyBalance: 0,
     cumSavings: 0,
-    isAnchor: false,
+    isCorrected: false,
     ...overrides,
   }
 }
@@ -35,7 +35,7 @@ function rowText(wrapper: ReturnType<typeof mount>, label: string): string[] {
 }
 
 describe('AnnualTable', () => {
-  it('首个展示月份是锚点时使用锚点累计值作为首年年初余额', () => {
+  it('首个展示月份是修正时使用修正累计值作为首年年初余额', () => {
     const wrapper = mount(AnnualTable, {
       props: {
         results: [
@@ -48,7 +48,7 @@ describe('AnnualTable', () => {
             monthlyExpense: 0,
             monthlyBalance: 10100,
             cumSavings: 150000,
-            isAnchor: true,
+            isCorrected: true,
           }),
         ],
       },
@@ -420,7 +420,7 @@ describe('AnnualTable', () => {
     expect(popover.text()).toContain('专项 = -买房(500,000) + 卖房(300,000) = -200,000')
   })
 
-  it('首月锚点时 hover 年初存款显示锚点值（与单元格一致）', async () => {
+  it('首月修正时 hover 年初存款显示修正值（与单元格一致）', async () => {
     const store = useSharedStore()
     store.reset()
     store.data.value.systemParams.startMonth = 202601
@@ -437,21 +437,21 @@ describe('AnnualTable', () => {
             monthlyExpense: 0,
             monthlyBalance: 10000,
             cumSavings: 150000,
-            isAnchor: true,
+            isCorrected: true,
           }),
         ],
       },
     })
 
-    // 单元格年初存款 = 锚点 cumSavings = 150,000
+    // 单元格年初存款 = 修正 cumSavings = 150,000
     const startRow = wrapper.findAll('tbody tr').find(r => r.find('td').text() === '年初存款')!
     expect(startRow.findAll('td')[1].text()).toContain('150,000')
 
-    // hover 显示锚点值（非初始存款）
+    // hover 显示修正值（非初始存款）
     await startRow.findAll('td')[1].find('span').trigger('mouseenter', { clientX: 100, clientY: 120 })
     const popover = wrapper.findComponent({ name: 'FormulaPopover' })
     expect(popover.exists()).toBe(true)
-    expect(popover.text()).toContain('年初存款 = 锚点值(150,000)')
+    expect(popover.text()).toContain('年初存款 = 修正值(150,000)')
     expect(popover.text()).not.toContain('初始存款')
   })
 

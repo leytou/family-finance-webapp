@@ -36,7 +36,7 @@ function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
     monthlyExpense: 0,
     monthlyBalance: 0,
     cumSavings: 0,
-    isAnchor: false,
+    isCorrected: false,
     ...overrides,
   }
 }

@@ -86,12 +86,12 @@ export interface FundMonthResult {
   fundOffset: number
   fundWithdrawal: number
   fundOutflow: number
-  isFundAnchor: boolean
+  isFundCorrected: boolean
   nextAccrual: number   // 传给下月的应计利息
 }
 
 /**
- * 处理单月公积金账户：缴存 → 提取 → 月冲 → 结息 → 锚点覆盖。
+ * 处理单月公积金账户：缴存 → 提取 → 月冲 → 结息 → 修正覆盖。
  */
 export function processFund(
   fund: FundConfig,
@@ -131,10 +131,10 @@ export function processFund(
     nextAccrual = 0
   }
 
-  // 锚点覆盖
-  const anchor = fund.anchors.find(a => a.month === month)
-  const isFundAnchor = Boolean(anchor)
-  if (anchor) balance = anchor.actualBalance
+  // 修正覆盖
+  const correction = fund.corrections.find(a => a.month === month)
+  const isFundCorrected = Boolean(correction)
+  if (correction) balance = correction.actualBalance
 
   return {
     fundBalance: balance,
@@ -143,7 +143,7 @@ export function processFund(
     fundOffset: offsetOut,
     fundWithdrawal: withdrawalOut,
     fundOutflow,
-    isFundAnchor,
+    isFundCorrected,
     nextAccrual,
   }
 }
@@ -201,7 +201,7 @@ export function calculate(plan: PlanData): MonthResult[] {
 
     // —— 公积金部分 ——
     let fundBalance = 0, fundInterest = 0, fundContribution = 0
-    let fundOffset = 0, fundOffsetShortfall = 0, fundWithdrawal = 0, fundOutflow = 0, isFundAnchor = false
+    let fundOffset = 0, fundOffsetShortfall = 0, fundWithdrawal = 0, fundOutflow = 0, isFundCorrected = false
     if (fund) {
       const prevFundBalance = index === 0 ? fundInitialBalance : results[index - 1].fundBalance
       const fr = processFund(fund, month, prevFundBalance, fundAccrual, fundRate, fundInterestMonth)
@@ -212,7 +212,7 @@ export function calculate(plan: PlanData): MonthResult[] {
       fundOffset = fr.fundOffset
       fundWithdrawal = fr.fundWithdrawal
       fundOutflow = fr.fundOutflow
-      isFundAnchor = fr.isFundAnchor
+      isFundCorrected = fr.isFundCorrected
       // 房贷月供中公积金月冲没冲满、改由可支配存款承担的缺口（≥0）
       fundOffsetShortfall = Math.max(0, Math.abs(mortgageValue) - fundOffset)
     }
@@ -224,8 +224,8 @@ export function calculate(plan: PlanData): MonthResult[] {
     const monthlyIncome = flowIncome + investReturn + fundWithdrawal + offsetSurplus
     const monthlyExpense = flowExpense + fundOffsetShortfall
     const monthlyBalance = monthlyIncome - monthlyExpense
-    const anchor = plan.anchors.find(item => item.month === month)
-    const cumSavings = anchor ? anchor.actualSavings : prevCum + monthlyBalance
+    const correction = plan.corrections.find(item => item.month === month)
+    const cumSavings = correction ? correction.actualSavings : prevCum + monthlyBalance
     const totalAssets = cumSavings + fundBalance
 
     results.push({
@@ -237,7 +237,7 @@ export function calculate(plan: PlanData): MonthResult[] {
       monthlyExpense,
       monthlyBalance,
       cumSavings,
-      isAnchor: Boolean(anchor),
+      isCorrected: Boolean(correction),
       fundBalance,
       fundInterest,
       fundContribution,
@@ -245,7 +245,7 @@ export function calculate(plan: PlanData): MonthResult[] {
       fundOffsetShortfall,
       fundWithdrawal,
       fundOutflow,
-      isFundAnchor,
+      isFundCorrected,
       totalAssets,
     })
   }
@@ -257,7 +257,7 @@ export interface SnapshotComparison {
   month: number
   predicted: number | null   // 该月当时预计；快照无该月则 null
   actual: number             // 实际/当前累计（= MonthResult.cumSavings）
-  diff: number | null        // actual - predicted；仅当该月 isAnchor 且 predicted 非空时有值
+  diff: number | null        // actual - predicted；仅当该月 isCorrected 且 predicted 非空时有值
 }
 
 /**
@@ -273,7 +273,7 @@ export function buildComparison(
     const predicted =
       snapshot && r.month in snapshot.projection ? snapshot.projection[r.month] : null
     const diff =
-      predicted !== null && r.isAnchor ? r.cumSavings - predicted : null
+      predicted !== null && r.isCorrected ? r.cumSavings - predicted : null
     return {
       month: r.month,
       predicted,

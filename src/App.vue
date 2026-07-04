@@ -130,7 +130,7 @@ function onFundToggle(e: Event) {
   if (checked) {
     enableFund()
   } else {
-    if (window.confirm('关闭公积金将清空所有缴存/月冲/提取/锚点配置，确定？')) {
+    if (window.confirm('关闭公积金将清空所有缴存/月冲/提取/余额修正配置，确定？')) {
       disableFund()
     } else {
       ;(e.target as HTMLInputElement).checked = true

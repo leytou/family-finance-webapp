@@ -1,7 +1,7 @@
 import type { DriveStep } from 'driver.js'
 
 // 教程主题标识
-export type TourTopic = 'quickstart' | 'fund' | 'compare' | 'anchor' | 'all'
+export type TourTopic = 'quickstart' | 'fund' | 'compare' | 'correction' | 'all'
 
 export interface TourDef {
   key: Exclude<TourTopic, 'all'>
@@ -41,12 +41,12 @@ export const TOURS: Record<Exclude<TourTopic, 'all'>, TourDef> = {
       { element: el('view-compare'), popover: { title: '并排对比', description: '切到「对比」视图，把多套方案的结果并排比较。' } },
     ],
   },
-  anchor: {
-    key: 'anchor',
-    label: '🎯 储蓄目标核对',
+  correction: {
+    key: 'correction',
+    label: '🎯 实际存款修正',
     steps: [
-      { element: el('balance-col'), popover: { title: '设储蓄目标', description: '在月度流水的「存款」列点某个月，可设置该月的预期储蓄额（锚点）。' } },
-      { element: el('balance-col'), popover: { title: '看是否达标', description: '设了锚点的月份会高亮，并显示实际存款与目标的偏差。' } },
+      { element: el('balance-col'), popover: { title: '填入实际存款', description: '在月度流水的「存款」列点某个月，填入该月实际手头的存款（修正值），后续月份会从这个真实值接着推算。' } },
+      { element: el('balance-col'), popover: { title: '看修正效果', description: '做了修正的月份会高亮，之后的存款预估都以这个真实值为准重新滚动，让预估越来越贴近现实。' } },
     ],
   },
 }
@@ -56,7 +56,7 @@ export const TOUR_TOPICS: { key: TourTopic; label: string }[] = [
   { key: 'quickstart', label: TOURS.quickstart.label },
   { key: 'fund', label: TOURS.fund.label },
   { key: 'compare', label: TOURS.compare.label },
-  { key: 'anchor', label: TOURS.anchor.label },
+  { key: 'correction', label: TOURS.correction.label },
   { key: 'all', label: '🔁 重看全部' },
 ]
 
@@ -66,6 +66,6 @@ export function buildAllSteps(): DriveStep[] {
     ...TOURS.quickstart.steps,
     ...TOURS.fund.steps,
     ...TOURS.compare.steps,
-    ...TOURS.anchor.steps,
+    ...TOURS.correction.steps,
   ]
 }

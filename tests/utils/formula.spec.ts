@@ -12,7 +12,7 @@ function makeResult(overrides: Partial<MonthResult> = {}): MonthResult {
     monthlyExpense: 0,
     monthlyBalance: 0,
     cumSavings: 0,
-    isAnchor: false,
+    isCorrected: false,
     ...overrides,
   }
 }
@@ -63,16 +63,16 @@ describe('buildMonthFormula', () => {
     expect(lines).toEqual(['理财 = 上月存款(50,000) × 3% ÷ 12 = 125'])
   })
 
-  it('cumSavings：非锚点月展开上月存款+当月结余', () => {
-    const r = makeResult({ monthlyBalance: 6625, cumSavings: 56625, isAnchor: false })
+  it('cumSavings：非修正月展开上月存款+当月结余', () => {
+    const r = makeResult({ monthlyBalance: 6625, cumSavings: 56625, isCorrected: false })
     const { lines } = buildMonthFormula(r, 'cumSavings', { annualRate: 0.03, prevCum: 50000 })
     expect(lines).toEqual(['存款 = 上月存款(50,000) + 当月结余(6,625) = 56,625'])
   })
 
-  it('cumSavings：锚点月显示锚点值', () => {
-    const r = makeResult({ cumSavings: 108125, isAnchor: true })
+  it('cumSavings：修正月显示修正值', () => {
+    const r = makeResult({ cumSavings: 108125, isCorrected: true })
     const { lines } = buildMonthFormula(r, 'cumSavings', { annualRate: 0.03, prevCum: 50000 })
-    expect(lines).toEqual(['存款 = 锚点值(108,125)'])
+    expect(lines).toEqual(['存款 = 修正值(108,125)'])
   })
 
   it('禁用列不出现在收入/支出公式', () => {
@@ -146,24 +146,24 @@ describe('buildYearFormula', () => {
   it('startSavings：首年显示初始存款', () => {
     const s = makeSummary({ year: 2026, startSavings: 50000 })
     const { title, lines } = buildYearFormula(s, 'startSavings', {
-      isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 50000, prevYearEndSavings: 0, events: [],
+      isFirstYear: true, firstMonthIsCorrected: false, initialDeposit: 50000, prevYearEndSavings: 0, events: [],
     })
     expect(title).toBe('2026 - 年初存款')
     expect(lines).toEqual(['年初存款 = 初始存款(50,000)'])
   })
 
-  it('startSavings：首年首月锚点显示锚点值', () => {
+  it('startSavings：首年首月修正显示修正值', () => {
     const s = makeSummary({ year: 2026, startSavings: 150000 })
     const { lines } = buildYearFormula(s, 'startSavings', {
-      isFirstYear: true, firstMonthIsAnchor: true, initialDeposit: 0, prevYearEndSavings: 0, events: [],
+      isFirstYear: true, firstMonthIsCorrected: true, initialDeposit: 0, prevYearEndSavings: 0, events: [],
     })
-    expect(lines).toEqual(['年初存款 = 锚点值(150,000)'])
+    expect(lines).toEqual(['年初存款 = 修正值(150,000)'])
   })
 
   it('startSavings：非首年显示上年年末存款', () => {
     const s = makeSummary({ year: 2027, startSavings: 120000 })
     const { lines } = buildYearFormula(s, 'startSavings', {
-      isFirstYear: false, firstMonthIsAnchor: false, initialDeposit: 50000, prevYearEndSavings: 120000, events: [],
+      isFirstYear: false, firstMonthIsCorrected: false, initialDeposit: 50000, prevYearEndSavings: 120000, events: [],
     })
     expect(lines).toEqual(['年初存款 = 上年年末存款(120,000)'])
   })
@@ -171,7 +171,7 @@ describe('buildYearFormula', () => {
   it('investReturn：全年合计', () => {
     const s = makeSummary({ investReturn: 1560 })
     const { lines } = buildYearFormula(s, 'investReturn', {
-      isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 0, prevYearEndSavings: 0, events: [],
+      isFirstYear: true, firstMonthIsCorrected: false, initialDeposit: 0, prevYearEndSavings: 0, events: [],
     })
     expect(lines).toEqual(['理财收益 = 全年各月理财收益合计 = 1,560'])
   })
@@ -184,7 +184,7 @@ describe('buildYearFormula', () => {
       yearBalance: 103560,
     })
     const { title, lines } = buildYearFormula(s, 'yearBalance', {
-      isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 0, prevYearEndSavings: 0, events: [],
+      isFirstYear: true, firstMonthIsCorrected: false, initialDeposit: 0, prevYearEndSavings: 0, events: [],
     })
     expect(title).toBe('2026 - 年度结余')
     expect(lines).toEqual(['年度结余 = 年收入(121,560) - 年支出(18,000) = 103,560'])
@@ -193,7 +193,7 @@ describe('buildYearFormula', () => {
   it('endSavings：年初 + 年度结余', () => {
     const s = makeSummary({ startSavings: 50000, yearBalance: 103560, endSavings: 153560 })
     const { lines } = buildYearFormula(s, 'endSavings', {
-      isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 0, prevYearEndSavings: 0, events: [],
+      isFirstYear: true, firstMonthIsCorrected: false, initialDeposit: 0, prevYearEndSavings: 0, events: [],
     })
     expect(lines).toEqual(['年末存款 = 年初存款(50,000) + 年度结余(103,560) = 153,560'])
   })
@@ -201,7 +201,7 @@ describe('buildYearFormula', () => {
   it('events：各事件带正负展开', () => {
     const s = makeSummary({ year: 2026 })
     const { title, lines } = buildYearFormula(s, 'events', {
-      isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 0, prevYearEndSavings: 0,
+      isFirstYear: true, firstMonthIsCorrected: false, initialDeposit: 0, prevYearEndSavings: 0,
       events: [
         { name: '买房', amount: -500000 },
         { name: '卖房', amount: 300000 },
@@ -217,10 +217,10 @@ describe('buildMonthFormula · 公积金字段', () => {
     return {
       month: 202602, columnValues: [], totalFlow: 0, investReturn: 0,
       monthlyIncome: 0, monthlyExpense: 0, monthlyBalance: 0, cumSavings: 5000,
-      isAnchor: false,
+      isCorrected: false,
       fundBalance: 3000, fundInterest: 0, fundContribution: 2000,
       fundOffset: 1000, fundWithdrawal: 1000, fundOutflow: 2000,
-      isFundAnchor: false, totalAssets: 8000,
+      isFundCorrected: false, totalAssets: 8000,
       ...overrides,
     }
   }
@@ -280,7 +280,7 @@ describe('buildYearFormula · 公积金字段', () => {
       investReturn: 0, yearBalance: 0, endSavings: 5000,
     }
     const { lines } = buildYearFormula(summary, 'fundBalance', {
-      isFirstYear: true, firstMonthIsAnchor: false, initialDeposit: 0,
+      isFirstYear: true, firstMonthIsCorrected: false, initialDeposit: 0,
       prevYearEndSavings: 0, events: [],
     } as any)
     expect(lines[0]).toContain('年末公积金')

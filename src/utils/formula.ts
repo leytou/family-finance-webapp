@@ -105,8 +105,8 @@ export function buildMonthFormula(
       line = `结余 = 收入(${formatCurrency(result.monthlyIncome)}) - 支出(${formatCurrency(result.monthlyExpense)}) = ${formatCurrency(result.monthlyBalance)}`
       break
     case 'cumSavings':
-      line = result.isAnchor
-        ? `存款 = 锚点值(${formatCurrency(result.cumSavings)})`
+      line = result.isCorrected
+        ? `存款 = 修正值(${formatCurrency(result.cumSavings)})`
         : `存款 = 上月存款(${formatCurrency(ctx.prevCum)}) + 当月结余(${formatCurrency(result.monthlyBalance)}) = ${formatCurrency(result.cumSavings)}`
       break
     case 'fundOffset': {
@@ -155,7 +155,7 @@ export type YearFormulaField = 'startSavings' | 'investReturn' | 'yearBalance' |
 
 export interface YearFormulaContext {
   isFirstYear: boolean
-  firstMonthIsAnchor: boolean   // 首年首月是否锚点（仅 startSavings 首年分支使用）
+  firstMonthIsCorrected: boolean   // 首年首月是否修正（仅 startSavings 首年分支使用）
   initialDeposit: number
   prevYearEndSavings: number
   events: { name: string; amount: number }[]
@@ -187,8 +187,8 @@ export function buildYearFormula(
   switch (field) {
     case 'startSavings':
       if (ctx.isFirstYear) {
-        line = ctx.firstMonthIsAnchor
-          ? `年初存款 = 锚点值(${formatCurrency(summary.startSavings)})`
+        line = ctx.firstMonthIsCorrected
+          ? `年初存款 = 修正值(${formatCurrency(summary.startSavings)})`
           : `年初存款 = 初始存款(${formatCurrency(ctx.initialDeposit)})`
       } else {
         line = `年初存款 = 上年年末存款(${formatCurrency(ctx.prevYearEndSavings)})`

@@ -334,7 +334,7 @@
       "mode": "single"
     }
   ],
-  "anchors": [],
+  "corrections": [],
   "snapshots": [],
   "events": [
     {
@@ -407,6 +407,6 @@
         "amount": 100000
       }
     ],
-    "anchors": []
+    "corrections": []
   }
 }

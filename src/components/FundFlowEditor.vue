@@ -13,7 +13,7 @@ const props = defineProps<{
   withdrawals: FundWithdrawal[]  // 该月提取（初始化草稿）
   x: number
   y: number
-  anchorBalance?: number         // 该月已修正的实际余额（公积金锚点）；undefined=未修正
+  actualBalance?: number         // 该月已修正的实际余额（公积金余额修正）；undefined=未修正
 }>()
 
 const emit = defineEmits<{ close: [] }>()
@@ -27,8 +27,8 @@ const rows = ref<DraftRow[]>(
   props.withdrawals.map(w => ({ key: nextDraftKey(), name: w.name, amount: String(w.amount) })),
 )
 const dirty = ref(false)
-// 修正为实际余额（锚点）草稿：打开时取已存实际余额，未修正则空（0 视为有效值保留）
-const draftAnchor = ref<string>(props.anchorBalance != null ? String(props.anchorBalance) : '')
+// 实际余额修正草稿：打开时取已存实际余额，未修正则空（0 视为有效值保留）
+const draftCorrection = ref<string>(props.actualBalance != null ? String(props.actualBalance) : '')
 function markDirty() { dirty.value = true }
 const rootRef = ref<HTMLElement | null>(null)
 
@@ -46,14 +46,14 @@ function commit() {
       .map(r => ({ name: r.name, amount: Math.round(r.amount) }))
     store.replaceMonthWithdrawals(props.month, items)
   }
-  // 修正为实际余额（锚点）：留空=移除修正；非空且变化=写入；值未变化不写
-  const trimmed = draftAnchor.value.trim()
+  // 实际余额修正：留空=移除修正；非空且变化=写入；值未变化不写
+  const trimmed = draftCorrection.value.trim()
   if (trimmed === '') {
-    store.removeFundAnchor(props.month)
+    store.removeFundCorrection(props.month)
   } else {
     const num = Math.round(Number(trimmed))
-    if (Number.isFinite(num) && num !== props.anchorBalance) {
-      store.addFundAnchor(props.month, num)
+    if (Number.isFinite(num) && num !== props.actualBalance) {
+      store.addFundCorrection(props.month, num)
     }
   }
   emit('close')
@@ -138,14 +138,14 @@ onMounted(() => { rootRef.value?.focus() })
       <span class="tabular-nums">{{ formatCurrency(result.fundBalance) }}</span>
     </div>
 
-    <!-- 修正为实际余额（锚点）：留空=用上方流水余额，后续月份从此值继续累计 -->
+    <!-- 实际余额修正：留空=用上方流水余额，后续月份从此值继续累计 -->
     <div class="mt-1 flex items-center justify-between gap-4">
       <span class="text-ink-3">修正为实际余额</span>
       <input
-        v-model="draftAnchor"
+        v-model="draftCorrection"
         type="text"
         inputmode="numeric"
-        data-anchor-input
+        data-correction-input
         class="w-28 rounded-lg border border-line bg-surface px-2 py-1 text-right text-[12px] text-ink focus:border-brand focus:ring-2 focus:ring-brand/30"
         placeholder="留空=流水余额"
       />

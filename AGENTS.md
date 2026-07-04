@@ -39,7 +39,7 @@ docs/                 # 需求/方案/计划文档
 - **PlanData**: 顶层数据结构，含系统参数和现金流项目
 - **CashFlowItem**: 收入/支出项，含金额分段（AmountSegment）
 - **MonthResult**: 月度计算结果（收入、支出、投资收益、净储蓄、累计）
-- **MonthlyAnchor**: 月度锚点，用于校验预期储蓄
+- **MonthlyCorrection**: 实际存款修正，用于校验预期储蓄
 
 ## 开发约定
 

@@ -36,7 +36,7 @@ describe('真实数据：月度计算不变量审计', () => {
 
       approx(r.investReturn, (prevCum * sp.annualRate) / 12, '理财收益', r.month)
       approx(r.monthlyBalance, r.totalFlow + r.investReturn + r.fundOutflow, '本月结余', r.month)
-      if (!r.isAnchor) approx(r.cumSavings, prevCum + r.monthlyBalance, '月末存款', r.month)
+      if (!r.isCorrected) approx(r.cumSavings, prevCum + r.monthlyBalance, '月末存款', r.month)
       approx(r.totalAssets, r.cumSavings + r.fundBalance, '总资产', r.month)
       approx(r.monthlyIncome - r.monthlyExpense, r.monthlyBalance, '收入-支出=结余', r.month)
       approx(r.fundOutflow, r.fundWithdrawal + r.fundOffset, '公积金转出=提取+月冲', r.month)

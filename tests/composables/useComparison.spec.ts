@@ -8,7 +8,7 @@ function createTestPlan(overrides: Partial<PlanData> = {}): PlanData {
     version: 2,
     systemParams: { startMonth: 202601, annualRate: 0 },
     columns: [],
-    anchors: [],
+    corrections: [],
     snapshots: [],
     events: [],
     ...overrides,
@@ -22,7 +22,7 @@ describe('computeScenarioMetrics', () => {
       columns: [
         { id: 'salary', name: '工资', itemSets: { 202601: [{ id: 'i1', name: '', amount: 10000 }] } },
       ],
-      anchors: [],
+      corrections: [],
     })
 
     const metrics = computeScenarioMetrics('s1', '方案A', plan)
@@ -95,11 +95,11 @@ describe('computeScenarioMetrics', () => {
   })
 
   it('考虑投资收益的影响', () => {
-    // 使用锚点设置初始资金
+    // 使用修正设置初始资金
     const plan = createTestPlan({
       systemParams: { startMonth: 202601, annualRate: 0.12 },
       columns: [],
-      anchors: [{ month: 202601, actualSavings: 100000 }],
+      corrections: [{ month: 202601, actualSavings: 100000 }],
     })
 
     const metrics = computeScenarioMetrics('s1', '方案A', plan)

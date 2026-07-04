@@ -8,9 +8,9 @@ function mk(month: number, over: Partial<MonthResult> = {}): MonthResult {
     month,
     columnValues: [], totalFlow: 0, investReturn: 0,
     monthlyIncome: 0, monthlyExpense: 0, monthlyBalance: 0, cumSavings: 0,
-    isAnchor: false, fundBalance: 0, fundInterest: 0, fundContribution: 0,
+    isCorrected: false, fundBalance: 0, fundInterest: 0, fundContribution: 0,
     fundOffset: 0, fundOffsetShortfall: 0, fundWithdrawal: 0, fundOutflow: 0,
-    isFundAnchor: false, totalAssets: 0,
+    isFundCorrected: false, totalAssets: 0,
     ...over,
   }
 }
