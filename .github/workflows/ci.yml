@@ -20,7 +20,9 @@ jobs:
       - name: 安装 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 用 Node 24 / npm 11：与本地生成 package-lock.json 的环境一致，
+          # 避免 npm 版本差异导致 `npm ci` 报锁文件不同步。
+          node-version: 24
           cache: npm
 
       - name: 安装依赖
