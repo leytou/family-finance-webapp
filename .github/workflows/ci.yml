@@ -1,0 +1,33 @@
+# CI：每次提交 / PR 自动跑构建 + 测试
+# 通过后 README 顶部的 CI 徽章显示绿色，访客一眼能看出项目「是活的、构建通过」。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 类型检查 + 构建
+        run: npm run build
+
+      - name: 运行测试
+        run: npm run test

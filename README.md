@@ -5,12 +5,17 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.0-646cff.svg)](https://vitejs.dev/)
 [![Made with Vue 3](https://img.shields.io/badge/Made%20with-Vue%203-42b883.svg)](https://vuejs.org/)
+[![CI](https://github.com/leytou/family-finance-webapp/actions/workflows/ci.yml/badge.svg)](https://github.com/leytou/family-finance-webapp/actions/workflows/ci.yml)
 
 > **知止而后有定，定而后能静，静而后能安，安而后能虑，虑而后能得。** ——《大学》
 >
 > 焦虑源于未知。把未来的账算清楚，心就安了。
 >
 > 一个面向未来的家庭财务规划工具：把收入、房贷、公积金、理财收益填进去，看见未来几年每个月手上有多少钱。
+
+<p align="center">
+  <strong>▶️ <a href="https://leytou.github.io/family-finance-webapp/">立即在线体验</a></strong>　·　无需安装、无需注册，数据只存你自己的浏览器
+</p>
 
 ![主界面](docs/images/main.jpg)
 
