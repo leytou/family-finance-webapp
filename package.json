@@ -1,5 +1,5 @@
 {
-  "name": "family-finance-app",
+  "name": "family-finance-webapp",
   "version": "1.0.0",
   "private": true,
   "license": "MIT",
@@ -13,10 +13,10 @@
     "typescript"
   ],
   "author": "Leytou",
-  "homepage": "https://github.com/Leytou/family-finance-app#readme",
+  "homepage": "https://github.com/Leytou/family-finance-webapp#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Leytou/family-finance-app.git"
+    "url": "https://github.com/Leytou/family-finance-webapp.git"
   },
   "type": "module",
   "scripts": {

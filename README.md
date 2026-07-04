@@ -74,13 +74,13 @@
 
 ### 方式 1：在线网页 ✅ 建议
 
-直接打开：**https://leytou.github.io/family-finance-app/**
+直接打开：**https://leytou.github.io/family-finance-webapp/**
 
 > 🔒 **数据隐私**：即便用的是在线网页，所有财务数据也**只存在你自己的浏览器里**，不联网上传、无需注册账号——和离线版完全一样，数据绝不会离开你的设备。
 
 ### 方式 2：下载单文件网页（离线使用）
 
-从 [Releases](https://github.com/Leytou/family-finance-app/releases) 下载 `index.html`，**双击即可在浏览器打开使用**，无需安装、无需联网。
+从 [Releases](https://github.com/Leytou/family-finance-webapp/releases) 下载 `index.html`，**双击即可在浏览器打开使用**，无需安装、无需联网。
 
 - 一个文件就包含全部界面、计算和图表逻辑（基于 `vite-plugin-singlefile` 打包）。
 - 方便离线保存、备份，或直接发给家人使用。

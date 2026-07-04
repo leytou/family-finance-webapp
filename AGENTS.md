@@ -44,7 +44,7 @@ docs/                 # 需求/方案/计划文档
 ## 开发约定
 
 - Git 提交信息使用中文
-- 分支：feature/family-finance-app
+- 分支：feature/family-finance-webapp
 - 月份格式：YYYYMM（如 202601）
 - 金额单位：元，显示时用 `format.ts` 格式化
 - 不需要兼容旧数据
