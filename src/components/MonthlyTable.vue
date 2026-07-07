@@ -22,6 +22,9 @@ const props = defineProps<{
 const store = useStore()
 const columns = computed(() => store.data.value.columns)
 
+// 空列引导气泡是否被用户手动关闭（仅本次会话内记着；刷新页面可恢复提示）
+const hintDismissed = ref(false)
+
 // 公积金配置（未启用时为 undefined，专区不渲染）
 const fund = computed<FundConfig | undefined>(() => store.data.value.fund)
 
@@ -813,7 +816,7 @@ function getValueClass(value: number): string {
           </th>
 
           <!-- 添加列按钮 -->
-          <th class="px-0.5 py-0 text-center font-mono whitespace-nowrap">
+          <th class="relative px-0.5 py-0 text-center font-mono whitespace-nowrap">
             <button
               type="button"
               class="text-brand-600 hover:text-brand-700 font-bold text-lg leading-none"
@@ -822,6 +825,17 @@ function getValueClass(value: number): string {
             >
               +
             </button>
+            <!-- 空列引导气泡:还没有任何自定义收支列时常驻提示,新增第一列后随 columns 变化自动消失;可手动关闭 -->
+            <div v-if="columns.length === 0 && !hintDismissed" class="empty-col-hint font-sans" role="status">
+              <button
+                type="button"
+                class="empty-col-hint-close"
+                aria-label="关闭提示"
+                @click="hintDismissed = true"
+              >×</button>
+              点这里添加一列收支
+              <span class="block opacity-90">(如工资、房租)</span>
+            </div>
           </th>
 
           <!-- 专项固定列 -->
@@ -1254,5 +1268,65 @@ tbody tr:hover {
 /* hover 行内单元格同步变 surface-2，覆盖已编辑/修正的高亮 */
 tbody tr:hover td {
   background-color: #f8fafc;
+}
+/* 空列引导气泡：加号下方常驻 + 呼吸光，新增首列后随 v-if 消失 */
+.empty-col-hint {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  z-index: 30;
+  padding: 6px 22px 6px 10px;  /* 右侧留位给关闭按钮 */
+  border-radius: 8px;
+  background: rgb(79 70 229 / 0.8);  /* brand-600 加透明，更柔和 */
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;  /* 不挡下方单元格点击 */
+  box-shadow: 0 4px 16px -2px rgb(79 70 229 / 0.5);  /* 柔和光晕，随 opacity 一起呼吸 */
+  animation: empty-col-hint-breath 2.2s ease-in-out infinite;
+}
+/* 关闭按钮：气泡整体 pointer-events:none，按钮上单独放开点击 */
+.empty-col-hint-close {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: rgb(255 255 255 / 0.75);
+  font-size: 13px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.empty-col-hint-close:hover {
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+/* 气泡上方小三角，指向加号 */
+.empty-col-hint::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: rgb(79 70 229 / 0.8);  /* 与气泡同色 */
+  transform: translateX(-50%) rotate(45deg);
+}
+/* 呼吸：整体透明度渐变（含光晕与小三角），不做大小变化 */
+@keyframes empty-col-hint-breath {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
 }
 </style>
