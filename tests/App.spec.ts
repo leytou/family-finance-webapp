@@ -376,8 +376,8 @@ describe('App', () => {
 
     // 收起态：折叠头置 aria-expanded=false，内容容器被 v-show 隐藏（其内输入与开关随之不可见）
     expect(paramHeader.attributes('aria-expanded')).toBe('false')
-    // CollapsibleSection 根 div 内直接子 div 即 v-show 内容容器
-    const contentDiv = wrapper.get('[data-testid="param-row"]').get(':scope > div')
+    // v-show 内容容器：收起后被隐藏（按 testid 选中，不依赖 DOM 位置）
+    const contentDiv = wrapper.get('[data-testid="param-row"] [data-testid="collapse-content"]')
     expect(contentDiv.attributes('style') ?? '').toContain('display: none')
   })
 
