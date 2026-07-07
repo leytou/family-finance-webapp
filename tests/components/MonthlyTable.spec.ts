@@ -54,10 +54,39 @@ describe('MonthlyTable', () => {
 
     const headers = wrapper.findAll('th').map((cell) => cell.text())
     expect(headers).toContain('月份')
-    expect(headers).toContain('+')
     expect(headers).toContain('理财')
     expect(headers).toContain('结余')
     expect(headers).toContain('存款')
+    // 加号所在表头单元格因含引导气泡,文本不再恰好为「+」,改用按钮 aria-label 定位
+    expect(wrapper.find('[aria-label="添加新列"]').exists()).toBe(true)
+  })
+
+  it('没有自定义列时加号显示引导气泡,新增首列后消失', async () => {
+    const store = useSharedStore()
+    store.reset()
+    const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+
+    // 初始无任何自定义收支列 → 引导气泡常驻显示
+    expect(wrapper.find('.empty-col-hint').exists()).toBe(true)
+    expect(wrapper.text()).toContain('点这里添加一列收支')
+
+    // 新增第一列 → 气泡随 columns 变化自动消失
+    store.addColumn('工资')
+    await nextTick()
+    expect(wrapper.find('.empty-col-hint').exists()).toBe(false)
+  })
+
+  it('点气泡右上角关闭按钮后，引导气泡消失（本次会话不再出现）', async () => {
+    const store = useSharedStore()
+    store.reset()
+    const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+
+    // 初始气泡显示
+    expect(wrapper.find('.empty-col-hint').exists()).toBe(true)
+
+    // 点右上角关闭按钮 → 气泡消失
+    await wrapper.find('[aria-label="关闭提示"]').trigger('click')
+    expect(wrapper.find('.empty-col-hint').exists()).toBe(false)
   })
 
   it('显示月份和计算结果', async () => {
@@ -1032,7 +1061,17 @@ describe('MonthlyTable', () => {
       useStore()
       const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
       const headers = wrapper.findAll('th').map((c) => c.text())
-      expect(headers).toContain('专项')
+      // 专项 th 现含 i 图标与说明文本,不再恰好等于「专项」,改用包含判断
+      expect(headers.some((h) => h.includes('专项'))).toBe(true)
+    })
+
+    it('专项表头 i 图标带说明 tooltip(hover 显示,文本始终在 DOM)', async () => {
+      const useStore = await loadUseStore()
+      useStore()
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+      const tooltip = wrapper.find('.info-tooltip')
+      expect(tooltip.exists()).toBe(true)
+      expect(tooltip.text()).toContain('一次性')
     })
 
     it('无事件月专项格为空白', async () => {

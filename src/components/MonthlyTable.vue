@@ -22,6 +22,9 @@ const props = defineProps<{
 const store = useStore()
 const columns = computed(() => store.data.value.columns)
 
+// 空列引导气泡是否被用户手动关闭（仅本次会话内记着；刷新页面可恢复提示）
+const hintDismissed = ref(false)
+
 // 公积金配置（未启用时为 undefined，专区不渲染）
 const fund = computed<FundConfig | undefined>(() => store.data.value.fund)
 
@@ -813,7 +816,7 @@ function getValueClass(value: number): string {
           </th>
 
           <!-- 添加列按钮 -->
-          <th class="px-0.5 py-0 text-center font-mono whitespace-nowrap">
+          <th class="relative px-0.5 py-0 text-center font-mono whitespace-nowrap">
             <button
               type="button"
               class="text-brand-600 hover:text-brand-700 font-bold text-lg leading-none"
@@ -822,10 +825,29 @@ function getValueClass(value: number): string {
             >
               +
             </button>
+            <!-- 空列引导气泡:还没有任何自定义收支列时常驻提示,新增第一列后随 columns 变化自动消失;可手动关闭 -->
+            <div v-if="columns.length === 0 && !hintDismissed" class="empty-col-hint font-sans" role="status">
+              <button
+                type="button"
+                class="empty-col-hint-close"
+                aria-label="关闭提示"
+                @click="hintDismissed = true"
+              >×</button>
+              点这里添加一列收支
+              <span class="block opacity-90">(如工资、房租)</span>
+            </div>
           </th>
 
-          <!-- 专项固定列 -->
-          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l border-line">专项</th>
+          <!-- 专项固定列(右侧 i 图标 hover 显示用途说明) -->
+          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l border-line">
+            <span class="inline-flex items-center justify-end gap-0.5">
+              专项
+              <span class="info-trigger">
+                <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                <span class="info-tooltip">可添加一次性大额收支，如结婚、买房、年终奖等</span>
+              </span>
+            </span>
+          </th>
 
           <!-- 固定列 -->
           <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">理财</th>
@@ -1254,5 +1276,106 @@ tbody tr:hover {
 /* hover 行内单元格同步变 surface-2，覆盖已编辑/修正的高亮 */
 tbody tr:hover td {
   background-color: #f8fafc;
+}
+/* 空列引导气泡：加号下方常驻 + 呼吸光，新增首列后随 v-if 消失 */
+.empty-col-hint {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  z-index: 30;
+  padding: 6px 22px 6px 10px;  /* 右侧留位给关闭按钮 */
+  border-radius: 8px;
+  background: rgb(79 70 229 / 0.8);  /* brand-600 加透明，更柔和 */
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;  /* 不挡下方单元格点击 */
+  box-shadow: 0 4px 16px -2px rgb(79 70 229 / 0.5);  /* 柔和光晕，随 opacity 一起呼吸 */
+  animation: empty-col-hint-breath 2.2s ease-in-out infinite;
+}
+/* 关闭按钮：气泡整体 pointer-events:none，按钮上单独放开点击 */
+.empty-col-hint-close {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: rgb(255 255 255 / 0.75);
+  font-size: 13px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.empty-col-hint-close:hover {
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+/* 气泡上方小三角，指向加号 */
+.empty-col-hint::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: rgb(79 70 229 / 0.8);  /* 与气泡同色 */
+  transform: translateX(-50%) rotate(45deg);
+}
+/* 呼吸：整体透明度渐变（含光晕与小三角），不做大小变化 */
+@keyframes empty-col-hint-breath {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+/* 专项列表头 i 图标与简约说明 tooltip（hover 显示） */
+.info-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+}
+.info-icon {
+  color: #8a93a6;            /* ink-3，次要灰，不抢眼 */
+  transition: color 0.15s ease;
+}
+.info-trigger:hover .info-icon {
+  color: #4f46e5;            /* brand-600，hover 转主色 */
+}
+.info-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;                  /* 右对齐图标，向左展开，避免溢出表格右边界 */
+  z-index: 40;
+  min-width: 10rem;
+  max-width: 16rem;
+  padding: 6px 8px;
+  border: 1px solid #e4e8f1; /* line */
+  border-radius: 6px;
+  background: #ffffff;       /* surface */
+  color: #5b6678;            /* ink-2 */
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 4px 14px -4px rgba(26, 34, 51, 0.18);
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;      /* 不挡下方单元格，且避免移入时闪烁 */
+}
+.info-trigger:hover .info-tooltip {
+  opacity: 1;
+  transform: translateY(0);
 }
 </style>

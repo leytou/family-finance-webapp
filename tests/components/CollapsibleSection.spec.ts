@@ -73,8 +73,18 @@ describe('CollapsibleSection', () => {
     expect(wrapper.find('[data-testid="collapse-icon"]').exists()).toBe(false)
   })
 
-  it('sticky 为真时折叠头带 sticky 类', () => {
+  it('sticky 为真时外层行带 sticky 类（钉顶整行而非小块）', () => {
     const wrapper = mountSection({ collapsed: false, title: '月度流水', sticky: true })
-    expect(wrapper.get('button').classes()).toContain('sticky')
+    expect(wrapper.get('[data-testid="collapse-header-row"]').classes()).toContain('sticky')
+  })
+
+  it('点击标题块外的行空白不触发展开/收起，点小块仍触发', async () => {
+    const wrapper = mountSection({ collapsed: false, title: '参数' })
+    // 点击外层行容器（标题小块之外的空白区域）—— 不触发
+    await wrapper.get('[data-testid="collapse-header-row"]').trigger('click')
+    expect(wrapper.emitted('update:collapsed')).toBeUndefined()
+    // 点击标题小块本身 —— 仍触发
+    await wrapper.get('button').trigger('click')
+    expect(wrapper.emitted('update:collapsed')).toEqual([[true]])
   })
 })

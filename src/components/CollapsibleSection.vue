@@ -38,28 +38,34 @@ const iconSvg = computed(() => (props.icon ? ICONS[props.icon] : ''))
 
 <template>
   <div>
-    <!-- 折叠头：四个区块复用，统一为「箭头 + 图标 + 标题」，保证入口风格一致 -->
-    <button
-      type="button"
-      data-testid="collapse-header"
-      class="font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2 px-4 py-1.5 flex items-center gap-2 bg-surface w-full text-left hover:bg-surface-2"
+    <!-- 折叠头：四个区块复用，统一为「箭头 + 图标 + 标题」 -->
+    <!-- 外层行容器：承担整行外观与钉顶/分隔，不响应点击，避免整行成为热区 -->
+    <div
+      data-testid="collapse-header-row"
+      class="px-4 py-1.5 flex items-center bg-surface"
       :class="{ 'sticky top-0 z-1': sticky }"
-      :aria-expanded="!collapsed"
-      @click="toggle"
     >
-      <span data-testid="collapse-arrow" aria-hidden="true">{{ collapsed ? '▸' : '▾' }}</span>
-      <span v-if="index" data-testid="collapse-index" class="text-brand-600 font-bold">{{ index }}</span>
-      <span
-        v-if="iconSvg"
-        v-html="iconSvg"
-        data-testid="collapse-icon"
-        class="inline-flex items-center shrink-0 text-brand-600"
-        aria-hidden="true"
-      />
-      {{ title }}
-    </button>
+      <button
+        type="button"
+        data-testid="collapse-header"
+        class="inline-flex items-center gap-2 font-mono text-[10.5px] tracking-[0.18em] uppercase text-ink-2 rounded px-1.5 py-0.5 hover:bg-surface-2 cursor-pointer"
+        :aria-expanded="!collapsed"
+        @click="toggle"
+      >
+        <span data-testid="collapse-arrow" aria-hidden="true">{{ collapsed ? '▸' : '▾' }}</span>
+        <span v-if="index" data-testid="collapse-index" class="text-brand-600 font-bold">{{ index }}</span>
+        <span
+          v-if="iconSvg"
+          v-html="iconSvg"
+          data-testid="collapse-icon"
+          class="inline-flex items-center shrink-0 text-brand-600"
+          aria-hidden="true"
+        />
+        {{ title }}
+      </button>
+    </div>
     <!-- v-show 保留 DOM：避免展开后输入框重新挂载导致失焦/丢值 -->
-    <div v-show="!collapsed">
+    <div v-show="!collapsed" data-testid="collapse-content">
       <slot />
     </div>
   </div>
