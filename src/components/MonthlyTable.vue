@@ -838,8 +838,16 @@ function getValueClass(value: number): string {
             </div>
           </th>
 
-          <!-- 专项固定列 -->
-          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l border-line">专项</th>
+          <!-- 专项固定列(右侧 i 图标 hover 显示用途说明) -->
+          <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap border-l border-line">
+            <span class="inline-flex items-center justify-end gap-0.5">
+              专项
+              <span class="info-trigger">
+                <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                <span class="info-tooltip">可添加一次性大额收支，如结婚、买房、年终奖等</span>
+              </span>
+            </span>
+          </th>
 
           <!-- 固定列 -->
           <th class="px-0.5 py-0 text-right tabular-nums font-mono font-semibold whitespace-nowrap">理财</th>
@@ -1328,5 +1336,46 @@ tbody tr:hover td {
 @keyframes empty-col-hint-breath {
   0%, 100% { opacity: 0.7; }
   50%      { opacity: 1; }
+}
+/* 专项列表头 i 图标与简约说明 tooltip（hover 显示） */
+.info-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+}
+.info-icon {
+  color: #8a93a6;            /* ink-3，次要灰，不抢眼 */
+  transition: color 0.15s ease;
+}
+.info-trigger:hover .info-icon {
+  color: #4f46e5;            /* brand-600，hover 转主色 */
+}
+.info-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;                  /* 右对齐图标，向左展开，避免溢出表格右边界 */
+  z-index: 40;
+  min-width: 10rem;
+  max-width: 16rem;
+  padding: 6px 8px;
+  border: 1px solid #e4e8f1; /* line */
+  border-radius: 6px;
+  background: #ffffff;       /* surface */
+  color: #5b6678;            /* ink-2 */
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 4px 14px -4px rgba(26, 34, 51, 0.18);
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;      /* 不挡下方单元格，且避免移入时闪烁 */
+}
+.info-trigger:hover .info-tooltip {
+  opacity: 1;
+  transform: translateY(0);
 }
 </style>

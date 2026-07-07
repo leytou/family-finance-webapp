@@ -1061,7 +1061,17 @@ describe('MonthlyTable', () => {
       useStore()
       const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
       const headers = wrapper.findAll('th').map((c) => c.text())
-      expect(headers).toContain('专项')
+      // 专项 th 现含 i 图标与说明文本,不再恰好等于「专项」,改用包含判断
+      expect(headers.some((h) => h.includes('专项'))).toBe(true)
+    })
+
+    it('专项表头 i 图标带说明 tooltip(hover 显示,文本始终在 DOM)', async () => {
+      const useStore = await loadUseStore()
+      useStore()
+      const wrapper = mount(MonthlyTable, { props: { results: [createResult()] } })
+      const tooltip = wrapper.find('.info-tooltip')
+      expect(tooltip.exists()).toBe(true)
+      expect(tooltip.text()).toContain('一次性')
     })
 
     it('无事件月专项格为空白', async () => {
