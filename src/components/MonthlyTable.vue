@@ -14,6 +14,7 @@ import { useStore } from '../composables/useStore'
 import { buildComparison, resolveColumnValue, hasColumnValue, resolveFundOffset, resolveColumnItems } from '../composables/useCalculation'
 import { useClickOutside } from '../composables/useClickOutside'
 import { useColumnDrag } from '../composables/useColumnDrag'
+import { useEventDrag } from '../composables/useEventDrag'
 
 const props = defineProps<{
   results: MonthResult[]
@@ -173,6 +174,16 @@ const {
   onDrop,
   onDragEnd,
 } = useColumnDrag(store.moveColumn)
+
+// 专项拖转（专项格按住拖到另一月，整组搬运、合并）
+const {
+  draggingMonth,
+  dropTargetMonth,
+  onDragStart: onEventDragStart,
+  onDragOver: onEventDragOver,
+  onDrop: onEventDrop,
+  onDragEnd: onEventDragEnd,
+} = useEventDrag(store.moveMonthEvents)
 
 // 快照对比
 const snapshots = computed(() => store.data.value.snapshots)
@@ -947,14 +958,24 @@ function getValueClass(value: number): string {
           <!-- 添加列占位 -->
           <td class="px-0.5 py-0"></td>
 
-          <!-- 专项单元格 -->
+          <!-- 专项单元格（支持拖转：按住拖到另一月，整组搬运并合并） -->
           <td
+            :draggable="eventInfo(result.month).count > 0"
             class="px-0.5 py-0 text-right tabular-nums whitespace-nowrap cursor-pointer border-l border-line"
-            :class="getValueClass(eventInfo(result.month).net)"
+            :class="[
+              getValueClass(eventInfo(result.month).net),
+              draggingMonth === result.month ? 'opacity-50' : '',
+              dropTargetMonth === result.month && draggingMonth !== null && draggingMonth !== result.month
+                ? 'drag-drop-target' : '',
+            ]"
             :aria-label="`编辑 ${formatMonth(result.month)} 专项`"
             @click="openEventEditor(result.month, $event)"
             @mouseenter="showEventDetail(result.month, $event)"
             @mouseleave="hideEventDetail"
+            @dragstart="onEventDragStart(result.month, $event)"
+            @dragover="onEventDragOver(result.month, $event)"
+            @drop="onEventDrop(result.month, $event)"
+            @dragend="onEventDragEnd"
           >
             <template v-if="eventInfo(result.month).count > 0">
               {{ formatCurrency(eventInfo(result.month).net) }}
@@ -1408,5 +1429,10 @@ tbody tr.current-month td {
 .info-trigger:hover .info-tooltip {
   opacity: 1;
   transform: translateY(0);
+}
+/* 专项拖转落点高亮：靛蓝描边，不占布局，区别于已编辑的淡蓝底 */
+.drag-drop-target {
+  outline: 2px solid #6366f1;   /* brand-500 */
+  outline-offset: -2px;
 }
 </style>

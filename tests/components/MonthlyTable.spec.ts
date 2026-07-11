@@ -1055,6 +1055,102 @@ describe('MonthlyTable', () => {
     })
   })
 
+  describe('专项拖转', () => {
+    function fireDrag(el: Element, type: string): void {
+      // useEventDrag 的 handler 对 dataTransfer 做了空值保护，只用 preventDefault，不读坐标，
+      // 故用普通 Event 触发即可（无需 MouseEvent / mockRect）。
+      el.dispatchEvent(new Event(type, { bubbles: true, cancelable: true }))
+    }
+
+    it('有事件的专项格可拖拽，空月格不可拖', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+
+      const wrapper = mount(MonthlyTable, {
+        props: { results: [createResult({ month: 202601 }), createResult({ month: 202602 })] },
+      })
+
+      const srcCell = wrapper.find('[aria-label="编辑 2026-01 专项"]')
+      const emptyCell = wrapper.find('[aria-label="编辑 2026-02 专项"]')
+      expect(srcCell.attributes('draggable')).toBe('true')
+      // 空月格 :draggable 渲染为 "false"（枚举属性），不可拖即不等于 "true"
+      expect(emptyCell.attributes('draggable')).not.toBe('true')
+    })
+
+    it('拖拽专项格把事件搬到目标月（源月清空、合并）', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+      store.replaceMonthEvents(202603, [{ name: '换车', amount: -200000 }])
+
+      const wrapper = mount(MonthlyTable, {
+        props: {
+          results: [
+            createResult({ month: 202601 }),
+            createResult({ month: 202602 }),
+            createResult({ month: 202603 }),
+          ],
+        },
+      })
+
+      const src = wrapper.find('[aria-label="编辑 2026-01 专项"]').element
+      const dst = wrapper.find('[aria-label="编辑 2026-03 专项"]').element
+      fireDrag(src, 'dragstart')
+      await nextTick()
+      fireDrag(dst, 'dragover')
+      await nextTick()
+      fireDrag(dst, 'drop')
+      await nextTick()
+
+      const names = store.data.value.events
+        .filter((e) => e.month === 202603)
+        .map((e) => e.name)
+        .sort()
+      expect(names).toEqual(['买房', '换车'])
+      expect(store.data.value.events.filter((e) => e.month === 202601)).toEqual([])
+    })
+
+    it('dragover 后源格半透明、目标格高亮', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+
+      const wrapper = mount(MonthlyTable, {
+        props: { results: [createResult({ month: 202601 }), createResult({ month: 202602 })] },
+      })
+
+      const src = wrapper.find('[aria-label="编辑 2026-01 专项"]').element
+      const dst = wrapper.find('[aria-label="编辑 2026-02 专项"]').element
+      fireDrag(src, 'dragstart')
+      await nextTick()
+      fireDrag(dst, 'dragover')
+      await nextTick()
+
+      expect(wrapper.find('[aria-label="编辑 2026-01 专项"]').classes()).toContain('opacity-50')
+      expect(wrapper.find('[aria-label="编辑 2026-02 专项"]').classes()).toContain('drag-drop-target')
+    })
+
+    it('拖回自身月份无变化', async () => {
+      const store = useSharedStore()
+      store.reset()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+
+      const wrapper = mount(MonthlyTable, {
+        props: { results: [createResult({ month: 202601 })] },
+      })
+      const cell = wrapper.find('[aria-label="编辑 2026-01 专项"]').element
+      fireDrag(cell, 'dragstart')
+      await nextTick()
+      fireDrag(cell, 'dragover')
+      await nextTick()
+      fireDrag(cell, 'drop')
+      await nextTick()
+
+      expect(store.data.value.events.filter((e) => e.month === 202601)).toHaveLength(1)
+    })
+  })
+
   describe('专项事件列', () => {
     it('表头包含"专项"固定列', async () => {
       const useStore = await loadUseStore()

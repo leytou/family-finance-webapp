@@ -1263,6 +1263,93 @@ describe('useStore', () => {
     })
   })
 
+  describe('moveMonthEvents', () => {
+    it('把源月事件整组搬到目标月（源月清空）', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+
+      store.moveMonthEvents(202601, 202603)
+
+      expect(store.data.value.events.filter((e) => e.month === 202601)).toEqual([])
+      expect(store.data.value.events.filter((e) => e.month === 202603).map((e) => e.name)).toEqual(['买房'])
+    })
+
+    it('目标月已有事件时合并（保留原有 + 并入）', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+      store.replaceMonthEvents(202603, [{ name: '换车', amount: -200000 }])
+
+      store.moveMonthEvents(202601, 202603)
+
+      const names = store.data.value.events
+        .filter((e) => e.month === 202603)
+        .map((e) => e.name)
+        .sort()
+      expect(names).toEqual(['买房', '换车'])
+      expect(store.data.value.events.filter((e) => e.month === 202601)).toEqual([])
+    })
+
+    it('from 等于 to 时无变化', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+
+      store.moveMonthEvents(202601, 202601)
+
+      expect(store.data.value.events.filter((e) => e.month === 202601)).toHaveLength(1)
+    })
+
+    it('源月无事件时无变化', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202603, [{ name: '换车', amount: -200000 }])
+
+      store.moveMonthEvents(202601, 202603)
+
+      expect(store.data.value.events.filter((e) => e.month === 202601)).toEqual([])
+      expect(store.data.value.events.filter((e) => e.month === 202603)).toHaveLength(1)
+    })
+
+    it('多笔事件整组一起搬到目标月，id/name/amount 完整保留', async () => {
+      const useStore = await loadUseStore()
+      const store = useStore()
+      store.replaceMonthEvents(202601, [
+        { name: '买房', amount: -2000000 },
+        { name: '年终奖', amount: 100000 },
+      ])
+
+      store.moveMonthEvents(202601, 202603)
+
+      const atTarget = store.data.value.events.filter((e) => e.month === 202603)
+      expect(atTarget.map((e) => e.name).sort()).toEqual(['买房', '年终奖'])
+      const bought = atTarget.find((e) => e.name === '买房')
+      expect(bought?.amount).toBe(-2000000)
+      expect(bought?.id).toBeDefined()
+    })
+
+    it('保存后重新加载合并结果保留', async () => {
+      let useStore = await loadUseStore()
+      const store1 = useStore()
+      store1.replaceMonthEvents(202601, [{ name: '买房', amount: -2000000 }])
+      store1.replaceMonthEvents(202603, [{ name: '换车', amount: -200000 }])
+      store1.moveMonthEvents(202601, 202603)
+      store1.save()
+
+      vi.resetModules()
+      useStore = await loadUseStore()
+      const store2 = useStore()
+
+      const names = store2.data.value.events
+        .filter((e) => e.month === 202603)
+        .map((e) => e.name)
+        .sort()
+      expect(names).toEqual(['买房', '换车'])
+      expect(store2.data.value.events.filter((e) => e.month === 202601)).toEqual([])
+    })
+  })
+
   it('单值编辑写入一笔 name 为空的明细组', async () => {
     const useStore = await loadUseStore()
     const store = useStore()

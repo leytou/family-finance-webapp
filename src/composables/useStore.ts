@@ -472,6 +472,16 @@ export function useStore() {
     }
   }
 
+  // 把源月所有专项整组搬到目标月（移动 + 合并）。
+  // 不删除目标月原有事件，源月事件直接并入；from===to 无操作。
+  function moveMonthEvents(fromMonth: number, toMonth: number): void {
+    if (fromMonth === toMonth) return
+    const plan = getActivePlan()
+    for (const e of plan.events) {
+      if (e.month === fromMonth) e.month = toMonth
+    }
+  }
+
   function addCorrection(month: number, actualSavings: number) {
     const plan = getActivePlan()
     const existing = plan.corrections.findIndex(correction => correction.month === month)
@@ -698,6 +708,7 @@ export function useStore() {
     setColumnMode,
     syncYearly,
     replaceMonthEvents,
+    moveMonthEvents,
     addCorrection,
     removeCorrection,
     addSnapshot,
