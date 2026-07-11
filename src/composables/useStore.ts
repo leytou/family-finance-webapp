@@ -278,7 +278,11 @@ export function useStore() {
         resetSnapshot = null
         if (saveTimeout) clearTimeout(saveTimeout)
         saveTimeout = setTimeout(() => {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedWorkspace?.value))
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedWorkspace?.value))
+          } catch {
+            // localStorage 不可用或写入失败（隐私模式 / 配额超限 / 测试环境已销毁）时静默跳过
+          }
           saveTimeout = null
         }, 300)
       },
