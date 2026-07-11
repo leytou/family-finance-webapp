@@ -360,6 +360,25 @@ describe('useStore', () => {
     expect(JSON.parse(localStorage.getItem('family-finance-plan') ?? '{}').scenarios[0].plan.systemParams.annualRate).toBe(0.06)
   })
 
+  it('自动保存回调在 localStorage 不可用时不抛错', async () => {
+    vi.useFakeTimers()
+    const useStore = await loadUseStore()
+    const store = useStore()
+
+    // 触发一次数据变更，启动 300ms 防抖保存
+    store.data.value.systemParams.annualRate = 0.05
+    await nextTick()
+
+    // 模拟定时器触发时 localStorage 已不可用
+    // （测试环境 jsdom 销毁后、隐私模式、SSR 等场景）
+    vi.stubGlobal('localStorage', undefined)
+
+    // 推进定时器：回调应静默跳过，不抛 ReferenceError / TypeError
+    expect(() => vi.advanceTimersByTime(300)).not.toThrow()
+
+    vi.unstubAllGlobals()
+  })
+
   it('旧格式数据（version 1）加载时返回默认 Workspace', async () => {
     localStorage.setItem(
       'family-finance-plan',
