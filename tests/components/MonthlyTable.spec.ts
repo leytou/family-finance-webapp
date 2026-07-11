@@ -1717,3 +1717,66 @@ describe('右键切换明细/单值', () => {
     expect(col.mode).toBe('single')
   })
 })
+
+describe('MonthlyTable · 当前月标记', () => {
+  beforeEach(() => {
+    // 固定系统时间到 2026-07-11,使 getCurrentMonth() 稳定返回 202607
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 6, 11)) // 月份 0-based:6 = 7 月
+    localStorage.clear()
+    vi.resetModules()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  it('当前月行有 current-month 标记 class,其他行没有', async () => {
+    const store = useSharedStore()
+    store.reset()
+    const results = [
+      createResult({ month: 202606 }),
+      createResult({ month: 202607 }), // 当前月
+      createResult({ month: 202608 }),
+    ]
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows[0].classes()).not.toContain('current-month')
+    expect(rows[1].classes()).toContain('current-month')
+    expect(rows[2].classes()).not.toContain('current-month')
+  })
+
+  it('当前月行的月份单元格显示「今」徽标', async () => {
+    const store = useSharedStore()
+    store.reset()
+    const results = [createResult({ month: 202607 })]
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const monthCell = wrapper.findAll('tbody tr')[0].findAll('td')[0]
+    expect(monthCell.text()).toContain('今')
+    expect(monthCell.find('.now-badge').exists()).toBe(true)
+  })
+
+  it('非当前月行不显示「今」徽标', async () => {
+    const store = useSharedStore()
+    store.reset()
+    const results = [createResult({ month: 202606 })]
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const monthCell = wrapper.findAll('tbody tr')[0].findAll('td')[0]
+    expect(monthCell.find('.now-badge').exists()).toBe(false)
+    expect(monthCell.text()).not.toContain('今')
+  })
+
+  it('当前月不在表内(全为未来)时,无任何 current-month 行与「今」徽标', async () => {
+    const store = useSharedStore()
+    store.reset()
+    const results = [
+      createResult({ month: 202608 }),
+      createResult({ month: 202609 }),
+    ]
+    const wrapper = mount(MonthlyTable, { props: { results } })
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows.every(r => !r.classes().includes('current-month'))).toBe(true)
+    expect(wrapper.findAll('.now-badge')).toHaveLength(0)
+  })
+})
