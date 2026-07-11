@@ -8,7 +8,7 @@ import EventDetailPopover from './EventDetailPopover.vue'
 import FundFlowEditor from './FundFlowEditor.vue'
 import type { MonthResult, FlowColumn, MilestoneEvent, FundConfig, FundWithdrawal } from '../types'
 import { formatCurrency } from '../utils/format'
-import { formatMonth } from '../utils/month'
+import { formatMonth, getCurrentMonth } from '../utils/month'
 import { computePopoverX } from '../utils/popover'
 import { useStore } from '../composables/useStore'
 import { buildComparison, resolveColumnValue, hasColumnValue, resolveFundOffset, resolveColumnItems } from '../composables/useCalculation'
@@ -21,6 +21,9 @@ const props = defineProps<{
 
 const store = useStore()
 const columns = computed(() => store.data.value.columns)
+
+// 当前真实月份(YYYYMM,如 202607),用于标记月度表「本月」行(上下淡分割线 + 「今」徽标)
+const currentMonth = getCurrentMonth()
 
 // 空列引导气泡是否被用户手动关闭（仅本次会话内记着；刷新页面可恢复提示）
 const hintDismissed = ref(false)
@@ -873,9 +876,18 @@ function getValueClass(value: number): string {
         <tr
           v-for="result in results"
           :key="result.month"
-          :class="result.month % 100 === 12 ? 'border-b-2 border-line' : 'border-b'"
+          :class="[
+            result.month % 100 === 12 ? 'border-b-2 border-line' : 'border-b',
+            { 'current-month': result.month === currentMonth },
+          ]"
         >
-          <td class="px-0.5 py-0 whitespace-nowrap">{{ formatMonth(result.month) }}</td>
+          <td class="px-0.5 py-0 whitespace-nowrap">
+            {{ formatMonth(result.month) }}<span
+              v-if="result.month === currentMonth"
+              class="now-badge"
+              aria-label="本月"
+            >今</span>
+          </td>
 
           <!-- 动态现金流列单元格 -->
           <td
@@ -1276,6 +1288,25 @@ tbody tr:hover {
 /* hover 行内单元格同步变 surface-2，覆盖已编辑/修正的高亮 */
 tbody tr:hover td {
   background-color: #f8fafc;
+}
+/* 当前月（本月）行：上下淡靛蓝细线，形成克制的时间分界标记 */
+tbody tr.current-month td {
+  border-top: 1px solid #c7d2fe;    /* brand-200 */
+  border-bottom: 1px solid #c7d2fe; /* brand-200 */
+}
+/* 「今」徽标：主色圆角底 + 白字，挂在当前月月份文字后 */
+.now-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #4f46e5;   /* brand-600 */
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  vertical-align: middle;
 }
 /* 空列引导气泡：加号下方常驻 + 呼吸光，新增首列后随 v-if 消失 */
 .empty-col-hint {
